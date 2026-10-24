@@ -11,6 +11,7 @@
     "start": "next start",
     "lint": "eslint",
     "test:shopping": "node --experimental-strip-types --test tests/shopping.test.ts",
+    "test:shopping:database": "node --experimental-strip-types --test tests/visit-database.test.mts",
     "test:shopping:e2e": "node tests/shopping.e2e.mjs",
     "test:backend": "pnpm --filter @kago/backend test",
     "typecheck:backend": "pnpm --filter @kago/backend typecheck",
@@ -27,6 +28,7 @@
     "react-dom": "19.2.8"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.11",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

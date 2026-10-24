@@ -1,7 +1,7 @@
 import { BackendError, getBackendIdentity, toBackendError, type createHeadlessBackend } from "@kago/backend";
 
 type Client = ReturnType<typeof createHeadlessBackend>;
-export type ShoppingStore = { id: string; slug: string; name: string; branch_name: string };
+export type ShoppingStore = { id: string; slug: string; name: string; branch_name: string | null };
 export type ShoppingVisit = { id: string; store_id: string; cart_version: number; started_at: string };
 export type ShoppingLine = { productId: string; code: string; name: string; category: string; price: number; quantity: number };
 export type ShoppingContext = {
@@ -15,8 +15,12 @@ export type ShoppingContext = {
 export const isUuid = (value: unknown): value is string => typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 
 export function shoppingError(error: unknown): BackendError {
-  const code = (error as { code?: string } | null)?.code;
+  const detail = error as { code?: string; message?: string } | null;
+  const code = detail?.code;
   if (["42P01", "42703", "PGRST200", "PGRST202", "PGRST204", "PGRST205"].includes(code ?? "")) return new BackendError("database_not_ready");
+  // DB-02/03 explicitly revoke table grants until DB-06. A missing DB grant is
+  // setup still pending, not a wrong customer login. Business/RLS refusals stay 403.
+  if (code === "42501" && /^permission denied for (table|schema|function)\b/i.test(detail?.message ?? "")) return new BackendError("database_not_ready");
   return toBackendError(error);
 }
 
@@ -26,7 +30,7 @@ export async function loadShoppingContext(client: Client, selectedVisit: unknown
   try {
     const [storesResult, visitsResult] = await Promise.all([
       client.from("stores").select("id,slug,name,branch_name").order("name"),
-      client.from("visits").select("id,store_id,cart_version,started_at").eq("user_id", userId).eq("status", "active"),
+      client.from("visits").select("id,store_id,cart_version,started_at").eq("user_id", userId).eq("status", "active").order("started_at", { ascending: false }),
     ]);
     if (storesResult.error) throw storesResult.error;
     if (visitsResult.error) throw visitsResult.error;
@@ -61,7 +65,8 @@ export async function startShoppingVisit(client: Client, input: { storeId: strin
   await getBackendIdentity(client, "customer");
   if (!isUuid(input.storeId) || (input.previousVisitId !== null && !isUuid(input.previousVisitId))) throw new BackendError("forbidden");
   try {
-    // DB-03/06 contract: atomic resume/start, auth.uid(), active-visit uniqueness.
+    // APP-01's invoker-rights function uses the DB-02/03 schema. DB-06 must
+    // permit its table operations; do not replace this with admin credentials.
     const result = await client.rpc("app_start_visit", {
       p_store_id: input.storeId,
       p_start_new: input.startNew,
