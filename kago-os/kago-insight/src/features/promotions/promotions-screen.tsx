@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { deactivatePromotion, savePromotion } from "@/lib/data-source";
+import { deactivatePromotion, savePromotion } from "@/lib/actions";
 import { channelLabel } from "@/lib/labels";
 import { formatDate, toDateInputValue } from "@/lib/format";
 import { EmptyState } from "@/components/state";

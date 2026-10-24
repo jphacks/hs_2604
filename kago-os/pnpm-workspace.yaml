@@ -1,6 +1,7 @@
 packages:
   - kago-app
   - kago-ads
+  - kago-insight
   - shared/backend
 
 allowBuilds:

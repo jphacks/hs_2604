@@ -7,6 +7,7 @@ const tabs = [
   { href: "/review", label: "広告審査", issue: "INS-01" },
   { href: "/promotions", label: "販促設定", issue: "INS-02" },
   { href: "/metrics", label: "成果", issue: "INS-03" },
+  { href: "/coupons", label: "クーポン効果", issue: "DEMO-09" },
 ];
 
 export function Nav() {
