@@ -9,7 +9,7 @@
     "creative_id": "CR1",
     "creative_version_id": "CR1-v2",
     "creative_version": 2,
-    "image_path": "/mock/creatives/cr1-v2.svg",
+    "image_path": "creatives/CR1/v2.svg",
     "headline": "トマトパスタソース 298円",
     "product_id": "P-SAUCE",
     "product_name": "トマトパスタソース",
@@ -17,12 +17,47 @@
     "channels": ["app", "signage"],
     "requested_period": {
       "starts_at": "2026-10-25T00:00:00+09:00",
-      "ends_at": "2026-11-30T23:59:59+09:00"
+      "ends_at": "2026-12-01T00:00:00+09:00"
     },
+    "message": "価格を入れた第2版です。ご確認ください。",
+    "revision": 2,
     "status": "submitted",
-    "review_comment": "価格表示を入れてください",
-    "review_comment_is_previous": true,
-    "submitted_at": "2026-10-25T14:20:00+09:00"
+    "review_comment": null,
+    "submitted_at": "2026-10-25T14:20:00+09:00",
+    "history": [
+      {
+        "revision": 1,
+        "creative_version_id": "CR1-v1",
+        "creative_version": 1,
+        "image_path": "creatives/CR1/v1.svg",
+        "headline": "トマトパスタソース",
+        "channels": ["app", "signage"],
+        "requested_period": {
+          "starts_at": "2026-10-25T00:00:00+09:00",
+          "ends_at": "2026-12-01T00:00:00+09:00"
+        },
+        "submitted_at": "2026-10-25T11:00:00+09:00",
+        "status": "rejected",
+        "review_comment": "価格表示を入れてください",
+        "reviewed_at": "2026-10-25T13:30:00+09:00"
+      },
+      {
+        "revision": 2,
+        "creative_version_id": "CR1-v2",
+        "creative_version": 2,
+        "image_path": "creatives/CR1/v2.svg",
+        "headline": "トマトパスタソース 298円",
+        "channels": ["app", "signage"],
+        "requested_period": {
+          "starts_at": "2026-10-25T00:00:00+09:00",
+          "ends_at": "2026-12-01T00:00:00+09:00"
+        },
+        "submitted_at": "2026-10-25T14:20:00+09:00",
+        "status": "submitted",
+        "review_comment": null,
+        "reviewed_at": null
+      }
+    ]
   },
   {
     "id": "A2",
@@ -34,7 +69,7 @@
     "creative_id": "CR2",
     "creative_version_id": "CR2-v1",
     "creative_version": 1,
-    "image_path": "/mock/creatives/cr2-v1.svg",
+    "image_path": "creatives/CR2/v1.svg",
     "headline": "新商品 トマトジュース",
     "product_id": "P-JUICE",
     "product_name": "トマトジュース 200ml",
@@ -42,11 +77,30 @@
     "channels": ["app"],
     "requested_period": {
       "starts_at": "2026-10-26T00:00:00+09:00",
-      "ends_at": "2026-11-10T23:59:59+09:00"
+      "ends_at": "2026-11-11T00:00:00+09:00"
     },
+    "message": null,
+    "revision": 1,
     "status": "submitted",
     "review_comment": null,
-    "review_comment_is_previous": false,
-    "submitted_at": "2026-10-25T15:05:00+09:00"
+    "submitted_at": "2026-10-25T15:05:00+09:00",
+    "history": [
+      {
+        "revision": 1,
+        "creative_version_id": "CR2-v1",
+        "creative_version": 1,
+        "image_path": "creatives/CR2/v1.svg",
+        "headline": "新商品 トマトジュース",
+        "channels": ["app"],
+        "requested_period": {
+          "starts_at": "2026-10-26T00:00:00+09:00",
+          "ends_at": "2026-11-11T00:00:00+09:00"
+        },
+        "submitted_at": "2026-10-25T15:05:00+09:00",
+        "status": "submitted",
+        "review_comment": null,
+        "reviewed_at": null
+      }
+    ]
   }
 ]

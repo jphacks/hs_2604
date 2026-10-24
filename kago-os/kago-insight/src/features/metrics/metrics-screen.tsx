@@ -1,63 +1,62 @@
 "use client";
 
 import { useState } from "react";
-import {
-  dataOriginLabel,
-  measurementStatusLabel,
-  placementTypeLabel,
-} from "@/lib/labels";
-import {
-  SMALL_SAMPLE_THRESHOLD,
-  formatCountOrUnmeasured,
-  formatRate,
-  formatYen,
-  isSmallSample,
-  rate,
-} from "@/lib/format";
+import { dataOriginLabel, placementTypeLabel } from "@/lib/labels";
+import { formatRate, formatYen, rate } from "@/lib/format";
 import { EmptyState } from "@/components/state";
-import type { AppMetricRow, PlacementType, SignageMetricRow } from "@/lib/types";
+import type {
+  AppMetricRow,
+  OrderTotals,
+  PlacementType,
+  SelectionCount,
+  SignageMetricRow,
+} from "@/lib/types";
 
 /** 指標の定義。画面から参照できるようにしておく（INS-03の完了条件） */
-const DEFINITIONS: { key: string; label: string; formula: string; source: string }[] = [
+const DEFINITIONS: { label: string; formula: string; source: string }[] = [
   {
-    key: "impressions",
     label: "実表示数",
     formula: "実表示された「来店・商品・種別」の組の数",
     source: "選ばれただけで画面に出なかった枠は数えない（9.1）",
   },
   {
-    key: "impression_visits",
     label: "表示来店数",
     formula: "実表示が1件以上あった来店の数",
-    source: "少数判定に使う（D-10）",
+    source: "5未満のとき DB が small_sample を true で返す（D-10）",
   },
   {
-    key: "click_rate",
     label: "クリック率",
     formula: "クリックがあった組の数 ÷ 実表示数",
     source: "同じ組で何度押しても1件（9.2）",
   },
   {
-    key: "add_rate",
     label: "提案経由の追加率",
     formula: "提案カードから追加された組の数 ÷ 実表示数",
     source: "source = recommendation のもの（9.2）",
   },
   {
-    key: "purchase_rate",
     label: "表示後の購入率",
     formula: "実表示された組のうち注文明細に含まれる組の数 ÷ 実表示数",
     source: "購入は注文・明細を正本とする（D-06）",
+  },
+  {
+    label: "選定枠数",
+    formula: "選定記録の提案枠の数",
+    source: "実表示とは別のビュー。由来は unclassified（DB-09）",
   },
 ];
 
 export function MetricsScreen({
   appRows,
   signageRows,
+  selectionCounts,
+  orderTotals,
   subjectNames,
 }: {
   appRows: AppMetricRow[];
   signageRows: SignageMetricRow[];
+  selectionCounts: SelectionCount[];
+  orderTotals: OrderTotals[];
   subjectNames: Record<string, string>;
 }) {
   const [showDefinitions, setShowDefinitions] = useState(false);
@@ -72,12 +71,9 @@ export function MetricsScreen({
   const hasNonOperated = origins.some((o) => o !== "operated");
 
   // 種別をまたいで足してよいのは、組に種別を含む指標だけ（9.1）。
-  // 表示来店数・購入件数・購入金額は同じ来店や注文を重複して数えるため合計しない（9.1.1）。
-  const totals = {
-    impressions: appRows.reduce((sum, r) => sum + r.impressions, 0),
-    plays: signageRows.reduce((sum, r) => sum + r.plays, 0),
-    playSeconds: signageRows.reduce((sum, r) => sum + r.play_seconds, 0),
-  };
+  const totalImpressions = sum(appRows.map((r) => r.impressions));
+  const totalPlays = sum(signageRows.map((r) => r.plays));
+  const totalPlaySeconds = sum(signageRows.map((r) => r.play_seconds));
 
   return (
     <div className="grid gap-6">
@@ -89,27 +85,28 @@ export function MetricsScreen({
       ) : null}
 
       <section>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-3">
           <StatTile
             label="提案の実表示数"
-            value={totals.impressions.toLocaleString("ja-JP")}
+            value={fmt(totalImpressions)}
             unit="件"
             note="来店・商品・種別の組で数えるため、種別をまたいでも重複しません"
           />
           <StatTile
             label="サイネージ再生"
-            value={totals.plays.toLocaleString("ja-JP")}
-            unit={`回 / ${totals.playSeconds.toLocaleString("ja-JP")}秒`}
+            value={fmt(totalPlays)}
+            unit={`回 / ${fmt(totalPlaySeconds)}秒`}
             note="Appの数値とは合算しません"
           />
+          <OrderTotalsTile totals={orderTotals} />
         </div>
-        <p className="mt-2 text-xs text-[var(--muted)]">
-          来店数・購入件数・購入金額の全体値はここに出しません。種別ごとの値を足すと同じ来店や注文を重複して数えるため、
-          注文から別に集計する必要があります（common-spec 9.1.1）。この画面では種別ごとの内訳だけを示します。
-        </p>
       </section>
 
-      <AppSection rows={appRows} subjectNames={subjectNames} />
+      <AppSection
+        rows={appRows}
+        selectionCounts={selectionCounts}
+        subjectNames={subjectNames}
+      />
       <SignageSection rows={signageRows} subjectNames={subjectNames} />
 
       <section>
@@ -132,7 +129,7 @@ export function MetricsScreen({
               </thead>
               <tbody>
                 {DEFINITIONS.map((d) => (
-                  <tr key={d.key} className="border-b border-[var(--line)] last:border-0">
+                  <tr key={d.label} className="border-b border-[var(--line)] last:border-0">
                     <Td className="font-bold whitespace-nowrap">{d.label}</Td>
                     <Td>{d.formula}</Td>
                     <Td className="text-[var(--muted)]">{d.source}</Td>
@@ -141,7 +138,8 @@ export function MetricsScreen({
               </tbody>
             </table>
             <p className="border-t border-[var(--line)] p-3 text-xs text-[var(--muted)]">
-              定義は docs/specs/common-spec.md 9章に従います。分母が0の率は 0% ではなく「—（対象なし）」と表示します。
+              定義は docs/specs/common-spec.md 9章に従います。分母が0の率は 0% ではなく「—（対象なし）」、
+              公開範囲の外にある指標は「非公開」と表示します。
             </p>
           </div>
         ) : null}
@@ -152,28 +150,52 @@ export function MetricsScreen({
 
 /* ------------------------------------------------------------------ */
 
-/** 行がどの広告・販促のものかを表す。DB-09 は ID しか返さないため画面側で解決する。 */
 function subjectOf(
-  row: { ad_placement_id: string | null; promotion_version_id: string | null; rule_version: string | null },
+  row: {
+    ad_placement_id: string | null;
+    promotion_version_id: string | null;
+    rule_version?: number | null;
+  },
   names: Record<string, string>,
 ): string {
   const id = row.ad_placement_id ?? row.promotion_version_id;
   if (id) return names[id] ?? id;
-  if (row.rule_version) return `ルール ${row.rule_version}`;
+  if (row.rule_version != null) return `ルール 第${row.rule_version}版`;
   return "—";
+}
+
+/**
+ * Signage の種別は DB から返らない。広告の配信対象IDが入っていれば sponsored、
+ * 販促の版IDが入っていれば store_promo。通常推薦は個人向けなのでサイネージには出ない。
+ */
+function signagePlacementType(row: SignageMetricRow): PlacementType {
+  return row.ad_placement_id ? "sponsored" : "store_promo";
 }
 
 function AppSection({
   rows,
+  selectionCounts,
   subjectNames,
 }: {
   rows: AppMetricRow[];
+  selectionCounts: SelectionCount[];
   subjectNames: Record<string, string>;
 }) {
   const order: PlacementType[] = ["sponsored", "store_promo", "organic"];
   const sorted = [...rows].sort(
     (a, b) => order.indexOf(a.placement_type) - order.indexOf(b.placement_type),
   );
+
+  const slotsOf = (row: AppMetricRow): number | null => {
+    const match = selectionCounts.filter(
+      (s) =>
+        s.placement_type === row.placement_type &&
+        s.ad_placement_id === row.ad_placement_id &&
+        s.promotion_version_id === row.promotion_version_id,
+    );
+    if (match.length === 0) return null;
+    return match.reduce((acc, s) => acc + s.selected_slots, 0);
+  };
 
   return (
     <section>
@@ -202,16 +224,17 @@ function AppSection({
             <tbody>
               {sorted.map((row) => (
                 <AppRow
-                  key={`${row.placement_type}-${row.ad_placement_id ?? row.promotion_version_id ?? "none"}`}
+                  key={`${row.placement_type}-${row.ad_placement_id ?? row.promotion_version_id ?? row.rule_version ?? "none"}`}
                   row={row}
                   subject={subjectOf(row, subjectNames)}
+                  slots={slotsOf(row)}
                 />
               ))}
             </tbody>
           </table>
           <p className="border-t border-[var(--line)] p-3 text-xs text-[var(--muted)]">
             種別ごとの購入を足し合わせないでください。同じ購入を二重に数えることがあります（common-spec 9.1.1）。
-            全体の購入件数・金額が必要な場合は注文から別に集計します。
+            全体の購入件数・金額は上のタイル（注文から集計）を見てください。
           </p>
         </div>
       )}
@@ -219,11 +242,16 @@ function AppSection({
   );
 }
 
-function AppRow({ row, subject }: { row: AppMetricRow; subject: string }) {
-  const small = isSmallSample(row.impression_visits);
-  const clickRate = rate(row.clicks, row.impressions);
-  const addRate = rate(row.recommendation_adds, row.impressions);
-  const purchaseRate = rate(row.post_impression_purchases, row.impressions);
+function AppRow({
+  row,
+  subject,
+  slots,
+}: {
+  row: AppMetricRow;
+  subject: string;
+  slots: number | null;
+}) {
+  const small = row.small_sample === true;
 
   return (
     <tr className="border-b border-[var(--line)] last:border-0">
@@ -236,26 +264,56 @@ function AppRow({ row, subject }: { row: AppMetricRow; subject: string }) {
         ) : null}
       </Td>
       <Td className="text-[var(--muted)]">{subject}</Td>
-      <Td align="right">{row.selection_items}</Td>
-      <Td align="right" className="font-bold">
-        {row.impressions}
+      <Td align="right">{slots === null ? "—" : slots}</Td>
+      <NumCell value={row.impressions} bold />
+      <NumCell value={row.shown_visits} />
+      <RateCell numerator={row.clicks} denominator={row.impressions} small={small} />
+      <RateCell numerator={row.recommendation_adds} denominator={row.impressions} small={small} />
+      <NumCell value={row.recommendation_removes} />
+      <RateCell numerator={row.purchases} denominator={row.impressions} small={small} />
+      <Td align="right">
+        {row.purchase_amount === null ? (
+          <Undisclosed />
+        ) : (
+          formatYen(row.purchase_amount)
+        )}
       </Td>
-      <Td align="right">{row.impression_visits}</Td>
-      <RateCell value={clickRate} small={small} />
-      <RateCell value={addRate} small={small} />
-      <Td align="right">{row.recommendation_removes}</Td>
-      <RateCell value={purchaseRate} small={small} />
-      <Td align="right">{formatYen(row.post_impression_amount)}</Td>
     </tr>
+  );
+}
+
+/** 数値セル。null は「非公開」（公開範囲の外） */
+function NumCell({ value, bold = false }: { value: number | null; bold?: boolean }) {
+  return (
+    <Td align="right" className={bold ? "font-bold" : undefined}>
+      {value === null ? <Undisclosed /> : value.toLocaleString("ja-JP")}
+    </Td>
   );
 }
 
 /**
  * 率の表示。
+ * - いずれかが null なら「非公開」
  * - 分母0は 0% ではなく「—」（common-spec 9.1.1）
- * - 表示来店数が閾値未満なら「参考値」と注記（D-10）
+ * - DB が small_sample を返したら「参考」注記（D-10）
  */
-function RateCell({ value, small }: { value: number | null; small: boolean }) {
+function RateCell({
+  numerator,
+  denominator,
+  small,
+}: {
+  numerator: number | null;
+  denominator: number | null;
+  small: boolean;
+}) {
+  if (numerator === null || denominator === null) {
+    return (
+      <Td align="right">
+        <Undisclosed />
+      </Td>
+    );
+  }
+  const value = rate(numerator, denominator);
   if (value === null) {
     return (
       <Td align="right" className="text-[var(--muted)]">
@@ -267,14 +325,19 @@ function RateCell({ value, small }: { value: number | null; small: boolean }) {
     <Td align="right">
       <span className={small ? "text-[var(--muted)]" : undefined}>{formatRate(value)}</span>
       {small ? (
-        <span
-          className="ml-1 text-xs text-[var(--muted)]"
-          title={`表示来店数が${SMALL_SAMPLE_THRESHOLD}未満のため参考値です`}
-        >
+        <span className="ml-1 text-xs text-[var(--muted)]" title="表示来店数が5未満のため参考値です">
           参考
         </span>
       ) : null}
     </Td>
+  );
+}
+
+function Undisclosed() {
+  return (
+    <span className="text-[var(--muted)]" title="公開範囲に含まれていません">
+      非公開
+    </span>
   );
 }
 
@@ -313,33 +376,33 @@ function SignageSection({
             <tbody>
               {rows.map((row) => (
                 <tr
-                  key={`${row.hour}-${row.ad_placement_id ?? row.promotion_version_id}`}
+                  key={`${row.hour_start}-${row.ad_placement_id ?? row.promotion_version_id}`}
                   className="border-b border-[var(--line)] last:border-0"
                 >
                   <Td className="whitespace-nowrap">
-                    {new Date(row.hour).toLocaleTimeString("ja-JP", {
+                    {new Date(row.hour_start).toLocaleTimeString("ja-JP", {
                       timeZone: "Asia/Tokyo",
                       hour: "2-digit",
                       minute: "2-digit",
                     })}
                     台
                   </Td>
-                  <Td className="whitespace-nowrap">{placementTypeLabel[row.placement_type]}</Td>
-                  <Td className="text-[var(--muted)]">
-                    {subjectOf({ ...row, rule_version: null }, subjectNames)}
-                  </Td>
-                  <Td align="right">{row.plays}回</Td>
-                  <Td align="right">{row.play_seconds}秒</Td>
+                  <Td className="whitespace-nowrap">{placementTypeLabel[signagePlacementType(row)]}</Td>
+                  <Td className="text-[var(--muted)]">{subjectOf(row, subjectNames)}</Td>
+                  <Td align="right">{row.plays === null ? <Undisclosed /> : `${row.plays}回`}</Td>
                   <Td align="right">
-                    {row.measurement_status === "measured" ? (
-                      `${formatCountOrUnmeasured(row.estimated_viewers)}人`
+                    {row.play_seconds === null ? <Undisclosed /> : `${row.play_seconds}秒`}
+                  </Td>
+                  <Td align="right">
+                    <ViewerCell row={row} />
+                  </Td>
+                  <Td align="right">
+                    {row.reference_sales_quantity === null ? (
+                      <Undisclosed />
                     ) : (
-                      <span className="text-[var(--muted)]">
-                        {measurementStatusLabel[row.measurement_status]}
-                      </span>
+                      row.reference_sales_quantity
                     )}
                   </Td>
-                  <Td align="right">{row.same_hour_product_sales}</Td>
                 </tr>
               ))}
             </tbody>
@@ -354,7 +417,50 @@ function SignageSection({
   );
 }
 
+/** 計測できた再生が無ければ「未計測」。0人と区別する（common-spec 9.4） */
+function ViewerCell({ row }: { row: SignageMetricRow }) {
+  if (row.measured_plays === null) return <Undisclosed />;
+  if (row.measured_plays === 0) {
+    const error = row.error_plays ?? 0;
+    return (
+      <span className="text-[var(--muted)]">
+        未計測
+        {error > 0 ? `（うち失敗${error}件）` : ""}
+      </span>
+    );
+  }
+  return (
+    <>
+      {(row.estimated_viewers ?? 0).toLocaleString("ja-JP")}人
+      <span className="ml-1 text-xs text-[var(--muted)]">／{row.measured_plays}件</span>
+    </>
+  );
+}
+
 /* ------------------------------------------------------------------ */
+
+function OrderTotalsTile({ totals }: { totals: OrderTotals[] }) {
+  const operated = totals.find((t) => t.data_origin === "operated");
+  const others = totals.filter((t) => t.data_origin !== "operated");
+
+  return (
+    <div className="rounded-lg border border-[var(--line)] bg-[var(--panel)] p-4">
+      <p className="text-sm text-[var(--muted)]">購入（注文から集計）</p>
+      <p className="mt-1">
+        <span className="text-3xl font-bold">{operated ? operated.orders : 0}</span>
+        <span className="ml-1 text-sm text-[var(--muted)]">
+          件 / {formatYen(operated ? operated.amount : 0)}
+        </span>
+      </p>
+      <p className="mt-2 text-xs text-[var(--muted)]">
+        種別別の値を足さず、注文から直接集計した値です（common-spec 9.1.1）
+        {others.length > 0
+          ? `。別の由来のデータも${others.length}件あります`
+          : ""}
+      </p>
+    </div>
+  );
+}
 
 function StatTile({
   label,
@@ -377,6 +483,16 @@ function StatTile({
       {note ? <p className="mt-2 text-xs text-[var(--muted)]">{note}</p> : null}
     </div>
   );
+}
+
+function sum(values: (number | null)[]): number | null {
+  const present = values.filter((v): v is number => v !== null);
+  if (present.length === 0) return null;
+  return present.reduce((a, b) => a + b, 0);
+}
+
+function fmt(value: number | null): string {
+  return value === null ? "非公開" : value.toLocaleString("ja-JP");
 }
 
 function Th({

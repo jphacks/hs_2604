@@ -6,9 +6,35 @@ import { deactivatePromotion, savePromotion } from "@/lib/data-source";
 import { channelLabel } from "@/lib/labels";
 import { formatDate, toDateInputValue } from "@/lib/format";
 import { EmptyState } from "@/components/state";
-import type { Channel, Product, Promotion, PromotionDraft } from "@/lib/types";
+import type {
+  Channel,
+  Product,
+  Promotion,
+  PromotionDraft,
+  TimeWindow,
+} from "@/lib/types";
 
-const REASON_MAX = 60; // 利用者の画面に出るため短く。暫定値
+const REASON_MAX = 200; // DB: reason_text は200文字まで
+
+/** 1=月 〜 7=日（DBの weekdays の定義） */
+const WEEKDAYS: { value: number; label: string }[] = [
+  { value: 1, label: "月" },
+  { value: 2, label: "火" },
+  { value: 3, label: "水" },
+  { value: 4, label: "木" },
+  { value: 5, label: "金" },
+  { value: 6, label: "土" },
+  { value: 7, label: "日" },
+];
+
+function weekdaysLabel(days: number[]): string {
+  const sorted = [...days].sort((a, b) => a - b);
+  const key = sorted.join(",");
+  if (key === "1,2,3,4,5,6,7") return "毎日";
+  if (key === "1,2,3,4,5") return "平日";
+  if (key === "6,7") return "土日";
+  return sorted.map((d) => WEEKDAYS.find((w) => w.value === d)?.label ?? d).join("・");
+}
 
 type Editing = { kind: "new" } | { kind: "edit"; promotion: Promotion } | null;
 
@@ -58,9 +84,7 @@ export function PromotionsScreen({
                 promotion={promotion}
                 selected={editing?.kind === "edit" && editing.promotion.id === promotion.id}
                 onEdit={() => setEditing({ kind: "edit", promotion })}
-                onDeactivated={(id) =>
-                  afterAction(`販促 ${id} を停止しました（モックのため保存されません）`)
-                }
+                onDone={afterAction}
               />
             ))
           )}
@@ -79,14 +103,10 @@ export function PromotionsScreen({
             <EmptyState message="左の一覧から設定を選ぶか、「販促を追加する」を押してください。" />
           ) : (
             <PromotionForm
-              key={editing.kind === "new" ? "new" : editing.promotion.id}
+              key={editing.kind === "new" ? "new" : editing.promotion.promotion_version_id}
               promotion={editing.kind === "edit" ? editing.promotion : null}
               products={products}
-              onSaved={(version) =>
-                afterAction(
-                  `第${version}版として保存しました（モックのため保存されません）`,
-                )
-              }
+              onDone={afterAction}
               onCancel={() => setEditing(null)}
             />
           )}
@@ -102,20 +122,26 @@ function PromotionCard({
   promotion,
   selected,
   onEdit,
-  onDeactivated,
+  onDone,
 }: {
   promotion: Promotion;
   selected: boolean;
   onEdit: () => void;
-  onDeactivated: (id: string) => void;
+  onDone: (message: string) => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const run = async () => {
     setBusy(true);
+    setError(null);
     const result = await deactivatePromotion(promotion.id);
     setBusy(false);
-    if (result.ok) onDeactivated(promotion.id);
+    if (result.ok) {
+      onDone(`販促 ${promotion.id} を停止しました（モックのため保存されません）`);
+    } else {
+      setError(result.message);
+    }
   };
 
   return (
@@ -132,9 +158,12 @@ function PromotionCard({
         </span>
       </div>
       <p className="mt-1 text-sm text-[var(--muted)]">
-        {promotion.time_windows.map((w) => `${w.start}〜${w.end}`).join("、")} ・{" "}
-        {promotion.channels.map((c) => channelLabel[c]).join(" / ")} ・ 優先度{" "}
-        {promotion.priority}
+        {promotion.time_windows
+          .map((w) => `${weekdaysLabel(w.weekdays)} ${w.start}〜${w.end}`)
+          .join("、")}
+      </p>
+      <p className="mt-1 text-sm text-[var(--muted)]">
+        {promotion.channels.map((c) => channelLabel[c]).join(" / ")} ・ 優先度 {promotion.priority}
       </p>
       <p className="mt-1 text-xs text-[var(--muted)]">
         {formatDate(promotion.starts_at)} 〜 {formatDate(promotion.ends_at)}
@@ -142,6 +171,7 @@ function PromotionCard({
       <p className="mt-2 rounded bg-[var(--surface)] px-2 py-1 text-sm">
         「{promotion.reason_text}」
       </p>
+      {error ? <p className="mt-2 text-sm text-red-900">{error}</p> : null}
       <div className="mt-3 flex gap-2">
         <button
           type="button"
@@ -168,25 +198,25 @@ function PromotionCard({
 function PromotionForm({
   promotion,
   products,
-  onSaved,
+  onDone,
   onCancel,
 }: {
   promotion: Promotion | null;
   products: Product[];
-  onSaved: (version: number) => void;
+  onDone: (message: string) => void;
   onCancel: () => void;
 }) {
   const today = new Date().toISOString();
-  const [productId, setProductId] = useState(promotion?.product_id ?? products[0]?.product_id ?? "");
-  const [windows, setWindows] = useState<{ start: string; end: string }[]>(
-    promotion?.time_windows ?? [{ start: "16:00", end: "19:00" }],
+  const [productId, setProductId] = useState(
+    promotion?.product_id ?? products[0]?.product_id ?? "",
+  );
+  const [windows, setWindows] = useState<TimeWindow[]>(
+    promotion?.time_windows ?? [{ weekdays: [1, 2, 3, 4, 5, 6, 7], start: "16:00", end: "19:00" }],
   );
   const [channels, setChannels] = useState<Channel[]>(promotion?.channels ?? ["app"]);
   const [priority, setPriority] = useState(promotion?.priority ?? 50);
   const [reasonText, setReasonText] = useState(promotion?.reason_text ?? "");
-  const [startsAt, setStartsAt] = useState(
-    toDateInputValue(promotion?.starts_at ?? today),
-  );
+  const [startsAt, setStartsAt] = useState(toDateInputValue(promotion?.starts_at ?? today));
   const [endsAt, setEndsAt] = useState(toDateInputValue(promotion?.ends_at ?? today));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -196,9 +226,22 @@ function PromotionForm({
 
   const toggleChannel = (channel: Channel) => {
     setChannels((current) =>
-      current.includes(channel)
-        ? current.filter((c) => c !== channel)
-        : [...current, channel],
+      current.includes(channel) ? current.filter((c) => c !== channel) : [...current, channel],
+    );
+  };
+
+  const toggleWeekday = (index: number, day: number) => {
+    setWindows((cur) =>
+      cur.map((w, i) =>
+        i === index
+          ? {
+              ...w,
+              weekdays: w.weekdays.includes(day)
+                ? w.weekdays.filter((d) => d !== day)
+                : [...w.weekdays, day].sort((a, b) => a - b),
+            }
+          : w,
+      ),
     );
   };
 
@@ -207,27 +250,33 @@ function PromotionForm({
     if (channels.length === 0) return setError("掲載先を1つ以上選んでください。");
     if (reasonText.trim().length === 0)
       return setError("おすすめの理由を入力してください。利用者の画面に表示されます。");
+    if (windows.some((w) => w.weekdays.length === 0))
+      return setError("各時間帯に曜日を1つ以上選んでください。");
     if (windows.some((w) => w.start >= w.end))
       return setError("時間帯の開始は終了より前にしてください。");
-    if (startsAt > endsAt) return setError("有効期間の開始は終了より前にしてください。");
+    if (startsAt >= endsAt) return setError("有効期間の開始は終了より前にしてください。");
 
     const draft: PromotionDraft = {
-      id: promotion?.id ?? null,
+      promotion_id: promotion?.id ?? null,
       product_id: productId,
       channels,
       time_windows: windows,
       priority,
       reason_text: reasonText.trim(),
       starts_at: `${startsAt}T00:00:00+09:00`,
-      ends_at: `${endsAt}T23:59:59+09:00`,
+      ends_at: `${endsAt}T00:00:00+09:00`,
     };
 
     setBusy(true);
     setError(null);
     const result = await savePromotion(draft);
     setBusy(false);
-    if (result.ok) onSaved(promotion ? promotion.version + 1 : result.version);
-    else setError(result.error);
+    if (result.ok) {
+      const version = promotion ? promotion.version + 1 : result.data.version;
+      onDone(`第${version}版として保存しました（モックのため保存されません）`);
+    } else {
+      setError(result.message);
+    }
   };
 
   return (
@@ -263,45 +312,73 @@ function PromotionForm({
         </select>
       </Field>
 
-      <Field label="時間帯" hint="この時間帯だけ提案されます。曜日の指定は未対応です。">
-        <div className="grid gap-2">
+      <Field label="時間帯" hint="曜日と時刻の組み合わせです。曜日は1つ以上選んでください。">
+        <div className="grid gap-3">
           {windows.map((w, i) => (
-            <div key={i} className="flex flex-wrap items-center gap-2 text-sm">
-              <input
-                type="time"
-                value={w.start}
-                onChange={(e) =>
-                  setWindows((cur) =>
-                    cur.map((x, j) => (j === i ? { ...x, start: e.target.value } : x)),
-                  )
-                }
-                className="rounded border border-[var(--line)] px-2 py-1"
-              />
-              <span>〜</span>
-              <input
-                type="time"
-                value={w.end}
-                onChange={(e) =>
-                  setWindows((cur) =>
-                    cur.map((x, j) => (j === i ? { ...x, end: e.target.value } : x)),
-                  )
-                }
-                className="rounded border border-[var(--line)] px-2 py-1"
-              />
-              {windows.length > 1 ? (
-                <button
-                  type="button"
-                  onClick={() => setWindows((cur) => cur.filter((_, j) => j !== i))}
-                  className="text-sm text-[var(--muted)] underline"
-                >
-                  削除
-                </button>
-              ) : null}
+            <div key={i} className="rounded border border-[var(--line)] p-2">
+              <div className="flex flex-wrap gap-1">
+                {WEEKDAYS.map((d) => {
+                  const on = w.weekdays.includes(d.value);
+                  return (
+                    <button
+                      key={d.value}
+                      type="button"
+                      onClick={() => toggleWeekday(i, d.value)}
+                      aria-pressed={on}
+                      className={[
+                        "h-8 w-8 rounded text-sm font-bold",
+                        on
+                          ? "bg-[var(--accent)] text-white"
+                          : "border border-[var(--line)] text-[var(--muted)]",
+                      ].join(" ")}
+                    >
+                      {d.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                <input
+                  type="time"
+                  value={w.start}
+                  onChange={(e) =>
+                    setWindows((cur) =>
+                      cur.map((x, j) => (j === i ? { ...x, start: e.target.value } : x)),
+                    )
+                  }
+                  className="rounded border border-[var(--line)] px-2 py-1"
+                />
+                <span>〜</span>
+                <input
+                  type="time"
+                  value={w.end}
+                  onChange={(e) =>
+                    setWindows((cur) =>
+                      cur.map((x, j) => (j === i ? { ...x, end: e.target.value } : x)),
+                    )
+                  }
+                  className="rounded border border-[var(--line)] px-2 py-1"
+                />
+                {windows.length > 1 ? (
+                  <button
+                    type="button"
+                    onClick={() => setWindows((cur) => cur.filter((_, j) => j !== i))}
+                    className="text-sm text-[var(--muted)] underline"
+                  >
+                    この時間帯を削除
+                  </button>
+                ) : null}
+              </div>
             </div>
           ))}
           <button
             type="button"
-            onClick={() => setWindows((cur) => [...cur, { start: "09:00", end: "12:00" }])}
+            onClick={() =>
+              setWindows((cur) => [
+                ...cur,
+                { weekdays: [1, 2, 3, 4, 5], start: "09:00", end: "12:00" },
+              ])
+            }
             className="justify-self-start text-sm font-bold text-[var(--accent)] underline"
           >
             ＋ 時間帯を追加
@@ -326,7 +403,7 @@ function PromotionForm({
 
       <Field
         label={`優先度 ${priority}`}
-        hint="0〜100。大きいほど優先して提案されます。同じ値のときの扱いはApp側と要確認です。"
+        hint="大きいほど優先して提案されます。同じ値のときの扱いはApp側と要確認です。"
       >
         <input
           type="range"
@@ -408,16 +485,17 @@ function Field({
   return (
     <div>
       <p className="text-sm font-bold">{label}</p>
-      {hint ? <p className="mb-1.5 text-xs text-[var(--muted)]">{hint}</p> : <div className="h-1.5" />}
+      {hint ? (
+        <p className="mb-1.5 text-xs text-[var(--muted)]">{hint}</p>
+      ) : (
+        <div className="h-1.5" />
+      )}
       {children}
     </div>
   );
 }
 
-/**
- * 利用者のアプリでどう見えるかのプレビュー。
- * 設定した理由文がそのまま出るため、書いた人が結果を想像できるようにする。
- */
+/** 設定した理由文が利用者のアプリでどう見えるか */
 function AppPreview({
   product,
   reasonText,
