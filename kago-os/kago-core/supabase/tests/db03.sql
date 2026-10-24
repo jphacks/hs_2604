@@ -66,7 +66,7 @@ select pg_temp.db03_reject($q$insert into public.order_items values('50000000-00
 select pg_temp.db03_reject($q$insert into public.orders(visit_id,user_id,store_id,total,idempotency_key,cart_version,data_origin) values('40000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001',248,gen_random_uuid(),1,'operated')$q$, '23505');
 select pg_temp.db03_reject($q$insert into public.visits(user_id,store_id,status) values('10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001','completed')$q$, '23514');
 select pg_temp.db03_reject($q$insert into public.visits(user_id,store_id,cart_version) values('10000000-0000-4000-8000-000000000001','20000000-0000-4000-8000-000000000001',-1)$q$, '23514');
-select pg_temp.db03_reject($q$delete from public.visits where id='40000000-0000-4000-8000-000000000001'$q$, '23001');
+select pg_temp.db03_reject($q$delete from public.visits where id='40000000-0000-4000-8000-000000000001'$q$, case when current_setting('server_version_num')::int >= 170000 then '23001' else '23503' end); -- RESTRICT: 23001 on PostgreSQL 17+, 23503 before
 
 -- A third active visit isolates invalid quantity and cross-store checks from closed-cart guards.
 insert into public.visits(id,user_id,store_id) values

@@ -204,7 +204,7 @@ select pg_temp.db04_reject($q$insert into public.creative_versions(creative_id,v
 select pg_temp.db04_reject($q$insert into public.creative_versions(creative_id,version,image_path,headline) values('90000000-0000-4000-8000-000000000001',4,'https://example.test/v4.png?token=x','URL')$q$,'23514');
 select pg_temp.db04_reject($q$update public.creative_versions set headline='変更' where id='a0000000-0000-4000-8000-000000000001'$q$,'23514');
 select pg_temp.db04_reject($q$delete from public.creative_versions where id='a0000000-0000-4000-8000-000000000001'$q$,'23514');
-select pg_temp.db04_reject($q$delete from public.makers where id='70000000-0000-4000-8000-000000000001'$q$,'23001');
+select pg_temp.db04_reject($q$delete from public.makers where id='70000000-0000-4000-8000-000000000001'$q$,case when current_setting('server_version_num')::int >= 170000 then '23001' else '23503' end); -- RESTRICT: 23001 on PostgreSQL 17+, 23503 before
 
 -- 8. Store promotion is a separate entity from maker ads; versions append and switch active.
 insert into public.store_promotions(id,store_id,product_id) values
