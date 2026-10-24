@@ -36,7 +36,10 @@ hs_2604/
     │   ├── scripts/build.mjs
     │   └── package.json
     ├── kago-ads/            未実装（.gitkeepのみ）
-    ├── kago-core/           未実装（.gitkeepのみ）
+    ├── shared/backend/      共通の認証・DB接続ライブラリ
+    ├── pnpm-workspace.yaml  App・共有ライブラリの依存管理
+    ├── pnpm-lock.yaml       依存バージョンの固定
+    ├── kago-core/           DBの接続確認用migration
     ├── kago-insight/        未実装（.gitkeepのみ）
     └── kago-signage/        未実装（.gitkeepのみ）
 ```
@@ -76,10 +79,11 @@ pnpm dev
 | `/App/store` | ローカルの店舗設定・商品管理 |
 | `/App/demo-barcodes` | 読み取り確認用バーコード |
 
-スマートフォンのカメラ確認にはHTTPSを使用します。現在の事前実装に環境変数は不要です。静的検査・型検査・本番ビルドも`kago-app/`で実行します。
+スマートフォンのカメラ確認にはHTTPSを使用します。ブラウザ内の事前実装だけなら環境変数は不要です。Supabaseの認証・DB接続を使う場合は[共通接続のセットアップ](development/backend.md)に従って設定してください。静的検査・型検査・本番ビルドも`kago-app/`で実行します。
 
 ```sh
 pnpm lint
+pnpm exec next typegen
 pnpm exec tsc --noEmit
 pnpm build
 ```
@@ -113,7 +117,7 @@ pnpm generate:icons
 pnpm generate:barcodes
 ```
 
-AppとLPの正本は別フォルダです。AppからLPも表示する現在のビルドでは、Appだけをコピーせず兄弟の`lp/src/`も含めてください。Vercelを接続する際も、ビルド処理からこの兄弟フォルダを参照できる設定が必要です。LP単体は`lp/`でビルドし`dist/`を配信できます。今回の整理でVercelの既存設定は変更しません。
+AppとLPの正本は別フォルダです。AppからLPも表示する現在のビルドでは、Appだけをコピーせず、共有ライブラリ・workspace設定・LPを含む`kago-os/`全体を用意してください。Vercelを接続する際も、ビルド処理からこの兄弟フォルダを参照できる設定が必要です。LP単体は`lp/`でビルドし`dist/`を配信できます。今回の整理でVercelの既存設定は変更しません。
 
 `public/`は配信される場所です。内部資料・秘密情報は入れず、制作途中の資料・エージェント向け作業メモはリポジトリの外で管理します。
 
@@ -127,7 +131,7 @@ AppとLPの正本は別フォルダです。AppからLPも表示する現在の�
 | Signage | 承認済み広告の再生・記録。カメラ計測は実機確認後に採否を決める。 |
 | Core | 共通DBの構造・権限・整合性・記録・集計。 |
 
-Ads・Core・Insight・Signageには実装を追加していません。`.gitkeep`は空フォルダをGitで保持するためのファイルです。[Issue案](issues/issues.md)の内容や担当者欄は変更していません。資料内の管理IDはGitHubのIssue番号とは別です。
+CoreにはCOM-02のDB接続確認関数を追加しています。共有の認証・接続は`shared/backend/`を利用します。Ads・Insight・Signageの画面は未実装です。`.gitkeep`は空フォルダをGitで保持するためのファイルです。[Issue案](issues/issues.md)の内容や担当者欄は変更していません。資料内の管理IDはGitHubのIssue番号とは別です。
 
 <a id="prehack"></a>
 

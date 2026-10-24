@@ -73,5 +73,6 @@ Hack Dayの成果は実装後に記載します。現在のコードに含まれ
 
 - [共通仕様書：役割・ID・イベント・購入経路・担当確認](docs/specs/common-spec.md)
 - [起動・検証手順](docs/development.md)
+- [Supabaseの認証・DB接続と役割の設定](docs/development/backend.md)
 - [Issue案・作業範囲・完成条件](docs/issues/issues.md)
 - [GitHub運用ルール](CONTRIBUTING.md)

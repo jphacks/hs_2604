@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  transpilePackages: ["@kago/backend"],
   async rewrites() {
     // Serve the original static LP without applying the App's styles or scripts.
     return [{ source: "/", destination: "/website/index.html" }];
