@@ -4,6 +4,8 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { cartRequest, useCart } from "@/features/cart/cart-provider";
 import { useShoppingSession } from "@/features/shopping/session-provider";
+import { useAppEvents } from "@/features/events/event-provider";
+import { useImpression } from "@/features/events/use-impression";
 import { MENU_PRODUCT_IMAGES, productIcon } from "@/lib/product-visuals";
 import type { ReasonCode, SavedSelection, SavedSelectionItem } from "./selection-contracts";
 
@@ -46,6 +48,8 @@ function ProductArt({ item, size }: { item: Item; size: "card" | "detail" }) {
 // APP-06: shows the slots chosen and saved by APP-05 (GET /api/recommendations). Ranking is never done here.
 export function SuggestionCards() {
   const cart = useCart();
+  const track = useAppEvents();
+  const container = useRef<HTMLElement>(null);
   const session = useShoppingSession();
   const [state, setState] = useState<State>({ status: "loading" });
   const [detail, setDetail] = useState<Item | null>(null);
@@ -98,6 +102,7 @@ export function SuggestionCards() {
   // Auto-rotation: one suggestion at a time, sliding up every few seconds (ad → store pick → personal).
   const slides = state.status === "ready" ? orderSlides(state.data.items) : [];
   const current = slides.length ? index % slides.length : 0;
+  useImpression(container, slides[current], !detail);
   const running = slides.length > 1 && !paused && !hovered && !focused && !detail;
   const go = (step: number) => setIndex(value => (value % Math.max(1, slides.length) + step + slides.length) % Math.max(1, slides.length));
   useEffect(() => {
@@ -108,12 +113,17 @@ export function SuggestionCards() {
 
   const inCart = new Set(cart.lines.map(line => line.productId));
   const add = (item: Item) => {
+    track({ event_type: "recommendation_click", selection_item_id: item.selectionItemId, product_id: item.product.productId, payload: { target: "add_button" } });
     setDetail(null);
-    cart.addProduct({ ...item.product, available: true });
+    cart.addRecommendation(item.product.productId, item.selectionItemId);
+  };
+  const open = (item: Item) => {
+    track({ event_type: "recommendation_click", selection_item_id: item.selectionItemId, product_id: item.product.productId, payload: { target: "detail" } });
+    setDetail(item);
   };
   const items = slides;
 
-  return <section aria-labelledby="suggestions-heading" aria-busy={state.status === "loading"} className="min-w-0">
+  return <section ref={container} aria-labelledby="suggestions-heading" aria-busy={state.status === "loading"} className="min-w-0">
     <div className="mb-3 flex items-end justify-between gap-2">
       <div><p className="text-xs font-black tracking-wider text-emerald-700">FOR YOU</p>
         <h2 id="suggestions-heading" className="text-2xl font-black">あなたへのおすすめ</h2></div>
@@ -138,7 +148,7 @@ export function SuggestionCards() {
             const visible = index === current;
             return <li key={item.selectionItemId} aria-roledescription="スライド" aria-label={`${index + 1} / ${slides.length}`} aria-hidden={!visible} inert={!visible}
               style={{ height: SLIDE_HEIGHT }} className="p-0.5">
-              <article aria-label={`${label}：${item.product.name}`} className={`flex h-full gap-3 rounded-2xl border p-3 shadow-sm ${tone[item.placementType].card}`}>
+              <article data-selection-item-id={item.selectionItemId} aria-label={`${label}：${item.product.name}`} className={`flex h-full gap-3 rounded-2xl border p-3 shadow-sm ${tone[item.placementType].card}`}>
                 <div className="w-28 shrink-0"><ProductArt item={item} size="card" /></div>
                 <div className="flex min-w-0 flex-1 flex-col">
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -151,7 +161,7 @@ export function SuggestionCards() {
                   <div className="mt-auto flex gap-2 pt-1">
                     <button type="button" disabled={!cart.canEdit || added} onClick={() => add(item)} aria-label={`${item.product.name}をかごに追加（${label}）`}
                       className="min-h-11 flex-1 rounded-xl bg-slate-950 px-2 text-xs font-black text-white disabled:opacity-40">{added ? "かごに追加済み" : "かごに追加"}</button>
-                    <button type="button" onClick={() => setDetail(item)} aria-label={`${item.product.name}の詳細（${label}）`}
+                    <button type="button" onClick={() => open(item)} aria-label={`${item.product.name}の詳細（${label}）`}
                       className="min-h-11 shrink-0 px-1 text-xs font-bold text-emerald-800 underline">詳細</button>
                   </div>
                 </div>
