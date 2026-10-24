@@ -6,6 +6,7 @@ export type ShoppingVisit = { id: string; store_id: string; cart_version: number
 export type ShoppingLine = { productId: string; code: string; name: string; category: string; price: number; quantity: number };
 export type ShoppingContext = {
   userId: string;
+  demo?: { user: "U1" | "U2" | "U3"; label: string; users: { id: "U1" | "U2" | "U3"; label: string }[] };
   stores: ShoppingStore[];
   activeVisits: ShoppingVisit[];
   visit: ShoppingVisit | null;

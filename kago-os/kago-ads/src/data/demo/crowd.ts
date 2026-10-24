@@ -8,7 +8,7 @@ export const CROWD_SCENARIOS:{id:CrowdScenario;label:string}[]=[
 ];
 export const CROWD_DEMO_CATEGORIES={PASTA:"パスタ",BREAD:"パン"};
 export function crowdDemo(scenario:CrowdScenario):{feed:SignageFeed;snapshot:CrowdSnapshot|null}{
- const item=(key:string,name:string):FeedItem=>({key,placement_type:"sponsored",ad_placement_id:key,promotion_version_id:null,creative_version_id:key+"-V1",
+ const item=(key:string,name:string):FeedItem=>({key,group_key:"application:"+key,placement_type:"sponsored",ad_placement_id:key,promotion_version_id:null,creative_version_id:key+"-V1",
   asset:{kind:"image",path:"/ad-assets/FALLBACK_v1_signage.png",width:1920,height:1080,bytes:0,file_name:"demo"},product_name:name,price:100,
   maker_name:"SIG-06架空メーカー",reason_code:"approved_order",valid_until:"2026-10-24T13:00:00+09:00"});
  const feed:SignageFeed={device:{id:"SIG06-D1",store_id:"SIG06-S1",slug:"sig06-demo",location:"確認用"},store_name:"SIG-06架空店舗",

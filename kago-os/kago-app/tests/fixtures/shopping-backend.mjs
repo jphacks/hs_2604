@@ -18,7 +18,7 @@ export async function createShoppingFixture() {
     try { who = JSON.parse(Buffer.from((req.headers.authorization ?? "").split(".")[1], "base64url").toString()).sub; } catch { /* no session */ }
     state.calls.push({ path: url.pathname, who, body });
     if (url.pathname.endsWith("/token")) {
-      const n = body.email === "user3@example.test" ? 3 : body.email === "user4@example.test" ? 4 : body.email === "user5@example.test" ? 5 : null;
+      const n = ["user3@example.test", "misaki.sato@example.test"].includes(body.email) ? 3 : ["user4@example.test", "ken.tanaka@example.test"].includes(body.email) ? 4 : body.email === "yui.suzuki@example.test" ? 6 : body.email === "user5@example.test" ? 5 : null;
       if (!n || body.password !== "fixture-password") return send({ code: "invalid_credentials", msg: "PRIVATE AUTH" }, 400);
       state.revoked.delete(uuid(n));
       return send({ access_token: token(n), refresh_token: `fixture-${n}`, expires_in: 3600, token_type: "bearer", user: user(n) });

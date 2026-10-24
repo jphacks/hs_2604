@@ -43,6 +43,7 @@ export function DemoAdsHeader() {
             { href: "/ads/portal", label: "募集を探す" },
             { href: "/ads/maker/creatives", label: "自社の広告" },
             { href: "/ads/maker/applications", label: "申請一覧" },
+            { href: "/ads/maker/results", label: "成果" },
           ]
         : [{ href: "/ads/portal", label: "募集ポータル" }];
 
