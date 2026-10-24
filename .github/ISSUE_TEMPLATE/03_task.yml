@@ -1,0 +1,80 @@
+name: 調査・その他の作業
+description: 技術調査、環境整備、ドキュメント、デモ準備など
+title: "[作業] "
+body:
+  - type: dropdown
+    id: phase
+    attributes:
+      label: 実装時期
+      options:
+        - 事前準備（prehack）
+        - Hack Day当日（hackday）
+        - 未定
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: 対象
+      multiple: true
+      options:
+        - KAGO/App（買い物・アカウント）
+        - KAGO/App（店舗・商品管理）
+        - LP・ホームページ
+        - KAGO/Signage
+        - KAGO/Insight
+        - KAGO/Ads
+        - KAGO/Core（DB）
+        - 共通基盤・開発環境
+        - その他
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 優先度
+      description: 迷ったらP1を選び、担当者と相談してください。
+      options:
+        - P0：作業を止める問題・至急対応
+        - P1：通常の優先度
+        - P2：余裕があれば対応
+      default: 1
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: 目的
+      placeholder: この作業で、何を決める・整える・用意したいですか？
+    validations:
+      required: true
+  - type: textarea
+    id: tasks
+    attributes:
+      label: やること
+      placeholder: |
+        - [ ] 作業1
+        - [ ] 作業2
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 完了条件・成果物
+      placeholder: |
+        - [ ] 調査結果と採用理由をまとめる
+        - [ ] 次に実装する内容を決める
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: 確認方法
+      placeholder: 成果物をどこで確認でき、何を満たせば完了ですか？
+    validations:
+      required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: 関連情報（任意）
+      placeholder: 関連Issue、参考リンク、先に必要な作業など

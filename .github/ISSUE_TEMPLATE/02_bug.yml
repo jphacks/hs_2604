@@ -1,0 +1,84 @@
+name: 不具合の報告
+description: 想定どおりに動かない画面や処理を報告
+title: "[不具合] "
+labels: [bug]
+body:
+  - type: dropdown
+    id: phase
+    attributes:
+      label: 実装時期
+      options:
+        - 事前準備（prehack）
+        - Hack Day当日（hackday）
+        - 未定
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: 対象
+      multiple: true
+      options:
+        - KAGO/App（買い物・アカウント）
+        - KAGO/App（店舗・商品管理）
+        - LP・ホームページ
+        - KAGO/Signage
+        - KAGO/Insight
+        - KAGO/Ads
+        - KAGO/Core（DB）
+        - 共通基盤・開発環境
+        - その他
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 優先度
+      description: 迷ったらP1を選び、担当者と相談してください。
+      options:
+        - P0：作業を止める問題・至急対応
+        - P1：通常の優先度
+        - P2：余裕があれば対応
+      default: 1
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 起きていること
+      placeholder: どの画面で、何が起きていますか？
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 再現手順
+      placeholder: |
+        1. /Appを開く
+        2. 〇〇を押す
+        3. 〇〇が起きる
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 本来の動作
+      placeholder: 同じ操作で、どのようになるのが正しいですか？
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: 発生環境
+      placeholder: |
+        URL・画面：
+        端末・OS：
+        ブラウザ：
+        発生頻度：毎回／ときどき／一度だけ
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: スクリーンショット・ログ・補足（任意）
+      placeholder: 画像を添付するか、エラー内容や関連Issueを書いてください。

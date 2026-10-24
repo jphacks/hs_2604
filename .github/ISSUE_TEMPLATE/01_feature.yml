@@ -1,0 +1,83 @@
+name: 機能追加・改善
+description: 新しい機能や、既存の画面・動作を改善する提案
+title: "[機能] "
+labels: [enhancement]
+body:
+  - type: dropdown
+    id: phase
+    attributes:
+      label: 実装時期
+      options:
+        - 事前準備（prehack）
+        - Hack Day当日（hackday）
+        - 未定
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: 対象
+      multiple: true
+      options:
+        - KAGO/App（買い物・アカウント）
+        - KAGO/App（店舗・商品管理）
+        - LP・ホームページ
+        - KAGO/Signage
+        - KAGO/Insight
+        - KAGO/Ads
+        - KAGO/Core（DB）
+        - 共通基盤・開発環境
+        - その他
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: 優先度
+      description: 迷ったらP1を選び、担当者と相談してください。
+      options:
+        - P0：作業を止める問題・至急対応
+        - P1：通常の優先度
+        - P2：余裕があれば対応
+      default: 1
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: 背景・解決したいこと
+      placeholder: 誰が、どの場面で、何に困っていますか？
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: やること
+      description: 一つのIssueで扱う範囲を書いてください。
+      placeholder: |
+        - 対応する内容
+        - 今回は対応しない内容（あれば）
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 完了条件
+      description: 他の人も完了を判断できる、具体的な条件を書いてください。
+      placeholder: |
+        - [ ] 利用者が〇〇できる
+        - [ ] エラー時に〇〇が表示される
+    validations:
+      required: true
+  - type: textarea
+    id: verification
+    attributes:
+      label: 確認方法
+      placeholder: どの画面で、どの操作を行い、何を確認しますか？
+    validations:
+      required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: 関連情報（任意）
+      placeholder: 関連Issue、仕様、画面イメージ、先に必要な作業など

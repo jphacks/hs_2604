@@ -1,0 +1,135 @@
+{
+  "demoNow": "2026-10-07T09:00:00+09:00",
+  "account": {
+    "id": "demo-user-sato-misaki",
+    "email": "misaki.sato@example.test",
+    "role": "customer",
+    "isTestUser": true
+  },
+  "profile": {
+    "displayName": "佐藤 美咲",
+    "nameKana": "サトウ ミサキ",
+    "ageBand": "30代",
+    "area": "広島県広島市",
+    "household": { "size": 3, "adults": 2, "children": 1 },
+    "shoppingPreferences": ["時短", "健康志向", "まとめ買い"],
+    "favoriteCategories": ["乳製品", "パン", "青果"],
+    "priceSensitivity": "medium"
+  },
+  "purchaseHistory": [
+    {
+      "id": "order-demo-001",
+      "purchasedAt": "2026-08-28T18:32:00+09:00",
+      "storeId": "hiroshima-demo-store",
+      "items": [
+        { "productCode": "2900000000049", "quantity": 1, "unitPrice": 238 },
+        { "productCode": "2900000000056", "quantity": 1, "unitPrice": 228 },
+        { "productCode": "2900000000063", "quantity": 1, "unitPrice": 298 },
+        { "productCode": "2900000000148", "quantity": 1, "unitPrice": 498 }
+      ]
+    },
+    {
+      "id": "order-demo-002",
+      "purchasedAt": "2026-09-05T11:08:00+09:00",
+      "storeId": "hiroshima-demo-store",
+      "items": [
+        { "productCode": "2900000000049", "quantity": 1, "unitPrice": 238 },
+        { "productCode": "2900000000056", "quantity": 1, "unitPrice": 228 },
+        { "productCode": "2900000000070", "quantity": 1, "unitPrice": 188 },
+        { "productCode": "2900000000087", "quantity": 1, "unitPrice": 198 }
+      ]
+    },
+    {
+      "id": "order-demo-003",
+      "purchasedAt": "2026-09-09T17:46:00+09:00",
+      "storeId": "hiroshima-demo-store",
+      "items": [
+        { "productCode": "2900000000063", "quantity": 1, "unitPrice": 298 },
+        { "productCode": "2900000000094", "quantity": 2, "unitPrice": 258 },
+        { "productCode": "2900000000018", "quantity": 2, "unitPrice": 138 }
+      ]
+    },
+    {
+      "id": "order-demo-004",
+      "purchasedAt": "2026-09-12T10:14:00+09:00",
+      "storeId": "hiroshima-demo-store",
+      "items": [
+        { "productCode": "2900000000049", "quantity": 1, "unitPrice": 238 },
+        { "productCode": "2900000000056", "quantity": 1, "unitPrice": 228 },
+        { "productCode": "2900000000070", "quantity": 1, "unitPrice": 188 },
+        { "productCode": "2900000000131", "quantity": 1, "unitPrice": 398 }
+      ]
+    },
+    {
+      "id": "order-demo-005",
+      "purchasedAt": "2026-09-18T18:03:00+09:00",
+      "storeId": "hiroshima-demo-store",
+      "items": [
+        { "productCode": "2900000000049", "quantity": 1, "unitPrice": 238 },
+        { "productCode": "2900000000056", "quantity": 1, "unitPrice": 228 },
+        { "productCode": "2900000000070", "quantity": 1, "unitPrice": 188 },
+        { "productCode": "2900000000087", "quantity": 1, "unitPrice": 198 }
+      ]
+    },
+    {
+      "id": "order-demo-006",
+      "purchasedAt": "2026-09-21T16:27:00+09:00",
+      "storeId": "hiroshima-demo-store",
+      "items": [
+        { "productCode": "2900000000063", "quantity": 1, "unitPrice": 298 },
+        { "productCode": "2900000000100", "quantity": 1, "unitPrice": 248 },
+        { "productCode": "2900000000124", "quantity": 1, "unitPrice": 158 }
+      ]
+    },
+    {
+      "id": "order-demo-007",
+      "purchasedAt": "2026-09-24T18:51:00+09:00",
+      "storeId": "hiroshima-demo-store",
+      "items": [
+        { "productCode": "2900000000049", "quantity": 1, "unitPrice": 238 },
+        { "productCode": "2900000000056", "quantity": 1, "unitPrice": 228 },
+        { "productCode": "2900000000087", "quantity": 1, "unitPrice": 198 }
+      ]
+    },
+    {
+      "id": "order-demo-008",
+      "purchasedAt": "2026-09-29T19:12:00+09:00",
+      "storeId": "hiroshima-demo-store",
+      "items": [
+        { "productCode": "2900000000049", "quantity": 1, "unitPrice": 238 },
+        { "productCode": "2900000000070", "quantity": 1, "unitPrice": 188 },
+        { "productCode": "2900000000148", "quantity": 1, "unitPrice": 498 }
+      ]
+    },
+    {
+      "id": "order-demo-009",
+      "purchasedAt": "2026-10-01T18:38:00+09:00",
+      "storeId": "hiroshima-demo-store",
+      "items": [
+        { "productCode": "2900000000056", "quantity": 1, "unitPrice": 228 },
+        { "productCode": "2900000000087", "quantity": 1, "unitPrice": 198 },
+        { "productCode": "2900000000018", "quantity": 2, "unitPrice": 138 }
+      ]
+    },
+    {
+      "id": "order-demo-010",
+      "purchasedAt": "2026-10-03T11:24:00+09:00",
+      "storeId": "hiroshima-demo-store",
+      "items": [
+        { "productCode": "2900000000063", "quantity": 1, "unitPrice": 298 },
+        { "productCode": "2900000000070", "quantity": 1, "unitPrice": 188 },
+        { "productCode": "2900000000117", "quantity": 1, "unitPrice": 178 }
+      ]
+    },
+    {
+      "id": "order-demo-011",
+      "purchasedAt": "2026-10-04T16:42:00+09:00",
+      "storeId": "hiroshima-demo-store",
+      "items": [
+        { "productCode": "2900000000049", "quantity": 1, "unitPrice": 238 },
+        { "productCode": "2900000000056", "quantity": 1, "unitPrice": 228 },
+        { "productCode": "2900000000087", "quantity": 1, "unitPrice": 198 }
+      ]
+    }
+  ]
+}
