@@ -1,0 +1,8 @@
+asset_id,kind,creative_id,creative_version,product_code,product_name,category,maker_id,maker_name,headline,channel,format,width,height,duration_sec,file,status
+CR1-v1-app,sponsored,CR1,1,2900000000162,トマトパスタソース,調味料,M1,瀬戸内トマト食品,ゆでたパスタに、かけるだけ。,app,png,800,800,,ad-assets/CR1_v1_app.png,未申請（ADS-03で申請し、INS-01で承認されるまで配信しない）
+CR1-v1-signage,sponsored,CR1,1,2900000000162,トマトパスタソース,調味料,M1,瀬戸内トマト食品,ゆでたパスタに、かけるだけ。,signage,png,1920,1080,,ad-assets/CR1_v1_signage.png,未申請（ADS-03で申請し、INS-01で承認されるまで配信しない）
+CR1-v2-app,sponsored,CR1,2,2900000000162,トマトパスタソース,調味料,M1,瀬戸内トマト食品,ゆでたパスタに、かけるだけ。,app,png,800,800,,ad-assets/CR1_v2_app.png,未申請（ADS-03で申請し、INS-01で承認されるまで配信しない）
+CR1-v2-signage,sponsored,CR1,2,2900000000162,トマトパスタソース,調味料,M1,瀬戸内トマト食品,ゆでたパスタに、かけるだけ。,signage,mp4,1920,1080,10,ad-assets/CR1_v2_signage.mp4,未申請（ADS-03で申請し、INS-01で承認されるまで配信しない）
+FALLBACK-v1-signage,fallback,,1,,,,,,,signage,png,1920,1080,,ad-assets/FALLBACK_v1_signage.png,Signage の案内（再生記録の mode = fallback。承認不要・集計しない）
+PROMO-TEMPLATE-v1-signage,store_promo_template,,1,,,,,,,signage,png,1920,1080,,ad-assets/PROMO_TEMPLATE_v1_signage.png,店舗販促の背景（商品名・理由文・価格は画面側で重ねる。承認不要）
+PROMO-TEMPLATE-v1-app,store_promo_template,,1,,,,,,,app,png,800,800,,ad-assets/PROMO_TEMPLATE_v1_app.png,店舗販促の背景（商品名・理由文・価格は画面側で重ねる。承認不要）

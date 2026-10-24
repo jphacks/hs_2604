@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+:root {
+  --page: #f6f7f9;
+  --surface: #ffffff;
+  --ink: #1f2328;
+  --muted: #59636e;
+  --line: #d8dee4;
+  --brand: #c2410c;
+  --brand-strong: #9a3412;
+}
+
+@theme inline {
+  --color-page: var(--page);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --font-sans: "Noto Sans JP", "Noto Sans CJK JP", "Hiragino Sans", "Yu Gothic UI", Meiryo, system-ui, sans-serif;
+}
+
+body {
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
