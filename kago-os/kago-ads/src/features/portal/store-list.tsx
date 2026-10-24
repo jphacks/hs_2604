@@ -1,12 +1,13 @@
 "use client";
 // ADS-01：店舗一覧
 import Link from "next/link";
-import { getRepository } from "@/lib/data";
+import { usePortalRepository } from "@/features/auth/ads-runtime";
 import { canApplyTo, storeLabel } from "@/lib/domain/rules";
 import { Card, ErrorList, Loading, PageTitle } from "@/components/parts";
 import { useLoad } from "@/lib/use-load";
 
 export function StoreList() {
+  const getRepository = usePortalRepository();
   const { state } = useLoad(async () => {
     const repo = getRepository();
     const [stores, calls] = await Promise.all([repo.listStores(), repo.listPublicAdCalls()]);

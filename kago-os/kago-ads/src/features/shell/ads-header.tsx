@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { ConnectedAdsHeader, useAdsRuntime } from "@/features/auth/ads-runtime";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { getRepository } from "@/lib/data";
@@ -14,6 +15,11 @@ const LOGINS = [
 ];
 
 export function AdsHeader() {
+  const { source } = useAdsRuntime();
+  return source === "mock" ? <DemoAdsHeader /> : <ConnectedAdsHeader />;
+}
+
+export function DemoAdsHeader() {
   const session = useSession();
   const pathname = usePathname();
   const router = useRouter();
