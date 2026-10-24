@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { createContext, Fragment, useCallback, useContext, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { BarcodeScanner } from "@/features/scanner/barcode-scanner";
 import { parseStoreQr } from "./store-qr";
 import type { ShoppingContext } from "./service";
@@ -45,13 +45,17 @@ export function ShoppingSessionProvider({ children }: { children: ReactNode }) {
   const serial = useRef(0);
   const pending = useRef<AbortController | null>(null);
   const channel = useRef<BroadcastChannel | null>(null);
+  const shown = useRef<State>(state);
+  const checking = useRef(false);
+  useEffect(() => { shown.current = state; }, [state]);
 
+  // Explicit actions (first load, login, logout, choosing a store/visit) unmount private data first.
   const transition = useCallback(async (body?: Record<string, unknown>) => {
     const current = ++serial.current;
     pending.current?.abort();
     const controller = new AbortController();
     pending.current = controller;
-    // Unmount private data before logout, switching accounts/stores or revalidation.
+    // Unmount private data before logout, switching accounts or stores.
     setState({ kind: "loading" });
     try {
       let data = await request(body, controller.signal);
@@ -64,7 +68,7 @@ export function ShoppingSessionProvider({ children }: { children: ReactNode }) {
         data = await request(undefined, controller.signal);
       }
       if (current !== serial.current || controller.signal.aborted) return;
-      if (body?.action === "start_visit") channel.current?.postMessage("visit_changed");
+      if (body?.action === "start_visit" || body?.action === "demo_select") channel.current?.postMessage("visit_changed");
       if (body?.action === "start_visit") {
         setQrStore(null);
         setQrError("");
@@ -80,8 +84,31 @@ export function ShoppingSessionProvider({ children }: { children: ReactNode }) {
       setState(["unauthenticated", "session_expired", "invalid_credentials"].includes(failure.code)
         ? { kind: "login", error: failure.code === "unauthenticated" ? undefined : failure.message }
         : { kind: "error", error: failure });
+    } finally {
+      if (pending.current === controller) pending.current = null;
     }
   }, []);
+
+  // Periodic / on-focus / on-demand checks keep the current screen and work while they run.
+  // The children are keyed by user and visit, so they unmount only if the identity or visit changed.
+  const check = useCallback(async () => {
+    if (checking.current || pending.current) return;
+    if (shown.current.kind !== "connected") { void transition(); return; }
+    checking.current = true;
+    const current = serial.current;
+    try {
+      const data = await request();
+      if (current !== serial.current || pending.current) return;
+      setState({ kind: "connected", context: data as ShoppingContext });
+    } catch (error) {
+      if (current !== serial.current || pending.current) return;
+      const failure = safeFailure(error);
+      // Signed out or expired: hide private data at once. A network hiccup keeps the screen; the next check retries.
+      if (["unauthenticated", "session_expired"].includes(failure.code)) {
+        setState({ kind: "login", error: failure.code === "unauthenticated" ? undefined : failure.message });
+      }
+    } finally { checking.current = false; }
+  }, [transition]);
 
   useEffect(() => {
     const boot = window.setTimeout(() => {
@@ -96,9 +123,11 @@ export function ShoppingSessionProvider({ children }: { children: ReactNode }) {
     }, 0);
     if (typeof BroadcastChannel !== "undefined") {
       channel.current = new BroadcastChannel("kago-shopping-session");
-      channel.current.onmessage = () => { void transition(); };
+      // Another tab signed in/out: hide private data at once (a pending background check is discarded).
+      // Another tab changed the visit: check in the background.
+      channel.current.onmessage = event => { if (event.data === "identity_changed") void transition(); else void check(); };
     }
-    const revalidate = () => { if (document.visibilityState === "visible") void transition(); };
+    const revalidate = () => { if (document.visibilityState === "visible") void check(); };
     document.addEventListener("visibilitychange", revalidate);
     const timer = window.setInterval(revalidate, 60_000);
     return () => {
@@ -108,7 +137,7 @@ export function ShoppingSessionProvider({ children }: { children: ReactNode }) {
       window.clearInterval(timer);
       document.removeEventListener("visibilitychange", revalidate);
     };
-  }, [transition]);
+  }, [transition, check]);
 
   const login = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -119,17 +148,24 @@ export function ShoppingSessionProvider({ children }: { children: ReactNode }) {
   };
   const logout = () => { void transition({ action: "logout" }); };
 
-  if (state.kind === "connected" && state.context.visit && !choosingStore) {
+  if (state.kind === "connected" && state.context.visit && (state.context.demo || !choosingStore)) {
     const context = state.context;
     const store = context.stores.find(s => s.id === context.visit!.store_id)!;
-    return <ShoppingSession.Provider value={{ ...context, revalidate: () => { void transition(); } }}>
+    return <ShoppingSession.Provider value={{ ...context, revalidate: () => { void check(); } }}>
       <div className="border-b border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950">
         <div className="mx-auto flex max-w-xl flex-wrap items-center justify-between gap-2">
           <span className="font-bold">{store.name} {store.branch_name}</span>
-          <div className="flex gap-4"><button type="button" onClick={() => setChoosingStore(true)} className="min-h-10 underline">店舗・来店を選ぶ</button><button type="button" onClick={logout} className="min-h-10 underline">ログアウト</button></div>
+          {context.demo ? <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-white px-3 py-2 text-xs font-bold">デモ用アカウントで表示中</span>
+            <label className="flex items-center gap-2 text-xs font-bold">利用者
+              <select aria-label="デモ利用者を切り替える" value={context.demo.user} onChange={event => { void transition({ action: "demo_select", user: event.target.value }); }} className="min-h-11 rounded-xl border border-emerald-200 bg-white px-3 text-sm">
+                {context.demo.users.map(user => <option key={user.id} value={user.id}>{user.id} {user.label}</option>)}
+              </select>
+            </label>
+          </div> : <div className="flex gap-4"><button type="button" onClick={() => setChoosingStore(true)} className="min-h-10 underline">店舗・来店を選ぶ</button><button type="button" onClick={logout} className="min-h-10 underline">ログアウト</button></div>}
         </div>
       </div>
-      {children}
+      <Fragment key={`${context.userId}:${context.visit!.id}`}>{children}</Fragment>
     </ShoppingSession.Provider>;
   }
 

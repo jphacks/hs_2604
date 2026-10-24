@@ -2,10 +2,12 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import { cartRequest, useCart } from "@/features/cart/cart-provider";
-import { useShoppingSession } from "@/features/shopping/session-provider";
+import { useCart } from "@/features/cart/cart-provider";
+import { useAppEvents } from "@/features/events/event-provider";
+import { useImpression } from "@/features/events/use-impression";
 import { MENU_PRODUCT_IMAGES, productIcon } from "@/lib/product-visuals";
 import type { ReasonCode, SavedSelection, SavedSelectionItem } from "./selection-contracts";
+import { useRecommendations } from "./use-recommendations";
 
 type Item = SavedSelectionItem;
 const yen = new Intl.NumberFormat("ja-JP", { style: "currency", currency: "JPY" });
@@ -33,8 +35,6 @@ export function orderSlides<T extends Pick<Item, "placementType" | "rank">>(item
   return [...items].sort((a, b) => slideOrder[a.placementType] - slideOrder[b.placementType] || a.rank - b.rank);
 }
 
-type State = { status: "loading" } | { status: "error"; message: string } | { status: "ready"; data: SavedSelection };
-
 function ProductArt({ item, size }: { item: Item; size: "card" | "detail" }) {
   const image = MENU_PRODUCT_IMAGES[item.product.code];
   return <div className={`relative grid place-items-center overflow-hidden rounded-xl ${tone[item.placementType].art} ${size === "card" ? "h-full text-4xl" : "size-20 shrink-0 text-4xl"}`}>
@@ -45,48 +45,38 @@ function ProductArt({ item, size }: { item: Item; size: "card" | "detail" }) {
 
 // APP-06: shows the slots chosen and saved by APP-05 (GET /api/recommendations). Ranking is never done here.
 export function SuggestionCards() {
+  const { state, retry, updating } = useRecommendations();
+  const [paused, setPaused] = useState(false);
+  return <section aria-labelledby="suggestions-heading" aria-busy={state.status === "loading"} className="min-w-0">
+    <div className="mb-3 flex items-end justify-between gap-2">
+      <div><p className="text-xs font-black tracking-wider text-emerald-700">FOR YOU</p>
+        <h2 id="suggestions-heading" className="text-2xl font-black">あなたへのおすすめ</h2></div>
+      <span className="hidden shrink-0 text-[11px] text-slate-500 min-[360px]:inline">理由・広告表示つき</span>
+    </div>
+    {state.status === "loading" && <div role="status" aria-label={updating ? "かごに合わせておすすめを更新しています" : "おすすめを読み込んでいます"} className="flex animate-pulse items-center justify-center rounded-2xl bg-slate-200/70 p-4 text-sm text-slate-600" style={{ height: SLIDE_HEIGHT }}>
+      {updating ? "かごに合わせておすすめを更新しています…" : "おすすめを読み込んでいます…"}
+    </div>}
+    {state.status === "error" && <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">
+      <p>{state.message}</p>
+      <button type="button" onClick={retry} className="mt-3 min-h-11 rounded-xl bg-red-700 px-4 text-sm font-bold text-white">おすすめを再試行</button>
+    </div>}
+    {state.status === "ready" && state.data.items.length === 0 && <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-5 text-center text-sm text-slate-600">
+      いまのかごに合うおすすめはありません。商品をかごに追加すると、関連するおすすめが表示されます。
+    </p>}
+    {state.status === "ready" && state.data.items.length > 0 && <SuggestionCarousel key={state.data.selectionId} selection={state.data} paused={paused} onPauseChange={setPaused} />}
+  </section>;
+}
+
+// A fresh selection owns its slide/detail state. Replacing it also closes an obsolete detail dialog.
+function SuggestionCarousel({ selection, paused, onPauseChange }: { selection: SavedSelection; paused: boolean; onPauseChange: (paused: boolean) => void }) {
   const cart = useCart();
-  const session = useShoppingSession();
-  const [state, setState] = useState<State>({ status: "loading" });
+  const track = useAppEvents();
+  const container = useRef<HTMLDivElement>(null);
   const [detail, setDetail] = useState<Item | null>(null);
   const [index, setIndex] = useState(0);
-  const [paused, setPaused] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
-  const request = useRef<AbortController | null>(null);
-  const shown = useRef<string | null>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
-  const version = useRef(cart.version);
-
-  const load = async (retried = false) => {
-    request.current?.abort();
-    const controller = new AbortController(); request.current = controller;
-    setState(previous => previous.status === "ready" ? previous : { status: "loading" });
-    try {
-      const data: SavedSelection = await cartRequest("/api/recommendations", undefined, controller.signal);
-      if (controller.signal.aborted || data.visitId !== session.visit!.id) return;
-      // A result for an older cart is never shown; the newer cart triggers its own load.
-      if (data.cartVersion !== version.current) return;
-      // A new selection starts from its first slide (the ad, if any).
-      if (shown.current !== data.selectionId) { shown.current = data.selectionId; setIndex(0); }
-      setState({ status: "ready", data });
-    } catch (failure) {
-      if (controller.signal.aborted) return;
-      const code = (failure as { code?: string })?.code;
-      if (code === "unauthenticated" || code === "session_expired") { session.revalidate(); return; }
-      if (code === "input_changed" && !retried) { void load(true); return; }
-      setState({ status: "error", message: "おすすめを読み込めませんでした。通信状態を確認して再試行してください。" });
-    }
-  };
-  useEffect(() => {
-    version.current = cart.version;
-    // Wait until the cart snapshot is known so the selection matches what the customer sees.
-    if (!cart.loaded) return;
-    const timer = window.setTimeout(() => { void load(); }, 250);
-    return () => { window.clearTimeout(timer); request.current?.abort(); };
-    // The visit boundary unmounts this tree; reload only when the saved cart changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cart.version, cart.loaded]);
   useEffect(() => {
     if (!detail) return;
     closeButton.current?.focus();
@@ -96,8 +86,9 @@ export function SuggestionCards() {
   }, [detail]);
 
   // Auto-rotation: one suggestion at a time, sliding up every few seconds (ad → store pick → personal).
-  const slides = state.status === "ready" ? orderSlides(state.data.items) : [];
+  const slides = orderSlides(selection.items);
   const current = slides.length ? index % slides.length : 0;
+  useImpression(container, slides[current], !detail);
   const running = slides.length > 1 && !paused && !hovered && !focused && !detail;
   const go = (step: number) => setIndex(value => (value % Math.max(1, slides.length) + step + slides.length) % Math.max(1, slides.length));
   useEffect(() => {
@@ -108,26 +99,15 @@ export function SuggestionCards() {
 
   const inCart = new Set(cart.lines.map(line => line.productId));
   const add = (item: Item) => {
+    track({ event_type: "recommendation_click", selection_item_id: item.selectionItemId, product_id: item.product.productId, payload: { target: "add_button" } });
     setDetail(null);
-    cart.addProduct({ ...item.product, available: true });
+    cart.addRecommendation(item.product.productId, item.selectionItemId);
   };
-  const items = slides;
-
-  return <section aria-labelledby="suggestions-heading" aria-busy={state.status === "loading"} className="min-w-0">
-    <div className="mb-3 flex items-end justify-between gap-2">
-      <div><p className="text-xs font-black tracking-wider text-emerald-700">FOR YOU</p>
-        <h2 id="suggestions-heading" className="text-2xl font-black">あなたへのおすすめ</h2></div>
-      <span className="hidden shrink-0 text-[11px] text-slate-500 min-[360px]:inline">理由・広告表示つき</span>
-    </div>
-    {state.status === "loading" && <div role="status" aria-label="おすすめを読み込んでいます" className="animate-pulse rounded-2xl bg-slate-200/70" style={{ height: SLIDE_HEIGHT }} />}
-    {state.status === "error" && <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-900">
-      <p>{state.message}</p>
-      <button type="button" onClick={() => { setState({ status: "loading" }); void load(); }} className="mt-3 min-h-11 rounded-xl bg-red-700 px-4 text-sm font-bold text-white">おすすめを再試行</button>
-    </div>}
-    {state.status === "ready" && items.length === 0 && <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-5 text-center text-sm text-slate-600">
-      いまのかごに合うおすすめはありません。商品をかごに追加すると、関連するおすすめが表示されます。
-    </p>}
-    {items.length > 0 && <div role="group" aria-roledescription="カルーセル" aria-label="おすすめ商品" className="relative"
+  const open = (item: Item) => {
+    track({ event_type: "recommendation_click", selection_item_id: item.selectionItemId, product_id: item.product.productId, payload: { target: "detail" } });
+    setDetail(item);
+  };
+  return <><div ref={container} role="group" aria-roledescription="カルーセル" aria-label="おすすめ商品" className="relative"
       onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
       onFocusCapture={() => setFocused(true)} onBlurCapture={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocused(false); }}>
       <div className="overflow-hidden rounded-2xl" style={{ height: SLIDE_HEIGHT }}>
@@ -138,7 +118,7 @@ export function SuggestionCards() {
             const visible = index === current;
             return <li key={item.selectionItemId} aria-roledescription="スライド" aria-label={`${index + 1} / ${slides.length}`} aria-hidden={!visible} inert={!visible}
               style={{ height: SLIDE_HEIGHT }} className="p-0.5">
-              <article aria-label={`${label}：${item.product.name}`} className={`flex h-full gap-3 rounded-2xl border p-3 shadow-sm ${tone[item.placementType].card}`}>
+              <article data-selection-item-id={item.selectionItemId} aria-label={`${label}：${item.product.name}`} className={`flex h-full gap-3 rounded-2xl border p-3 shadow-sm ${tone[item.placementType].card}`}>
                 <div className="w-28 shrink-0"><ProductArt item={item} size="card" /></div>
                 <div className="flex min-w-0 flex-1 flex-col">
                   <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -151,7 +131,7 @@ export function SuggestionCards() {
                   <div className="mt-auto flex gap-2 pt-1">
                     <button type="button" disabled={!cart.canEdit || added} onClick={() => add(item)} aria-label={`${item.product.name}をかごに追加（${label}）`}
                       className="min-h-11 flex-1 rounded-xl bg-slate-950 px-2 text-xs font-black text-white disabled:opacity-40">{added ? "かごに追加済み" : "かごに追加"}</button>
-                    <button type="button" onClick={() => setDetail(item)} aria-label={`${item.product.name}の詳細（${label}）`}
+                    <button type="button" onClick={() => open(item)} aria-label={`${item.product.name}の詳細（${label}）`}
                       className="min-h-11 shrink-0 px-1 text-xs font-bold text-emerald-800 underline">詳細</button>
                   </div>
                 </div>
@@ -168,11 +148,11 @@ export function SuggestionCards() {
         <div className="flex items-center gap-1">
           <button type="button" onClick={() => go(-1)} aria-label="前のおすすめ" className="grid size-11 place-items-center rounded-full text-lg text-slate-700">↑</button>
           <button type="button" onClick={() => go(1)} aria-label="次のおすすめ" className="grid size-11 place-items-center rounded-full text-lg text-slate-700">↓</button>
-          <button type="button" onClick={() => setPaused(value => !value)} aria-pressed={paused}
+          <button type="button" onClick={() => onPauseChange(!paused)} aria-pressed={paused}
             aria-label={paused ? "おすすめの自動切り替えを再開" : "おすすめの自動切り替えを停止"} className="min-h-11 rounded-full px-3 text-xs font-bold text-slate-700 underline">{paused ? "再生" : "停止"}</button>
         </div>
       </div>}
-    </div>}
+    </div>
     {detail && <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <button type="button" tabIndex={-1} className="absolute inset-0 bg-slate-950/50" onClick={() => setDetail(null)} aria-label="詳細を閉じる" />
       <section role="dialog" aria-modal="true" aria-labelledby="suggestion-detail-heading" className="relative max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-white p-6 shadow-2xl sm:rounded-3xl">
@@ -194,5 +174,5 @@ export function SuggestionCards() {
           {inCart.has(detail.product.productId) ? "かごに追加済み" : "かごに追加"}</button>
       </section>
     </div>}
-  </section>;
+  </>;
 }

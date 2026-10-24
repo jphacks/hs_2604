@@ -1,4 +1,4 @@
-import { USING_MOCK } from "@/lib/data-source";
+import { USING_MOCK } from "@/lib/mode";
 
 export default function ReviewLayout({ children }: { children: React.ReactNode }) {
   return (

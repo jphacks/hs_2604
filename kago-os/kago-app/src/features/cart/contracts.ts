@@ -11,7 +11,8 @@ export type CartOperation = {
   expectedVersion: number;
   productId: string;
   quantity: number;
-  source: "scan" | "manual";
+  source: "scan" | "manual" | "recommendation";
+  selectionItemId?: string;
 };
 export type OfferClaim = { requestId: string; visitId: string; expectedVersion: number; offerId: string };
 export type PendingCart = { kind: "set"; operation: CartOperation } | { kind: "claim"; claim: OfferClaim } | {

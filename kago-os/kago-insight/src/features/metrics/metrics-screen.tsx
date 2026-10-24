@@ -454,10 +454,14 @@ function OrderTotalsTile({ totals }: { totals: OrderTotals[] }) {
       </p>
       <p className="mt-2 text-xs text-[var(--muted)]">
         種別別の値を足さず、注文から直接集計した値です（common-spec 9.1.1）
-        {others.length > 0
-          ? `。別の由来のデータも${others.length}件あります`
-          : ""}
       </p>
+      {/* 由来の違うデータは、合算せずに別の行として出す（D-03） */}
+      {others.map((other) => (
+        <p key={other.data_origin} className="mt-1 text-xs text-[var(--muted)]">
+          別の由来：{dataOriginLabel[other.data_origin]} {other.orders}件 /{" "}
+          {formatYen(other.amount)}（上の数値と足さないでください）
+        </p>
+      ))}
     </div>
   );
 }
@@ -485,13 +489,22 @@ function StatTile({
   );
 }
 
-function sum(values: (number | null)[]): number | null {
+/**
+ * 合計。3つの状態を区別する。
+ *   "none" … 行が1件も無い（対象なし）
+ *   null   … 行はあるが、すべて公開範囲の外で DB が null を返した
+ *   数値   … 合計
+ * 両者を混ぜると、記録が無いだけなのに「非公開」と出てしまう。
+ */
+function sum(values: (number | null)[]): number | null | "none" {
+  if (values.length === 0) return "none";
   const present = values.filter((v): v is number => v !== null);
   if (present.length === 0) return null;
   return present.reduce((a, b) => a + b, 0);
 }
 
-function fmt(value: number | null): string {
+function fmt(value: number | null | "none"): string {
+  if (value === "none") return "—";
   return value === null ? "非公開" : value.toLocaleString("ja-JP");
 }
 

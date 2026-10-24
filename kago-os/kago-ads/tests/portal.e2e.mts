@@ -95,6 +95,13 @@ try {
   assert.equal(await page.getByText("秘密の下書き").count(), 0);
   assert.equal(await page.getByText("終了した募集", { exact: true }).count(), 0);
   checks.push("2店舗の公開募集、下書きと終了募集の除外");
+  for (const [name, href] of [["広告素材", "/ads/maker/creatives"], ["申請一覧", "/ads/maker/applications"], ["広告の成果", "/ads/maker/results"]]) {
+    const link = page.getByRole("link", { name, exact: true }).first();
+    await link.waitFor();
+    assert.equal(await link.getAttribute("href"), href);
+  }
+  checks.push("統合後も素材・申請・成果の3つの導線を保持");
+
   await page.screenshot({ path: new URL("ads01-portal.png", images).pathname, fullPage: true });
   await page.getByPlaceholder("キーワード").fill("見つからない条件");
   await shown(page, "条件に合う募集はありません。条件をゆるめるか、「終了した募集も表示」で過去の募集を確認してください。");

@@ -23,6 +23,9 @@ export type Playing = {
   durationSec?: number;
   /** 再生を始めたときの一覧の key（版が変わったかの判定に使う） */
   feedKeys: string[];
+  /** 再生中のものの group_key と、出してよい期限（一覧から消えたときの判定に使う） */
+  groupKey?: string;
+  validUntil?: Timestamp;
   videoEnded: boolean;
 };
 
@@ -66,7 +69,13 @@ export function decide(p: Playing, feed: SignageFeed | null, realNowMs: number, 
   if (!isFresh(feed, realNowMs)) return { switch: true, reason: "expired" };
   if (feed.suspended_keys.includes(p.key)) return { switch: true, reason: "suspended" };
   const item = feed.items.find((i) => i.key === p.key);
-  if (item && realNowMs + feed.clock_offset_ms >= ms(item.valid_until)) return { switch: true, reason: "expired" };
+  const storeNowMs = realNowMs + feed.clock_offset_ms;
+  if (item && storeNowMs >= ms(item.valid_until)) return { switch: true, reason: "expired" };
+  if (!item && p.groupKey && !feed.items.some((i) => i.group_key === p.groupKey)) {
+    // 同じ申請・販促の新しい版もなく消えた：期限を過ぎたなら期限切れ、そうでなければ停止とみなしてすぐ切り替える
+    const expired = p.validUntil !== undefined && storeNowMs >= ms(p.validUntil);
+    return { switch: true, reason: expired ? "expired" : "suspended" };
+  }
 
   const changed = !item || !sameKeys(p.feedKeys, feed.items.map((i) => i.key));
   if (p.kind === "video") {

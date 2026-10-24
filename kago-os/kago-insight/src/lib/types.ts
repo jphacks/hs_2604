@@ -48,8 +48,10 @@ export type Application = {
   creative_id: string;
   creative_version_id: string;
   creative_version: number;
-  /** ストレージのオブジェクトキー。URLではない（COM-03）。表示時にURLへ変換する */
+  /** ストレージのオブジェクトキー。URLではない（COM-03） */
   image_path: string;
+  /** image_path から作った表示用URL。サーバ側で発行する。失敗時は null */
+  image_url: string | null;
   headline: string;
   product_id: string;
   product_name: string;

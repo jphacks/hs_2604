@@ -7,6 +7,14 @@
   --muted: #5a6b84;
   --line: #d9dfe6;
   --accent: #102a47;
+
+  /* グラフ用。青1色の順序ランプ（配布→受け取り→購入）と、単系列の棒。
+     dataviz の検証スクリプトで light / 白背景・ordinal として全項目PASSを確認済み。 */
+  --viz-step-1: #86b6ef;
+  --viz-step-2: #2a78d6;
+  --viz-step-3: #104281;
+  --viz-bar: #2a78d6;
+  --viz-track: #eef1f5;
 }
 
 * {

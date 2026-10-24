@@ -1,11 +1,11 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createSeed, type MockDb } from "../../data/demo/seed";
 import { createMockRepository, memoryStorage } from "../data/mock-repository";
 import { PermissionError, type AdsRepository } from "../data/repository";
 import type { Session, SignagePlay } from "../domain/types";
 import { buildFeed, CACHE_TTL_MS, type FeedItem, type SignageFeed } from "./feed";
 import { decide, fallbackReason, pickNext, type Playing } from "./player";
-import { endPlay, isCountedPlay, startPlay, summarizePlays } from "./plays";
+import { endPlay, isCountedPlay, newPlayId, startPlay, summarizePlays } from "./plays";
 
 // 共通仕様書 11 章の日（2026-10-25）を基準にする
 const DAY = "2026-10-25";
@@ -183,6 +183,52 @@ describe("SIG-01・SIG-03 切り替えの判定", () => {
     db.store_promotions[0].status = "inactive";
     const after = feedFor(db, "D1", at("17:00"));
     expect(pickNext(after, t0, allReady, { key: "SP1-v1", feedKeys: keys(before) })?.key).toBe("SP2-v1");
+  });
+
+  // DB 版の端末には停止中の配信対象・販促が見えない（DB-06）。suspended_keys が空でも、消え方で停止と更新を分ける
+  const groupOf = (f: SignageFeed, key: string) => f.items.find((i) => i.key === key)!;
+
+  it("同じ申請の新しい版もなく消えたら、動画の途中でも停止としてすぐ切り替える", () => {
+    const before = feed();
+    const p = playing("PL1", "video", before, { groupKey: groupOf(before, "PL1").group_key, validUntil: groupOf(before, "PL1").valid_until });
+    const db = seed();
+    db.ad_placements[0].status = "suspended";
+    const after = { ...feedFor(db, "D1", at("17:00")), suspended_keys: [] };
+    expect(decide(p, after, t0 + 2_000, allReady)).toEqual({ switch: true, reason: "suspended" });
+  });
+
+  it("同じ申請の新しい版に替わったときは更新として扱い、動画は最後まで再生する", () => {
+    const before = feed();
+    const p = playing("PL1", "video", before, { groupKey: groupOf(before, "PL1").group_key });
+    const db = seed();
+    db.ad_placements[0].status = "superseded";
+    db.ad_placements.push({ ...db.ad_placements[0], id: "PL2", creative_version_id: "CR1-v1", status: "active", approved_at: `${DAY}T16:59:00+09:00` });
+    const after = feedFor(db, "D1", at("17:00"));
+    expect(keys(after)).toContain("PL2");
+    expect(decide(p, after, t0 + 5_000, allReady)).toEqual({ switch: false });
+    expect(decide({ ...p, videoEnded: true }, after, t0 + 10_000, allReady)).toEqual({ switch: true, reason: "completed" });
+  });
+
+  it("出してよい期限を過ぎて一覧から消えたときは期限切れ", () => {
+    const before = feedFor(seed(), "D1", at("18:59"));
+    const sp1 = groupOf(before, "SP1-v1");
+    const p = { ...playing("SP1-v1", "image", before, { groupKey: sp1.group_key, validUntil: sp1.valid_until }), startedAtMs: at("18:59").getTime() + 58_000 };
+    const after = feedFor(seed(), "D1", new Date(at("19:00").getTime() + 2_000));
+    expect(keys(after)).not.toContain("SP1-v1");
+    expect(decide(p, after, at("19:00").getTime() + 2_000, allReady)).toEqual({ switch: true, reason: "expired" });
+  });
+});
+
+describe("SIG-02 再生記録の id", () => {
+  afterEach(() => vi.unstubAllGlobals());
+  const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
+  it("DB の列（uuid）に入る形で作る。randomUUID がない環境でも同じ形", () => {
+    expect(newPlayId()).toMatch(UUID);
+    vi.stubGlobal("crypto", { getRandomValues: (b: Uint8Array) => b.fill(0xab) });
+    expect(newPlayId()).toMatch(UUID);
+    vi.stubGlobal("crypto", undefined);
+    expect(newPlayId()).toMatch(UUID);
   });
 });
 

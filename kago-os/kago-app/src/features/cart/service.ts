@@ -61,10 +61,12 @@ export async function setCartItem(client: Client, visitId: string, input: CartOp
   if (input.visitId !== visitId || !isUuid(input.requestId) || !isUuid(input.productId)
     || !Number.isSafeInteger(input.quantity) || input.quantity < 0 || input.quantity > 999
     || !Number.isSafeInteger(input.expectedVersion) || input.expectedVersion < 0
-    || !["scan", "manual"].includes(input.source)) throw new CartError("invalid_request");
+    || !["scan", "manual", "recommendation"].includes(input.source)
+    || (input.source === "recommendation" ? !isUuid(input.selectionItemId) : input.selectionItemId != null)) throw new CartError("invalid_request");
   const { data, error } = await client.rpc("app_set_cart_item", {
     p_visit_id: visitId, p_request_id: input.requestId, p_product_id: input.productId,
     p_quantity: input.quantity, p_expected_cart_version: input.expectedVersion, p_source: input.source,
+    p_selection_item_id: input.selectionItemId ?? null,
   });
   if (error) throw error;
   return data as CartSnapshot;

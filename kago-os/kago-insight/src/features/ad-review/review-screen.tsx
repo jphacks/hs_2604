@@ -3,13 +3,11 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
-  actionErrorMessage,
   approveApplication,
-  creativeImageUrl,
   rejectApplication,
   suspendPlacement,
-  type ActionErrorCode,
-} from "@/lib/data-source";
+} from "@/lib/actions";
+import { actionErrorMessage, type ActionErrorCode } from "@/lib/action-result";
 import { channelLabel, placementStatusLabel } from "@/lib/labels";
 import { formatDate, formatDateTime, toDateInputValue } from "@/lib/format";
 import { EmptyState } from "@/components/state";
@@ -204,9 +202,13 @@ function ApplicationDetail({
   const [error, setError] = useState<{ code: ActionErrorCode; text: string } | null>(null);
 
   const decided = application.status !== "submitted";
-  const pastRejections = application.history.filter(
+  const rejections = application.history.filter(
     (h) => h.status === "rejected" && h.review_comment,
   );
+  // いま見ている版の却下と、それより前の版の却下は意味が違う。
+  // 前者は「この申請をこう却下した」、後者は「メーカーが直してくるはずの指摘」。
+  const currentRejection = rejections.find((h) => h.revision === application.revision);
+  const pastRejections = rejections.filter((h) => h.revision !== application.revision);
 
   const toggleChannel = (channel: Channel) => {
     setChannels((current) =>
@@ -258,12 +260,19 @@ function ApplicationDetail({
 
   return (
     <article className="rounded-lg border border-[var(--line)] bg-[var(--panel)] p-4">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={creativeImageUrl(application.image_path)}
-        alt={`${application.headline} の広告素材`}
-        className="aspect-[16/10] w-full rounded border border-[var(--line)] object-cover"
-      />
+      {application.image_url ? (
+        // 署名付きURLは数分で失効する。next/image のキャッシュに載せず素の img で出す。
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={application.image_url}
+          alt={`${application.headline} の広告素材`}
+          className="aspect-[16/10] w-full rounded border border-[var(--line)] object-cover"
+        />
+      ) : (
+        <div className="flex aspect-[16/10] w-full items-center justify-center rounded border border-[var(--line)] bg-[var(--panel-2,#f5f5f0)] text-sm text-[var(--muted)]">
+          素材画像を読み込めませんでした
+        </div>
+      )}
 
       <h2 className="mt-4 text-lg font-bold">{application.headline}</h2>
 
@@ -308,9 +317,22 @@ function ApplicationDetail({
         </div>
       ) : null}
 
+      {currentRejection ? (
+        <div className="mt-4 rounded border border-[var(--line)] bg-[var(--surface)] p-3 text-sm">
+          <p className="font-bold">この申請の却下理由</p>
+          <p className="mt-1 text-xs text-[var(--muted)]">
+            {currentRejection.reviewed_at ? formatDateTime(currentRejection.reviewed_at) : ""}
+          </p>
+          <p className="mt-1">{currentRejection.review_comment}</p>
+          <p className="mt-2 text-xs text-[var(--muted)]">
+            メーカーが内容を直して再申請すると、第{application.revision + 1}版として審査待ちに戻ります。
+          </p>
+        </div>
+      ) : null}
+
       {pastRejections.length > 0 ? (
         <div className="mt-4 rounded border border-amber-300 bg-amber-50 p-3 text-sm">
-          <p className="font-bold text-amber-900">これまでの却下理由</p>
+          <p className="font-bold text-amber-900">前の版の却下理由</p>
           <ul className="mt-2 grid gap-2">
             {pastRejections.map((h) => (
               <li key={h.revision} className="text-amber-900">
@@ -321,9 +343,11 @@ function ApplicationDetail({
               </li>
             ))}
           </ul>
-          <p className="mt-2 text-xs text-amber-800">
-            前回の指摘が直っているか確認してください。
-          </p>
+          {!decided ? (
+            <p className="mt-2 text-xs text-amber-800">
+              前回の指摘が直っているか確認してください。
+            </p>
+          ) : null}
         </div>
       ) : null}
 

@@ -217,6 +217,10 @@ export function AdsAccess({ children }: { children: ReactNode }) {
     if (state.identity.role !== "maker_staff") return <Card><p>メーカーとしてログインしてください。</p><ButtonLink href="/ads/store/calls">自店の募集へ戻る</ButtonLink></Card>;
     return <div key={state.identity.userId + ":" + state.identity.makerIds[0]}>{children}</div>;
   }
+  if (pathname === "/ads/maker/results") {
+    if (store) return <Card><p>成果画面はメーカー向けです。</p><ButtonLink href="/ads/store/calls">自店の募集へ戻る</ButtonLink></Card>;
+    return <div key={state.identity.userId}>{children}</div>;
+  }
   return <Card>
     <h1 className="text-xl font-bold">この操作はDB接続の準備中です</h1>
     <p className="mt-3 text-sm text-muted">審査（承認・却下）はKAGO/Insightで行います。この画面では保存は行いません。</p>
@@ -234,7 +238,11 @@ export function ConnectedAdsHeader() {
       {store ? <Link href="/ads/store/calls" className="text-sm text-brand">自店の募集</Link> : <>
         <Link href="/ads/portal" className="text-sm text-brand">募集を探す</Link>
         <Link href="/ads/portal/stores" className="text-sm text-brand">店舗一覧</Link>
-        {identity && <><Link href="/ads/maker/creatives" className="text-sm text-brand">広告素材</Link><Link href="/ads/maker/applications" className="text-sm text-brand">申請一覧</Link></>}
+        {identity && <>
+          <Link href="/ads/maker/creatives" className="text-sm text-brand">広告素材</Link>
+          <Link href="/ads/maker/applications" className="text-sm text-brand">申請一覧</Link>
+          <Link href="/ads/maker/results" className="text-sm text-brand">広告の成果</Link>
+        </>}
       </>}
       <span className="ml-auto text-xs text-muted">{identity ? (store ? "店舗担当者としてログイン中" : "メーカーとしてログイン中") : "募集ポータル"}</span>
       {store && <label className="flex items-center gap-2 text-sm">操作する店舗
