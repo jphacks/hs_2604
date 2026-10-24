@@ -112,7 +112,7 @@ export function isDisclosed(scope: DisclosureMetric[], metric: DisclosureMetric)
 
 /**
  * App の行を、配信対象・データの由来ごとに足す。行がなければ 0 件（公開範囲の外は非公開）。
- * 表示来店数はルールの版ごとの行を足すので、同じ来店が版をまたぐと多めになる（少数判定は安全側）
+ * DB-09が来店・商品・種別・由来ごとの最初の実表示へ割り当てた行を足す。
  */
 export function summarizeApp(placement: ResultPlacement, rows: AppMetricsRow[]): AppSummary[] {
   const mine = rows.filter((r) => r.ad_placement_id === placement.id);
@@ -154,6 +154,9 @@ export function summarizeSignage(placement: ResultPlacement, rows: SignageMetric
       const v = total(rs, key, disclosed, true);
       return v === null ? null : measured ? v : "unmeasured";
     };
+    // DB-09の販売数量は店舗・商品・時間帯単位。同じ時刻の端末別行には同じ数量が入る。
+    // この配信対象は同じ商品なので、店舗・時間帯ごとに1回だけ数える。
+    const salesRows = [...new Map(rs.map(r => [r.store_id + "/" + new Date(r.hour_start).toISOString(), r])).values()];
     return {
       origin,
       plays: total(rs, "plays", disclosed),
@@ -161,7 +164,7 @@ export function summarizeSignage(placement: ResultPlacement, rows: SignageMetric
       measuredPlays: measured,
       estimatedViewers: estimate("estimated_viewers"),
       estimatedViewSeconds: estimate("estimated_view_seconds"),
-      referenceSales: total(rs, "reference_sales_quantity", salesDisclosed),
+      referenceSales: total(salesRows, "reference_sales_quantity", salesDisclosed),
     };
   });
 }

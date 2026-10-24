@@ -63,8 +63,8 @@ describe("ADS-04 成果のまとめ方と状態の区別（共通仕様書 9.2�
 
   it("事前投入・模擬は実測と分けて、データの由来ごとにまとめる", () => {
     const seeded = { ...app113, data_origin: "seeded" as const, impressions: 12, shown_visits: 9 };
-    const rows = summarizeApp(placement(), [app113, seeded, { ...app113, impressions: 3 }]);
-    expect(rows.map((r) => [r.origin, r.impressions, r.smallSample])).toEqual([["operated", 5, true], ["seeded", 12, false]]);
+    const rows = summarizeApp(placement(), [app113, seeded, { ...app113, impressions: 3 }, { ...app113, data_origin: "synthetic", impressions: 3 }]);
+    expect(rows.map((r) => [r.origin, r.impressions, r.smallSample])).toEqual([["operated", 5, true], ["seeded", 12, false], ["synthetic", 3, true]]);
   });
 
   it("11.4：20回・300秒。カメラ未採用なら推定視認は 0 ではなく未計測。同時間帯の販売は参考で1", () => {
@@ -120,5 +120,16 @@ describe("ADS-04 仮データ版（2メーカー・公開可／不可・App／Si
   it("別のメーカーには M1 の広告も集計も見えない。店舗の担当者は使えない", async () => {
     expect(await repoWith().listMakerResults(maker2, period(-30, 0))).toEqual({ placements: [], app: [], signage: [] });
     await expect(repoWith().listMakerResults({ role: "store_staff", storeId: "S1" }, period(-30, 0))).rejects.toBeInstanceOf(PermissionError);
+  });
+});
+
+
+describe("Signageの参考販売数の重複除外", () => {
+  it("同じ時間帯の2端末でも販売数を1回だけ数え、再生回数は足す", () => {
+    const rows = [signage114, {...signage114, device_id:"D2"}, {...signage114, hour_start:"2026-10-25T18:00:00+09:00", reference_sales_quantity:2}];
+    const [summary] = summarizeSignage(placement(), rows);
+    expect(summary.plays).toBe(60);
+    expect(summary.referenceSales).toBe(3);
+    expect(summarizeSignage(placement(["signage_views"]), rows)[0].referenceSales).toBeNull();
   });
 });

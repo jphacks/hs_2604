@@ -24,6 +24,9 @@ export function createSupabaseResultsRepository(client: PortalClient): ResultsRe
       // 画面のセッションではなく、Auth と所属（maker_members）でメーカー本人かを確かめる
       const identity = await requireMaker(client);
       if (session.role !== "maker_staff") throw new BackendError("forbidden");
+      if (!Number.isFinite(Date.parse(query.start)) || !Number.isFinite(Date.parse(query.end)) || Date.parse(query.start) >= Date.parse(query.end)) {
+        throw new Error("有効な集計期間を指定してください。");
+      }
       const applications = await rows<ApplicationRow>(client.from("ad_applications").select("id,ad_call_id").in("maker_id", identity.makerIds));
       if (applications.length === 0) return { placements: [], app: [], signage: [] };
 

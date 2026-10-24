@@ -34,16 +34,17 @@ export function MakerResults() {
   const { source, client } = useAdsRuntime();
   const [range, setRange] = useState(() => ({ from: addDays(today(), -30), to: today() }));
   const [storeId, setStoreId] = useState("");
+  const queryKey = JSON.stringify([session, range, source]);
   const { state } = useLoad(async () => {
     if (session.role !== "maker_staff") return null;
     if (!range.from || !range.to || range.from > range.to) throw new Error("期間の終わりは始まり以降にしてください");
     const repo = source === "mock" ? createMockResultsRepository(getRepository()) : client ? createSupabaseResultsRepository(client) : null;
     if (!repo) throw new Error("接続の設定を確認してください");
-    return repo.listMakerResults(session, { start: dayStart(range.from), end: dayEnd(range.to) });
+    return { ...await repo.listMakerResults(session, { start: dayStart(range.from), end: dayEnd(range.to) }), queryKey };
   }, [JSON.stringify(session), range, source]);
 
   if (session.role !== "maker_staff") return <NeedRole role="メーカー" />;
-  const data = state.status === "ready" ? state.data : null;
+  const data = state.status === "ready" && state.data?.queryKey === queryKey ? state.data : null;
   const stores = data ? [...new Map(data.placements.map((p) => [p.store_id, p.store_name])).entries()] : [];
   const shown = data?.placements.filter((p) => !storeId || p.store_id === storeId) ?? [];
 
@@ -74,7 +75,7 @@ export function MakerResults() {
         </div>
         <Legend />
       </Card>
-      {state.status === "loading" && <Loading />}
+      {(state.status === "loading" || (state.status === "ready" && !data)) && <Loading />}
       {state.status === "error" && <ErrorList errors={[state.error]} />}
       {data && shown.length === 0 && (
         <Empty>承認された広告はまだありません。店舗の募集に申請し、承認されると、ここに成果が出ます。</Empty>
