@@ -14,6 +14,49 @@
 
 推薦の再選定はAPP-08、購入確定はAPP-09。公開Vercelの接続設定と新migrationの適用は、ローカル検証・コードのマージとは別に確認する。
 
-## 検証予定
+## 接続契約
+
+追加migration：`kago-os/kago-core/supabase/migrations/20261024110000_app_cart.sql`。既存migrationを日付順に適用した後に実行する。DB-06のテーブル権限は緩めない。
+
+| DB関数 | 用途 |
+| --- | --- |
+| `app_get_cart(visit_id)` | 本人のactive来店をロックし、かごの版と店舗価格付き明細を一体で取得。取扱停止の既存明細も表示する |
+| `app_list_products(visit_id, query, offset)` | 来店店舗の取扱中商品を商品名・コードで検索。50件ずつ取得し、続きの有無を返す |
+| `app_lookup_product(visit_id, request_id, code, product_id, failure_reason)` | バーコード・手動選択またはカメラ失敗を記録。3つの対象引数のいずれか1つを指定し、`product_scanned` / `scan_failed`を要求ごとに1件保存。かごは変更しない |
+| `app_set_cart_item(visit_id, request_id, product_id, quantity, expected_cart_version, source, selection_item_id)` | 0〜999の絶対数量を保存。0は削除。同じ値は無操作。更新・版+1・かごイベント・要求記録を一体で保存 |
+
+`app_cart_requests`は再送判定専用。一般利用者は直接読書きできない。同じIDを異なる本人・来店・内容に使い回すと拒否する。更新成功の再送は再適用せず、現在のかごと当初の適用版を返す。DB-07と同じ来店行ロックを利用する。
+
+`source = recommendation`はDB関数で受け付けるが、同じ本人の来店・商品・かご版に対応する正式な提案枠が必須。今回の画面/APIは`scan`と`manual`だけを送る。固定の商品・推薦サンプルからは追加しない。
+
+Appの窓口は`GET/POST /api/cart`。POSTは同一OriginのJSONに限定し、要求に含まれる来店IDとHttpOnly Cookieの選択来店を照合する。Authでcustomerを検証し、DB関数でも本人・役割を検査する。価格・利用者IDを要求値から保存しない。
+
+## 画面と再試行
+
+- 既存ZXingスキャナを使い、検出した商品を1点追加する。カメラ拒否・起動失敗・20秒間読取できない場合は案内と失敗記録を残し、コード入力・商品一覧へ進める。
+- 手動一覧はバーコードなしのPLU商品も含む店舗の取扱商品。取扱停止後は追加／正数量への変更を拒否し、既存明細の削除は許可する。
+- 数量・合計は保存が確認されたDBの値を表示する。未確認の操作がある間は別の更新を受け付けず、「同じ操作を再試行」で確認する。
+- 再送用の要求IDと内容を`sessionStorage`に本人・来店別で保持する。ブラウザ再読込でも同じ要求を再送する。古い共通localStorageのかごは復元しない。
+- 別タブへ更新通知を送り、別ブラウザでは再読込／「かごを最新にする」で同じDBのかごを復元する。古い版の更新は409として拒否し、最新のかごを確認して再操作する。
+- 読取専用の`pnpm check:cart`は既存の検証利用者／店舗設定を使って関数と一覧の接続を確認する。新規来店・かご更新は行わない。これだけで更新操作の実環境確認済みとはしない。
+
+## 検証
 
 正式DB-06を適用したSQL統合試験で、店舗別価格、本人／他人の権限、追加・数量変更・削除、版競合、再送・要求ID使い回し、イベント原子性を確認する。実ブラウザでは既存スキャナ、コード入力、コードなし商品の手動選択、通信断後の同一要求再試行、別ブラウザ復元を確認する。実行結果・未確認の公開環境はPRに記録する。
+
+Node.js 22で`pnpm test:cart`と`pnpm test:cart:e2e`を実行する。E2EはPlaywrightのChromium、または`PLAYWRIGHT_EXECUTABLE_PATH`で指定したChromeを使う。仮想カメラ用の合成バーコード動画を生成するため、実カメラ・実利用者データは不要。AuthとPostgREST HTTPは試験用アダプタで、DB関数とRLSは正式migrationをPGliteへ適用して実行する。PGliteは1接続のため複数DB接続の負荷試験ではない。
+
+2026-10-24の実行結果：APP-02のSQL統合14件と既存52件の計66テスト、APP-02ブラウザ14ケース、APP-01回帰ブラウザ16ケース、型検査、ESLint、本番ビルド（Webpack）が成功。既存ZXingによる合成EAN読取、カメラ拒否、コードなしの手動商品、2店舗の価格差、別ブラウザ／別利用者、保存前・保存後の通信断、再読込後の同じ要求の再送、古い版の拒否を確認した。
+
+イベントはこの経路で保存するため、APP-07から同じスキャン／かご操作を重ねて記録しない。共有Supabaseへの更新操作、実機カメラ、複数DB接続による同時実行負荷はこのローカル検証に含まない。
+
+画面記録（架空データ・390px幅）：[商品一覧](../images/app02-products-mobile.png)、[数量変更・削除](../images/app02-cart-mobile.png)。
+
+## 公開環境への反映
+
+1. DB管理者が対象Supabaseへ新migrationを適用する。
+2. PRを別メンバーがレビューし、Approve後にSquash mergeする。
+3. Appを公開するVercelプロジェクトのProductionに`NEXT_PUBLIC_SUPABASE_URL`と`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`を設定し、新しいデプロイへ反映する。ローカル`.env.local`は自動転送されない。
+4. 公開URLでログイン・店舗選択・商品追加・数量変更・削除・再読込を確認する。実機カメラの許可／拒否も確認する。
+
+2026-10-24の共有Supabaseへの読取専用確認は`database_not_ready`でした。今回の新関数の適用が必要です。Vercelでの更新操作と実機カメラは未確認であり、ローカル成功と区別します。接続値・ログイン情報はこの文書やPRへ記載しません。

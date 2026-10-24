@@ -64,9 +64,9 @@ try {
   await page.getByRole("button", { name: /買い物かごを開く/ }).click();
   await waitText("検証用ミルクA");
   assert.equal(await page.getByText("他人の商品", { exact: true }).count(), 0);
-  assert.equal(await page.getByRole("button", { name: "検証用ミルクAを1点増やす" }).isDisabled(), true);
+  assert.equal(await page.getByRole("button", { name: "検証用ミルクAを1点増やす" }).isEnabled(), true);
   await page.screenshot({ path: `${output}/cart-mobile.png`, fullPage: true });
-  pass("own DB cart restored; shared localStorage ignored; mutations unavailable until APP-02");
+  pass("own DB cart restored; shared localStorage ignored; APP-02 controls enabled");
   await page.reload();
   await waitText("ログイン中の利用者の買い物");
   snapshot = await (await context.request.get(`${origin}/api/shopping`)).json();

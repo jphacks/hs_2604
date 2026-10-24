@@ -7,33 +7,51 @@ type ScannerStatus = "idle" | "starting" | "scanning" | "error";
 
 type BarcodeScannerProps = {
   onDetected: (code: string) => void;
+  disabled?: boolean;
+  onReadFailure?: (reason: "camera_unavailable" | "permission_denied" | "unreadable") => void;
 };
 
-export function BarcodeScanner({ onDetected }: BarcodeScannerProps) {
+export function BarcodeScanner({ onDetected, onReadFailure, disabled = false }: BarcodeScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const controlsRef = useRef<IScannerControls | null>(null);
   const lastCodeRef = useRef("");
+  const generation = useRef(0);
+  const timeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [status, setStatus] = useState<ScannerStatus>("idle");
   const [errorMessage, setErrorMessage] = useState("");
 
   const stopScanner = () => {
+    generation.current++;
+    if (timeout.current) clearTimeout(timeout.current);
     controlsRef.current?.stop();
     controlsRef.current = null;
     setStatus("idle");
   };
 
   useEffect(() => {
-    return () => controlsRef.current?.stop();
+    const lifecycle = generation;
+    const timer = timeout;
+    return () => { lifecycle.current++; controlsRef.current?.stop(); if (timer.current) clearTimeout(timer.current); };
   }, []);
 
+  useEffect(() => {
+    if (!disabled) return;
+    generation.current++;
+    controlsRef.current?.stop(); controlsRef.current = null;
+    if (timeout.current) clearTimeout(timeout.current);
+    const reset = window.setTimeout(() => setStatus("idle"), 0);
+    return () => window.clearTimeout(reset);
+  }, [disabled]);
+
   const startScanner = async () => {
-    if (!videoRef.current || status === "starting" || status === "scanning") {
+    if (disabled || !videoRef.current || status === "starting" || status === "scanning") {
       return;
     }
 
     setStatus("starting");
     setErrorMessage("");
     lastCodeRef.current = "";
+    const current = ++generation.current;
 
     try {
       if (!window.isSecureContext) {
@@ -62,12 +80,15 @@ export function BarcodeScanner({ onDetected }: BarcodeScannerProps) {
         },
         videoRef.current,
         (result, _error, controls) => {
+          if (current !== generation.current) { controls.stop(); return; }
           if (!result) return;
 
           const code = result.getText();
           if (!code || code === lastCodeRef.current) return;
 
           lastCodeRef.current = code;
+          generation.current++;
+          if (timeout.current) clearTimeout(timeout.current);
           controls.stop();
           controlsRef.current = null;
           setStatus("idle");
@@ -75,12 +96,21 @@ export function BarcodeScanner({ onDetected }: BarcodeScannerProps) {
         },
       );
 
+      if (current !== generation.current) { controls.stop(); return; }
       controlsRef.current = controls;
       setStatus("scanning");
+      timeout.current = setTimeout(() => {
+        if (current !== generation.current) return;
+        generation.current++; controls.stop(); controlsRef.current = null;
+        setStatus("error"); setErrorMessage("読み取れませんでした。商品コード入力や商品一覧も利用できます。");
+        onReadFailure?.("unreadable");
+      }, 20_000);
     } catch (error) {
+      if (current !== generation.current) return;
       controlsRef.current?.stop();
       controlsRef.current = null;
       setStatus("error");
+      onReadFailure?.(error instanceof DOMException && error.name === "NotAllowedError" ? "permission_denied" : "camera_unavailable");
 
       if (error instanceof DOMException) {
         if (error.name === "NotAllowedError") {
@@ -159,8 +189,9 @@ export function BarcodeScanner({ onDetected }: BarcodeScannerProps) {
           )}
           <button
             type="button"
+            disabled={disabled}
             onClick={startScanner}
-            className="mt-3 w-full rounded-2xl bg-emerald-400 px-4 py-3.5 font-black text-slate-950 transition hover:bg-emerald-300 active:scale-[0.99]"
+            className="mt-3 w-full rounded-2xl bg-emerald-400 px-4 py-3.5 font-black text-slate-950 transition hover:bg-emerald-300 active:scale-[0.99] disabled:opacity-40"
           >
             カメラで読み取る
           </button>
