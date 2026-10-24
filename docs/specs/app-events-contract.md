@@ -15,3 +15,9 @@
 イベント送信は買い物の可否に影響させない。ストレージ無効・容量不足の場合はメモリで再送し、その状態での再読込・タブ終了をまたぐ保持は保証しない。sessionStorageのためタブを閉じた後の未送信記録は保持しない。
 
 確認: `pnpm test:events`、`pnpm test:events:e2e`。ローカルのテスト用Auth/HTTPアダプターと、正式な全マイグレーション・RLSを適用した使い捨てPGliteで検証する。共有Supabaseへの書き込み・実機カメラはこの検証に含まない。
+
+ブラウザテストは `KAGO_DEMO_ENABLED=0` と専用出力先 `.next/app07-e2e` を使用する。Chromeが標準位置にない環境では `PLAYWRIGHT_EXECUTABLE_PATH` に実行ファイルの絶対パスを設定する。開発サーバーを起動したまま別途ビルドする場合も `KAGO_NEXT_DIST_DIR=.next/app07-build` で出力先を分けられる。Nextが自動追加するtsconfigの専用出力先は検証用であり、コミット不要。
+
+スマートフォン幅での実表示確認（架空の商品・利用者を使用）:
+
+![広告カードとスポンサー表示](../images/app07-events-mobile.png)

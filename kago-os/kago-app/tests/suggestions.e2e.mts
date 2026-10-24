@@ -120,12 +120,13 @@ try {
   await adDialog.getByText("この枠は広告です。提供：瀬戸内トマト食品（店舗が承認した広告）").waitFor();
   await adDialog.getByText("完熟トマトの旨みたっぷり", { exact: true }).waitFor();
   await page.screenshot({ path: resolve(output, "ad-detail-mobile.png") });
+  const beforeMockAdd = await cartVersion();
   await adDialog.getByRole("button", { name: "かごに追加", exact: true }).click();
-  await page.getByText("かごを保存しました。", { exact: true }).waitFor();
-  await section().getByRole("button", { name: "おすすめの自動切り替えを停止", exact: true }).click();
-  while (!(await visibleSlide()).startsWith("広告")) await section().getByRole("button", { name: "次のおすすめ", exact: true }).click();
-  await ad.getByRole("button", { name: /かごに追加/ }).and(page.getByText("かごに追加済み")).waitFor();
-  pass("the ad shows its sponsor and long names stay readable in the 375px layout; ad → detail → add works");
+  // APP-07 requires a real saved slot. These long-name/layout fixtures deliberately have fake ids.
+  // The first scenario above covers a real saved promotion → detail → cart; events.e2e covers a real ad.
+  await page.getByText("この買い物にはアクセスできません。ログインと来店を確認してください。", { exact: true }).waitFor();
+  assert.equal(await cartVersion(), beforeMockAdd, "a fabricated slot must not add a product");
+  pass("the ad shows its sponsor and long names stay readable in the 375px layout; fabricated slot ids cannot change the cart");
   await page.unroute("**/api/recommendations");
 
   // 3. Failure, then retry.

@@ -5,6 +5,7 @@ type Storage = Pick<globalThis.Storage, "getItem" | "setItem">;
 export class EventOutbox {
   private pending: AppEvent[] = [];
   private sending = false;
+  private stopped = false;
   private seen = new Set<string>();
   private key: string;
   private storage: Storage;
@@ -21,6 +22,7 @@ export class EventOutbox {
     try { this.storage.setItem(this.key, JSON.stringify(this.pending)); } catch { /* Analytics must never block shopping. */ }
   }
   enqueue(event: AppEvent) {
+    if (this.stopped) return;
     if (event.event_type === "recommendation_impression") {
       if (this.seen.has(event.selection_item_id)) return;
       this.seen.add(event.selection_item_id);
@@ -29,12 +31,13 @@ export class EventOutbox {
     this.persist();
   }
   async flush() {
-    if (this.sending) return;
+    if (this.sending || this.stopped) return;
     this.sending = true;
     try {
       for (let count = 0; this.pending.length && count < 50; count++) {
         let status: number;
         try { status = await this.send(this.pending[0]); } catch { break; }
+        if (this.stopped) break;
         // Retry transport/server/auth failures with the original id and timestamp.
         // Invalid/forbidden records are terminal, so one bad record cannot block the queue.
         if (!(status >= 200 && status < 300) && ![400, 403, 409, 422].includes(status)) break;
@@ -42,4 +45,6 @@ export class EventOutbox {
       }
     } finally { this.sending = false; }
   }
+  // An old provider must not overwrite storage after a new visit/provider has restored it.
+  stop() { this.stopped = true; }
 }

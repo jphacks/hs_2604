@@ -97,3 +97,15 @@ test("storage failures do not throw or block shopping; 401/429/503 keep the same
     assert.deepEqual(sent,[original,original]);
   }
 });
+
+test("a stopped provider cannot overwrite a restored queue when its old response arrives late", async () => {
+  let saved="[]"; const storage={getItem:()=>saved,setItem:(_:string,v:string)=>{saved=v;}};
+  let complete!: (status:number)=>void;
+  const first=event(), second=event({event_type:"recommendation_click",payload:{target:"detail"}});
+  const old=new EventOutbox("test",storage,()=>new Promise(resolve=>{complete=resolve;}));
+  old.enqueue(first); const inFlight=old.flush(); old.stop();
+  const restored=new EventOutbox("test",storage,async()=>200); restored.enqueue(second);
+  complete(200); await inFlight;
+  assert.deepEqual(JSON.parse(saved),[first,second]);
+  await restored.flush(); assert.deepEqual(JSON.parse(saved),[]);
+});

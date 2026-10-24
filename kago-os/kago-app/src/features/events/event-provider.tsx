@@ -29,7 +29,7 @@ export function EventProvider({ children }: { children: ReactNode }) {
     window.addEventListener("online", retry);
     document.addEventListener("visibilitychange", retry);
     return () => {
-      controller.abort(); queue.current = null; window.clearInterval(timer);
+      outbox.stop(); controller.abort(); queue.current = null; window.clearInterval(timer);
       window.removeEventListener("online", retry); document.removeEventListener("visibilitychange", retry);
     };
   }, [userId]);
