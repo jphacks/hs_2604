@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+:root {
+  --surface: #f1f2ed;
+  --panel: #ffffff;
+  --ink: #10233f;
+  --muted: #5a6b84;
+  --line: #d9dfe6;
+  --accent: #102a47;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--surface);
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: Arial, "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}

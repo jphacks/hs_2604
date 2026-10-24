@@ -1,0 +1,68 @@
+[
+  {
+    "store_id": "S1",
+    "period": {
+      "starts_at": "2026-10-25T00:00:00+09:00",
+      "ends_at": "2026-10-26T00:00:00+09:00"
+    },
+    "channel": "app",
+    "placement_type": "sponsored",
+    "ad_placement_id": "PL1",
+    "promotion_version_id": null,
+    "creative_version_id": "CR1-v2",
+    "rule_version": null,
+    "data_origin": "operated",
+    "selection_items": 3,
+    "impressions": 2,
+    "impression_visits": 2,
+    "clicks": 1,
+    "recommendation_adds": 1,
+    "recommendation_removes": 0,
+    "post_impression_purchases": 1,
+    "post_impression_amount": 298
+  },
+  {
+    "store_id": "S1",
+    "period": {
+      "starts_at": "2026-10-25T00:00:00+09:00",
+      "ends_at": "2026-10-26T00:00:00+09:00"
+    },
+    "channel": "app",
+    "placement_type": "store_promo",
+    "ad_placement_id": null,
+    "promotion_version_id": "SP1-v1",
+    "creative_version_id": null,
+    "rule_version": null,
+    "data_origin": "operated",
+    "selection_items": 3,
+    "impressions": 2,
+    "impression_visits": 2,
+    "clicks": 1,
+    "recommendation_adds": 1,
+    "recommendation_removes": 1,
+    "post_impression_purchases": 0,
+    "post_impression_amount": 0
+  },
+  {
+    "store_id": "S1",
+    "period": {
+      "starts_at": "2026-10-25T00:00:00+09:00",
+      "ends_at": "2026-10-26T00:00:00+09:00"
+    },
+    "channel": "app",
+    "placement_type": "organic",
+    "ad_placement_id": null,
+    "promotion_version_id": null,
+    "creative_version_id": null,
+    "rule_version": "rule-v1",
+    "data_origin": "operated",
+    "selection_items": 6,
+    "impressions": 2,
+    "impression_visits": 1,
+    "clicks": 0,
+    "recommendation_adds": 0,
+    "recommendation_removes": 0,
+    "post_impression_purchases": 0,
+    "post_impression_amount": 0
+  }
+]
