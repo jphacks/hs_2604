@@ -1,0 +1,2068 @@
+{
+  "version": 1,
+  "source": {
+    "name": "Groceries (arules)",
+    "commit": "cb89f0fc9996180a7044e5dd1b5a86d1fc577071",
+    "url": "https://raw.githubusercontent.com/mhahsler/arules/cb89f0fc9996180a7044e5dd1b5a86d1fc577071/data/Groceries.rda",
+    "sha256": "7a0e3408c631b5e3fe69af035a1209ffaf22b43b4af16218c5d5d23e761e6164",
+    "license": "GPL-3 (arules)",
+    "transactions": 9835,
+    "citation": "Hahsler, Hornik, Reutterer (2006) Implications of probabilistic data modeling for mining association rules."
+  },
+  "params": {
+    "holdoutEvery": 5,
+    "minTrainCount": 10,
+    "minTrainLift": 1.2,
+    "minTestCount": 3,
+    "minTestLift": 1,
+    "maxRulesPerProduct": 4
+  },
+  "evaluation": {
+    "cases": 1979,
+    "coverage": 0.998,
+    "liftHitAt3": 0.197,
+    "confidenceHitAt3": 0.483,
+    "popularHitAt3": 0.512
+  },
+  "rules": [
+    {
+      "id": "grc-2900000000018-2900000000049",
+      "origin": "analysis",
+      "from": "2900000000018",
+      "to": "2900000000049",
+      "evidence": {
+        "from": "tea",
+        "to": "whole milk"
+      },
+      "support": 0.0017,
+      "confidence": 0.4194,
+      "lift": 1.642,
+      "testLift": 1.676,
+      "reason": "KAGOと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000025-2900000000087",
+      "origin": "analysis",
+      "from": "2900000000025",
+      "to": "2900000000087",
+      "evidence": {
+        "from": "bottled water",
+        "to": "tropical fruit"
+      },
+      "support": 0.0187,
+      "confidence": 0.1652,
+      "lift": 1.579,
+      "testLift": 1.672,
+      "reason": "KAGOと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000025-PLU-1003",
+      "origin": "analysis",
+      "from": "2900000000025",
+      "to": "PLU-1003",
+      "evidence": {
+        "from": "bottled water",
+        "to": "tropical fruit"
+      },
+      "support": 0.0187,
+      "confidence": 0.1652,
+      "lift": 1.579,
+      "testLift": 1.672,
+      "reason": "KAGOと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000025-2900000000155",
+      "origin": "analysis",
+      "from": "2900000000025",
+      "to": "2900000000155",
+      "evidence": {
+        "from": "bottled water",
+        "to": "hygiene articles"
+      },
+      "support": 0.0057,
+      "confidence": 0.0506,
+      "lift": 1.542,
+      "testLift": 1.664,
+      "reason": "KAGOと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000025-2900000000179",
+      "origin": "analysis",
+      "from": "2900000000025",
+      "to": "2900000000179",
+      "evidence": {
+        "from": "bottled water",
+        "to": "herbs"
+      },
+      "support": 0.0027,
+      "confidence": 0.0236,
+      "lift": 1.509,
+      "testLift": 2.429,
+      "reason": "KAGOと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000025-2900000000070",
+      "origin": "analysis",
+      "from": "2900000000025",
+      "to": "2900000000070",
+      "evidence": {
+        "from": "bottled water",
+        "to": "yogurt"
+      },
+      "support": 0.0222,
+      "confidence": 0.1966,
+      "lift": 1.429,
+      "testLift": 1.762,
+      "reason": "KAGOと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000025-PLU-3001",
+      "origin": "analysis",
+      "from": "2900000000025",
+      "to": "PLU-3001",
+      "evidence": {
+        "from": "bottled water",
+        "to": "rolls/buns"
+      },
+      "support": 0.0253,
+      "confidence": 0.2236,
+      "lift": 1.209,
+      "testLift": 1.1,
+      "reason": "KAGOと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000032-2900000000155",
+      "origin": "analysis",
+      "from": "2900000000032",
+      "to": "2900000000155",
+      "evidence": {
+        "from": "coffee",
+        "to": "hygiene articles"
+      },
+      "support": 0.0031,
+      "confidence": 0.0535,
+      "lift": 1.63,
+      "testLift": 1.954,
+      "reason": "KAGOと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000032-PLU-1002",
+      "origin": "analysis",
+      "from": "2900000000032",
+      "to": "PLU-1002",
+      "evidence": {
+        "from": "coffee",
+        "to": "pip fruit"
+      },
+      "support": 0.0066,
+      "confidence": 0.1158,
+      "lift": 1.489,
+      "testLift": 1.954,
+      "reason": "KAGOと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000032-PLU-1001",
+      "origin": "analysis",
+      "from": "2900000000032",
+      "to": "PLU-1001",
+      "evidence": {
+        "from": "coffee",
+        "to": "onions"
+      },
+      "support": 0.0027,
+      "confidence": 0.0468,
+      "lift": 1.449,
+      "testLift": 1.265,
+      "reason": "KAGOと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000032-PLU-2002",
+      "origin": "analysis",
+      "from": "2900000000032",
+      "to": "PLU-2002",
+      "evidence": {
+        "from": "coffee",
+        "to": "chicken"
+      },
+      "support": 0.0036,
+      "confidence": 0.0624,
+      "lift": 1.439,
+      "testLift": 1.99,
+      "reason": "KAGOと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000032-2900000000124",
+      "origin": "analysis",
+      "from": "2900000000032",
+      "to": "2900000000124",
+      "evidence": {
+        "from": "coffee",
+        "to": "chocolate"
+      },
+      "support": 0.0038,
+      "confidence": 0.0668,
+      "lift": 1.387,
+      "testLift": 1.183,
+      "reason": "KAGOと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000032-2900000000063",
+      "origin": "analysis",
+      "from": "2900000000032",
+      "to": "2900000000063",
+      "evidence": {
+        "from": "coffee",
+        "to": "domestic eggs"
+      },
+      "support": 0.0046,
+      "confidence": 0.0802,
+      "lift": 1.295,
+      "testLift": 1.53,
+      "reason": "KAGOと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000032-2900000000049",
+      "origin": "analysis",
+      "from": "2900000000032",
+      "to": "2900000000049",
+      "evidence": {
+        "from": "coffee",
+        "to": "whole milk"
+      },
+      "support": 0.0184,
+      "confidence": 0.3229,
+      "lift": 1.264,
+      "testLift": 1.25,
+      "reason": "KAGOと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000049-2900000000148",
+      "origin": "analysis",
+      "from": "2900000000049",
+      "to": "2900000000148",
+      "evidence": {
+        "from": "whole milk",
+        "to": "detergent"
+      },
+      "support": 0.0097,
+      "confidence": 0.0378,
+      "lift": 1.883,
+      "testLift": 1.514,
+      "reason": "成分無調整牛乳と一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000049-2900000000179",
+      "origin": "analysis",
+      "from": "2900000000049",
+      "to": "2900000000179",
+      "evidence": {
+        "from": "whole milk",
+        "to": "herbs"
+      },
+      "support": 0.0075,
+      "confidence": 0.0294,
+      "lift": 1.878,
+      "testLift": 1.797,
+      "reason": "成分無調整牛乳と一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000049-2900000000063",
+      "origin": "analysis",
+      "from": "2900000000049",
+      "to": "2900000000063",
+      "evidence": {
+        "from": "whole milk",
+        "to": "domestic eggs"
+      },
+      "support": 0.0286,
+      "confidence": 0.1119,
+      "lift": 1.809,
+      "testLift": 1.998,
+      "reason": "成分無調整牛乳と一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000049-PLU-2002",
+      "origin": "analysis",
+      "from": "2900000000049",
+      "to": "PLU-2002",
+      "evidence": {
+        "from": "whole milk",
+        "to": "chicken"
+      },
+      "support": 0.0189,
+      "confidence": 0.0741,
+      "lift": 1.71,
+      "testLift": 1.159,
+      "reason": "成分無調整牛乳と一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000049-2900000000070",
+      "origin": "analysis",
+      "from": "2900000000049",
+      "to": "2900000000070",
+      "evidence": {
+        "from": "whole milk",
+        "to": "yogurt"
+      },
+      "support": 0.0555,
+      "confidence": 0.2174,
+      "lift": 1.58,
+      "testLift": 1.543,
+      "reason": "成分無調整牛乳と一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000049-2900000000087",
+      "origin": "analysis",
+      "from": "2900000000049",
+      "to": "2900000000087",
+      "evidence": {
+        "from": "whole milk",
+        "to": "tropical fruit"
+      },
+      "support": 0.0419,
+      "confidence": 0.1642,
+      "lift": 1.57,
+      "testLift": 1.609,
+      "reason": "成分無調整牛乳と一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000049-PLU-1003",
+      "origin": "analysis",
+      "from": "2900000000049",
+      "to": "PLU-1003",
+      "evidence": {
+        "from": "whole milk",
+        "to": "tropical fruit"
+      },
+      "support": 0.0419,
+      "confidence": 0.1642,
+      "lift": 1.57,
+      "testLift": 1.609,
+      "reason": "成分無調整牛乳と一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000049-PLU-1002",
+      "origin": "analysis",
+      "from": "2900000000049",
+      "to": "PLU-1002",
+      "evidence": {
+        "from": "whole milk",
+        "to": "pip fruit"
+      },
+      "support": 0.0309,
+      "confidence": 0.1209,
+      "lift": 1.554,
+      "testLift": 1.57,
+      "reason": "成分無調整牛乳と一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000056-2900000000063",
+      "origin": "analysis",
+      "from": "2900000000056",
+      "to": "2900000000063",
+      "evidence": {
+        "from": "white bread",
+        "to": "domestic eggs"
+      },
+      "support": 0.006,
+      "confidence": 0.1382,
+      "lift": 2.233,
+      "testLift": 1.94,
+      "reason": "もっちり食パンと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000056-2900000000087",
+      "origin": "analysis",
+      "from": "2900000000056",
+      "to": "2900000000087",
+      "evidence": {
+        "from": "white bread",
+        "to": "tropical fruit"
+      },
+      "support": 0.0095,
+      "confidence": 0.2206,
+      "lift": 2.109,
+      "testLift": 1.399,
+      "reason": "もっちり食パンと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000056-PLU-1003",
+      "origin": "analysis",
+      "from": "2900000000056",
+      "to": "PLU-1003",
+      "evidence": {
+        "from": "white bread",
+        "to": "tropical fruit"
+      },
+      "support": 0.0095,
+      "confidence": 0.2206,
+      "lift": 2.109,
+      "testLift": 1.399,
+      "reason": "もっちり食パンと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000056-PLU-1002",
+      "origin": "analysis",
+      "from": "2900000000056",
+      "to": "PLU-1002",
+      "evidence": {
+        "from": "white bread",
+        "to": "pip fruit"
+      },
+      "support": 0.007,
+      "confidence": 0.1618,
+      "lift": 2.08,
+      "testLift": 2.014,
+      "reason": "もっちり食パンと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000056-2900000000049",
+      "origin": "analysis",
+      "from": "2900000000056",
+      "to": "2900000000049",
+      "evidence": {
+        "from": "white bread",
+        "to": "whole milk"
+      },
+      "support": 0.0165,
+      "confidence": 0.3824,
+      "lift": 1.497,
+      "testLift": 2.008,
+      "reason": "もっちり食パンと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000056-2900000000070",
+      "origin": "analysis",
+      "from": "2900000000056",
+      "to": "2900000000070",
+      "evidence": {
+        "from": "white bread",
+        "to": "yogurt"
+      },
+      "support": 0.0089,
+      "confidence": 0.2059,
+      "lift": 1.496,
+      "testLift": 1.748,
+      "reason": "もっちり食パンと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000063-PLU-1001",
+      "origin": "analysis",
+      "from": "2900000000063",
+      "to": "PLU-1001",
+      "evidence": {
+        "from": "domestic eggs",
+        "to": "onions"
+      },
+      "support": 0.0051,
+      "confidence": 0.0821,
+      "lift": 2.544,
+      "testLift": 2.252,
+      "reason": "新鮮たまごと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000063-2900000000155",
+      "origin": "analysis",
+      "from": "2900000000063",
+      "to": "2900000000155",
+      "evidence": {
+        "from": "domestic eggs",
+        "to": "hygiene articles"
+      },
+      "support": 0.0047,
+      "confidence": 0.076,
+      "lift": 2.317,
+      "testLift": 2.175,
+      "reason": "新鮮たまごと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000063-2900000000056",
+      "origin": "analysis",
+      "from": "2900000000063",
+      "to": "2900000000056",
+      "evidence": {
+        "from": "domestic eggs",
+        "to": "white bread"
+      },
+      "support": 0.006,
+      "confidence": 0.0965,
+      "lift": 2.233,
+      "testLift": 1.94,
+      "reason": "新鮮たまごと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000063-PLU-2002",
+      "origin": "analysis",
+      "from": "2900000000063",
+      "to": "PLU-2002",
+      "evidence": {
+        "from": "domestic eggs",
+        "to": "chicken"
+      },
+      "support": 0.0057,
+      "confidence": 0.0924,
+      "lift": 2.132,
+      "testLift": 2.836,
+      "reason": "新鮮たまごと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000063-2900000000049",
+      "origin": "analysis",
+      "from": "2900000000063",
+      "to": "2900000000049",
+      "evidence": {
+        "from": "domestic eggs",
+        "to": "whole milk"
+      },
+      "support": 0.0286,
+      "confidence": 0.462,
+      "lift": 1.809,
+      "testLift": 1.998,
+      "reason": "新鮮たまごと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000063-2900000000087",
+      "origin": "analysis",
+      "from": "2900000000063",
+      "to": "2900000000087",
+      "evidence": {
+        "from": "domestic eggs",
+        "to": "tropical fruit"
+      },
+      "support": 0.0108,
+      "confidence": 0.1745,
+      "lift": 1.669,
+      "testLift": 1.855,
+      "reason": "新鮮たまごと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000063-2900000000070",
+      "origin": "analysis",
+      "from": "2900000000063",
+      "to": "2900000000070",
+      "evidence": {
+        "from": "domestic eggs",
+        "to": "yogurt"
+      },
+      "support": 0.0135,
+      "confidence": 0.2177,
+      "lift": 1.581,
+      "testLift": 1.739,
+      "reason": "新鮮たまごと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000063-PLU-3001",
+      "origin": "analysis",
+      "from": "2900000000063",
+      "to": "PLU-3001",
+      "evidence": {
+        "from": "domestic eggs",
+        "to": "rolls/buns"
+      },
+      "support": 0.0154,
+      "confidence": 0.2485,
+      "lift": 1.344,
+      "testLift": 1.338,
+      "reason": "新鮮たまごと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000070-2900000000087",
+      "origin": "analysis",
+      "from": "2900000000070",
+      "to": "2900000000087",
+      "evidence": {
+        "from": "yogurt",
+        "to": "tropical fruit"
+      },
+      "support": 0.0282,
+      "confidence": 0.205,
+      "lift": 1.96,
+      "testLift": 2.149,
+      "reason": "プレーンヨーグルトと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000070-PLU-1003",
+      "origin": "analysis",
+      "from": "2900000000070",
+      "to": "PLU-1003",
+      "evidence": {
+        "from": "yogurt",
+        "to": "tropical fruit"
+      },
+      "support": 0.0282,
+      "confidence": 0.205,
+      "lift": 1.96,
+      "testLift": 2.149,
+      "reason": "プレーンヨーグルトと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000070-PLU-1002",
+      "origin": "analysis",
+      "from": "2900000000070",
+      "to": "PLU-1002",
+      "evidence": {
+        "from": "yogurt",
+        "to": "pip fruit"
+      },
+      "support": 0.0189,
+      "confidence": 0.1376,
+      "lift": 1.769,
+      "testLift": 1.444,
+      "reason": "プレーンヨーグルトと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000070-PLU-1001",
+      "origin": "analysis",
+      "from": "2900000000070",
+      "to": "PLU-1001",
+      "evidence": {
+        "from": "yogurt",
+        "to": "onions"
+      },
+      "support": 0.0076,
+      "confidence": 0.0554,
+      "lift": 1.716,
+      "testLift": 1.468,
+      "reason": "プレーンヨーグルトと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000070-2900000000049",
+      "origin": "analysis",
+      "from": "2900000000070",
+      "to": "2900000000049",
+      "evidence": {
+        "from": "yogurt",
+        "to": "whole milk"
+      },
+      "support": 0.0555,
+      "confidence": 0.4035,
+      "lift": 1.58,
+      "testLift": 1.543,
+      "reason": "プレーンヨーグルトと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000070-PLU-3001",
+      "origin": "analysis",
+      "from": "2900000000070",
+      "to": "PLU-3001",
+      "evidence": {
+        "from": "yogurt",
+        "to": "rolls/buns"
+      },
+      "support": 0.0338,
+      "confidence": 0.2456,
+      "lift": 1.328,
+      "testLift": 1.384,
+      "reason": "プレーンヨーグルトと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000087-PLU-1002",
+      "origin": "analysis",
+      "from": "2900000000087",
+      "to": "PLU-1002",
+      "evidence": {
+        "from": "tropical fruit",
+        "to": "pip fruit"
+      },
+      "support": 0.0207,
+      "confidence": 0.1981,
+      "lift": 2.546,
+      "testLift": 2.709,
+      "reason": "フィリピン産バナナと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000087-2900000000056",
+      "origin": "analysis",
+      "from": "2900000000087",
+      "to": "2900000000056",
+      "evidence": {
+        "from": "tropical fruit",
+        "to": "white bread"
+      },
+      "support": 0.0095,
+      "confidence": 0.0911,
+      "lift": 2.109,
+      "testLift": 1.399,
+      "reason": "フィリピン産バナナと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000087-2900000000070",
+      "origin": "analysis",
+      "from": "2900000000087",
+      "to": "2900000000070",
+      "evidence": {
+        "from": "tropical fruit",
+        "to": "yogurt"
+      },
+      "support": 0.0282,
+      "confidence": 0.2697,
+      "lift": 1.96,
+      "testLift": 2.149,
+      "reason": "フィリピン産バナナと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000087-2900000000155",
+      "origin": "analysis",
+      "from": "2900000000087",
+      "to": "2900000000155",
+      "evidence": {
+        "from": "tropical fruit",
+        "to": "hygiene articles"
+      },
+      "support": 0.0065,
+      "confidence": 0.062,
+      "lift": 1.89,
+      "testLift": 2.139,
+      "reason": "フィリピン産バナナと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000087-2900000000049",
+      "origin": "analysis",
+      "from": "2900000000087",
+      "to": "2900000000049",
+      "evidence": {
+        "from": "tropical fruit",
+        "to": "whole milk"
+      },
+      "support": 0.0419,
+      "confidence": 0.401,
+      "lift": 1.57,
+      "testLift": 1.609,
+      "reason": "フィリピン産バナナと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000087-PLU-3001",
+      "origin": "analysis",
+      "from": "2900000000087",
+      "to": "PLU-3001",
+      "evidence": {
+        "from": "tropical fruit",
+        "to": "rolls/buns"
+      },
+      "support": 0.025,
+      "confidence": 0.2394,
+      "lift": 1.294,
+      "testLift": 1.196,
+      "reason": "フィリピン産バナナと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000094-2900000000087",
+      "origin": "analysis",
+      "from": "2900000000094",
+      "to": "2900000000087",
+      "evidence": {
+        "from": "Instant food products",
+        "to": "tropical fruit"
+      },
+      "support": 0.0015,
+      "confidence": 0.1667,
+      "lift": 1.593,
+      "testLift": 4.033,
+      "reason": "中辛ビーフカレーと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000094-PLU-1003",
+      "origin": "analysis",
+      "from": "2900000000094",
+      "to": "PLU-1003",
+      "evidence": {
+        "from": "Instant food products",
+        "to": "tropical fruit"
+      },
+      "support": 0.0015,
+      "confidence": 0.1667,
+      "lift": 1.593,
+      "testLift": 4.033,
+      "reason": "中辛ビーフカレーと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000094-2900000000049",
+      "origin": "analysis",
+      "from": "2900000000094",
+      "to": "2900000000049",
+      "evidence": {
+        "from": "Instant food products",
+        "to": "whole milk"
+      },
+      "support": 0.0032,
+      "confidence": 0.3472,
+      "lift": 1.359,
+      "testLift": 2.793,
+      "reason": "中辛ビーフカレーと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000100-2900000000056",
+      "origin": "analysis",
+      "from": "2900000000100",
+      "to": "2900000000056",
+      "evidence": {
+        "from": "pasta",
+        "to": "white bread"
+      },
+      "support": 0.0013,
+      "confidence": 0.084,
+      "lift": 1.945,
+      "testLift": 3.666,
+      "reason": "スパゲッティと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000100-PLU-1002",
+      "origin": "analysis",
+      "from": "2900000000100",
+      "to": "PLU-1002",
+      "evidence": {
+        "from": "pasta",
+        "to": "pip fruit"
+      },
+      "support": 0.0023,
+      "confidence": 0.1513,
+      "lift": 1.945,
+      "testLift": 2.569,
+      "reason": "スパゲッティと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000100-2900000000049",
+      "origin": "analysis",
+      "from": "2900000000100",
+      "to": "2900000000049",
+      "evidence": {
+        "from": "pasta",
+        "to": "whole milk"
+      },
+      "support": 0.0056,
+      "confidence": 0.3697,
+      "lift": 1.447,
+      "testLift": 2.158,
+      "reason": "スパゲッティと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000100-2900000000063",
+      "origin": "analysis",
+      "from": "2900000000100",
+      "to": "2900000000063",
+      "evidence": {
+        "from": "pasta",
+        "to": "domestic eggs"
+      },
+      "support": 0.0013,
+      "confidence": 0.084,
+      "lift": 1.358,
+      "testLift": 2.971,
+      "reason": "スパゲッティと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000100-2900000000070",
+      "origin": "analysis",
+      "from": "2900000000100",
+      "to": "2900000000070",
+      "evidence": {
+        "from": "pasta",
+        "to": "yogurt"
+      },
+      "support": 0.0028,
+      "confidence": 0.1849,
+      "lift": 1.343,
+      "testLift": 2.112,
+      "reason": "スパゲッティと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000100-2900000000025",
+      "origin": "analysis",
+      "from": "2900000000100",
+      "to": "2900000000025",
+      "evidence": {
+        "from": "pasta",
+        "to": "bottled water"
+      },
+      "support": 0.0022,
+      "confidence": 0.1429,
+      "lift": 1.263,
+      "testLift": 1.033,
+      "reason": "スパゲッティと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000117-2900000000124",
+      "origin": "analysis",
+      "from": "2900000000117",
+      "to": "2900000000124",
+      "evidence": {
+        "from": "salty snack",
+        "to": "chocolate"
+      },
+      "support": 0.0038,
+      "confidence": 0.0993,
+      "lift": 2.062,
+      "testLift": 1.289,
+      "reason": "うすしおポテトチップスと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000117-2900000000131",
+      "origin": "analysis",
+      "from": "2900000000117",
+      "to": "2900000000131",
+      "evidence": {
+        "from": "salty snack",
+        "to": "napkins"
+      },
+      "support": 0.0038,
+      "confidence": 0.0993,
+      "lift": 1.925,
+      "testLift": 2.578,
+      "reason": "うすしおポテトチップスと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000117-2900000000063",
+      "origin": "analysis",
+      "from": "2900000000117",
+      "to": "2900000000063",
+      "evidence": {
+        "from": "salty snack",
+        "to": "domestic eggs"
+      },
+      "support": 0.0036,
+      "confidence": 0.0927,
+      "lift": 1.498,
+      "testLift": 1.436,
+      "reason": "うすしおポテトチップスと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000117-2900000000056",
+      "origin": "analysis",
+      "from": "2900000000117",
+      "to": "2900000000056",
+      "evidence": {
+        "from": "salty snack",
+        "to": "white bread"
+      },
+      "support": 0.0024,
+      "confidence": 0.0629,
+      "lift": 1.456,
+      "testLift": 2.278,
+      "reason": "うすしおポテトチップスと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000117-PLU-1002",
+      "origin": "analysis",
+      "from": "2900000000117",
+      "to": "PLU-1002",
+      "evidence": {
+        "from": "salty snack",
+        "to": "pip fruit"
+      },
+      "support": 0.0042,
+      "confidence": 0.1093,
+      "lift": 1.405,
+      "testLift": 1.49,
+      "reason": "うすしおポテトチップスと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000117-2900000000087",
+      "origin": "analysis",
+      "from": "2900000000117",
+      "to": "2900000000087",
+      "evidence": {
+        "from": "salty snack",
+        "to": "tropical fruit"
+      },
+      "support": 0.0056,
+      "confidence": 0.1457,
+      "lift": 1.393,
+      "testLift": 1.479,
+      "reason": "うすしおポテトチップスと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000117-PLU-1003",
+      "origin": "analysis",
+      "from": "2900000000117",
+      "to": "PLU-1003",
+      "evidence": {
+        "from": "salty snack",
+        "to": "tropical fruit"
+      },
+      "support": 0.0056,
+      "confidence": 0.1457,
+      "lift": 1.393,
+      "testLift": 1.479,
+      "reason": "うすしおポテトチップスと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000124-2900000000117",
+      "origin": "analysis",
+      "from": "2900000000124",
+      "to": "2900000000117",
+      "evidence": {
+        "from": "chocolate",
+        "to": "salty snack"
+      },
+      "support": 0.0038,
+      "confidence": 0.0792,
+      "lift": 2.062,
+      "testLift": 1.289,
+      "reason": "ミルクチョコレートと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000124-2900000000056",
+      "origin": "analysis",
+      "from": "2900000000124",
+      "to": "2900000000056",
+      "evidence": {
+        "from": "chocolate",
+        "to": "white bread"
+      },
+      "support": 0.0042,
+      "confidence": 0.0871,
+      "lift": 2.015,
+      "testLift": 2.195,
+      "reason": "ミルクチョコレートと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000124-2900000000131",
+      "origin": "analysis",
+      "from": "2900000000124",
+      "to": "2900000000131",
+      "evidence": {
+        "from": "chocolate",
+        "to": "napkins"
+      },
+      "support": 0.0044,
+      "confidence": 0.0923,
+      "lift": 1.79,
+      "testLift": 2.152,
+      "reason": "ミルクチョコレートと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000124-2900000000155",
+      "origin": "analysis",
+      "from": "2900000000124",
+      "to": "2900000000155",
+      "evidence": {
+        "from": "chocolate",
+        "to": "hygiene articles"
+      },
+      "support": 0.0027,
+      "confidence": 0.0554,
+      "lift": 1.69,
+      "testLift": 1.641,
+      "reason": "ミルクチョコレートと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000124-2900000000087",
+      "origin": "analysis",
+      "from": "2900000000124",
+      "to": "2900000000087",
+      "evidence": {
+        "from": "chocolate",
+        "to": "tropical fruit"
+      },
+      "support": 0.0079,
+      "confidence": 0.1636,
+      "lift": 1.564,
+      "testLift": 1.554,
+      "reason": "ミルクチョコレートと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000124-2900000000070",
+      "origin": "analysis",
+      "from": "2900000000124",
+      "to": "2900000000070",
+      "evidence": {
+        "from": "chocolate",
+        "to": "yogurt"
+      },
+      "support": 0.0086,
+      "confidence": 0.1794,
+      "lift": 1.303,
+      "testLift": 1.436,
+      "reason": "ミルクチョコレートと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000124-2900000000049",
+      "origin": "analysis",
+      "from": "2900000000124",
+      "to": "2900000000049",
+      "evidence": {
+        "from": "chocolate",
+        "to": "whole milk"
+      },
+      "support": 0.0158,
+      "confidence": 0.3272,
+      "lift": 1.281,
+      "testLift": 1.435,
+      "reason": "ミルクチョコレートと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000124-PLU-3001",
+      "origin": "analysis",
+      "from": "2900000000124",
+      "to": "PLU-3001",
+      "evidence": {
+        "from": "chocolate",
+        "to": "rolls/buns"
+      },
+      "support": 0.0111,
+      "confidence": 0.2296,
+      "lift": 1.241,
+      "testLift": 1.478,
+      "reason": "ミルクチョコレートと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000131-2900000000155",
+      "origin": "analysis",
+      "from": "2900000000131",
+      "to": "2900000000155",
+      "evidence": {
+        "from": "napkins",
+        "to": "hygiene articles"
+      },
+      "support": 0.0061,
+      "confidence": 0.1182,
+      "lift": 3.605,
+      "testLift": 3.281,
+      "reason": "箱ティッシュと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000131-PLU-1001",
+      "origin": "analysis",
+      "from": "2900000000131",
+      "to": "PLU-1001",
+      "evidence": {
+        "from": "napkins",
+        "to": "onions"
+      },
+      "support": 0.0034,
+      "confidence": 0.0665,
+      "lift": 2.06,
+      "testLift": 1.415,
+      "reason": "箱ティッシュと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000131-2900000000117",
+      "origin": "analysis",
+      "from": "2900000000131",
+      "to": "2900000000117",
+      "evidence": {
+        "from": "napkins",
+        "to": "salty snack"
+      },
+      "support": 0.0038,
+      "confidence": 0.0739,
+      "lift": 1.925,
+      "testLift": 2.578,
+      "reason": "箱ティッシュと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000131-2900000000148",
+      "origin": "analysis",
+      "from": "2900000000131",
+      "to": "2900000000148",
+      "evidence": {
+        "from": "napkins",
+        "to": "detergent"
+      },
+      "support": 0.0019,
+      "confidence": 0.0369,
+      "lift": 1.84,
+      "testLift": 2.328,
+      "reason": "箱ティッシュと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000131-2900000000087",
+      "origin": "analysis",
+      "from": "2900000000131",
+      "to": "2900000000087",
+      "evidence": {
+        "from": "napkins",
+        "to": "tropical fruit"
+      },
+      "support": 0.0097,
+      "confidence": 0.1872,
+      "lift": 1.79,
+      "testLift": 1.986,
+      "reason": "箱ティッシュと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000131-PLU-1003",
+      "origin": "analysis",
+      "from": "2900000000131",
+      "to": "PLU-1003",
+      "evidence": {
+        "from": "napkins",
+        "to": "tropical fruit"
+      },
+      "support": 0.0097,
+      "confidence": 0.1872,
+      "lift": 1.79,
+      "testLift": 1.986,
+      "reason": "箱ティッシュと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000131-2900000000070",
+      "origin": "analysis",
+      "from": "2900000000131",
+      "to": "2900000000070",
+      "evidence": {
+        "from": "napkins",
+        "to": "yogurt"
+      },
+      "support": 0.0121,
+      "confidence": 0.234,
+      "lift": 1.7,
+      "testLift": 1.624,
+      "reason": "箱ティッシュと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000131-2900000000049",
+      "origin": "analysis",
+      "from": "2900000000131",
+      "to": "2900000000049",
+      "evidence": {
+        "from": "napkins",
+        "to": "whole milk"
+      },
+      "support": 0.0188,
+      "confidence": 0.3645,
+      "lift": 1.427,
+      "testLift": 1.65,
+      "reason": "箱ティッシュと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000148-2900000000155",
+      "origin": "analysis",
+      "from": "2900000000148",
+      "to": "2900000000155",
+      "evidence": {
+        "from": "detergent",
+        "to": "hygiene articles"
+      },
+      "support": 0.0014,
+      "confidence": 0.0696,
+      "lift": 2.123,
+      "testLift": 3.846,
+      "reason": "液体洗濯洗剤と一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000148-2900000000049",
+      "origin": "analysis",
+      "from": "2900000000148",
+      "to": "2900000000049",
+      "evidence": {
+        "from": "detergent",
+        "to": "whole milk"
+      },
+      "support": 0.0097,
+      "confidence": 0.481,
+      "lift": 1.883,
+      "testLift": 1.514,
+      "reason": "液体洗濯洗剤と一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000148-2900000000131",
+      "origin": "analysis",
+      "from": "2900000000148",
+      "to": "2900000000131",
+      "evidence": {
+        "from": "detergent",
+        "to": "napkins"
+      },
+      "support": 0.0019,
+      "confidence": 0.0949,
+      "lift": 1.84,
+      "testLift": 2.328,
+      "reason": "液体洗濯洗剤と一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000148-PLU-1002",
+      "origin": "analysis",
+      "from": "2900000000148",
+      "to": "PLU-1002",
+      "evidence": {
+        "from": "detergent",
+        "to": "pip fruit"
+      },
+      "support": 0.0028,
+      "confidence": 0.1392,
+      "lift": 1.79,
+      "testLift": 1.442,
+      "reason": "液体洗濯洗剤と一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000148-2900000000087",
+      "origin": "analysis",
+      "from": "2900000000148",
+      "to": "2900000000087",
+      "evidence": {
+        "from": "detergent",
+        "to": "tropical fruit"
+      },
+      "support": 0.0036,
+      "confidence": 0.1772,
+      "lift": 1.694,
+      "testLift": 1.518,
+      "reason": "液体洗濯洗剤と一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000148-PLU-1003",
+      "origin": "analysis",
+      "from": "2900000000148",
+      "to": "PLU-1003",
+      "evidence": {
+        "from": "detergent",
+        "to": "tropical fruit"
+      },
+      "support": 0.0036,
+      "confidence": 0.1772,
+      "lift": 1.694,
+      "testLift": 1.518,
+      "reason": "液体洗濯洗剤と一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000148-2900000000070",
+      "origin": "analysis",
+      "from": "2900000000148",
+      "to": "2900000000070",
+      "evidence": {
+        "from": "detergent",
+        "to": "yogurt"
+      },
+      "support": 0.0042,
+      "confidence": 0.2089,
+      "lift": 1.517,
+      "testLift": 1.317,
+      "reason": "液体洗濯洗剤と一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000155-2900000000131",
+      "origin": "analysis",
+      "from": "2900000000155",
+      "to": "2900000000131",
+      "evidence": {
+        "from": "hygiene articles",
+        "to": "napkins"
+      },
+      "support": 0.0061,
+      "confidence": 0.186,
+      "lift": 3.605,
+      "testLift": 3.281,
+      "reason": "不織布マスクと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000155-2900000000063",
+      "origin": "analysis",
+      "from": "2900000000155",
+      "to": "2900000000063",
+      "evidence": {
+        "from": "hygiene articles",
+        "to": "domestic eggs"
+      },
+      "support": 0.0047,
+      "confidence": 0.1434,
+      "lift": 2.317,
+      "testLift": 2.175,
+      "reason": "不織布マスクと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000155-2900000000148",
+      "origin": "analysis",
+      "from": "2900000000155",
+      "to": "2900000000148",
+      "evidence": {
+        "from": "hygiene articles",
+        "to": "detergent"
+      },
+      "support": 0.0014,
+      "confidence": 0.0426,
+      "lift": 2.123,
+      "testLift": 3.846,
+      "reason": "不織布マスクと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000155-PLU-1002",
+      "origin": "analysis",
+      "from": "2900000000155",
+      "to": "PLU-1002",
+      "evidence": {
+        "from": "hygiene articles",
+        "to": "pip fruit"
+      },
+      "support": 0.0051,
+      "confidence": 0.155,
+      "lift": 1.993,
+      "testLift": 1.58,
+      "reason": "不織布マスクと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000155-2900000000087",
+      "origin": "analysis",
+      "from": "2900000000155",
+      "to": "2900000000087",
+      "evidence": {
+        "from": "hygiene articles",
+        "to": "tropical fruit"
+      },
+      "support": 0.0065,
+      "confidence": 0.1977,
+      "lift": 1.89,
+      "testLift": 2.139,
+      "reason": "不織布マスクと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000155-PLU-1003",
+      "origin": "analysis",
+      "from": "2900000000155",
+      "to": "PLU-1003",
+      "evidence": {
+        "from": "hygiene articles",
+        "to": "tropical fruit"
+      },
+      "support": 0.0065,
+      "confidence": 0.1977,
+      "lift": 1.89,
+      "testLift": 2.139,
+      "reason": "不織布マスクと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000155-2900000000070",
+      "origin": "analysis",
+      "from": "2900000000155",
+      "to": "2900000000070",
+      "evidence": {
+        "from": "hygiene articles",
+        "to": "yogurt"
+      },
+      "support": 0.0072,
+      "confidence": 0.2209,
+      "lift": 1.605,
+      "testLift": 1.547,
+      "reason": "不織布マスクと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000155-2900000000049",
+      "origin": "analysis",
+      "from": "2900000000155",
+      "to": "2900000000049",
+      "evidence": {
+        "from": "hygiene articles",
+        "to": "whole milk"
+      },
+      "support": 0.0122,
+      "confidence": 0.3721,
+      "lift": 1.457,
+      "testLift": 1.778,
+      "reason": "不織布マスクと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000179-PLU-2002",
+      "origin": "analysis",
+      "from": "2900000000179",
+      "to": "PLU-2002",
+      "evidence": {
+        "from": "herbs",
+        "to": "chicken"
+      },
+      "support": 0.0019,
+      "confidence": 0.122,
+      "lift": 2.814,
+      "testLift": 3.282,
+      "reason": "生バジルと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000179-2900000000063",
+      "origin": "analysis",
+      "from": "2900000000179",
+      "to": "2900000000063",
+      "evidence": {
+        "from": "herbs",
+        "to": "domestic eggs"
+      },
+      "support": 0.002,
+      "confidence": 0.1301,
+      "lift": 2.102,
+      "testLift": 1.94,
+      "reason": "生バジルと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000179-2900000000049",
+      "origin": "analysis",
+      "from": "2900000000179",
+      "to": "2900000000049",
+      "evidence": {
+        "from": "herbs",
+        "to": "whole milk"
+      },
+      "support": 0.0075,
+      "confidence": 0.4797,
+      "lift": 1.878,
+      "testLift": 1.797,
+      "reason": "生バジルと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000179-2900000000131",
+      "origin": "analysis",
+      "from": "2900000000179",
+      "to": "2900000000131",
+      "evidence": {
+        "from": "herbs",
+        "to": "napkins"
+      },
+      "support": 0.0014,
+      "confidence": 0.0894,
+      "lift": 1.733,
+      "testLift": 1.463,
+      "reason": "生バジルと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000179-2900000000070",
+      "origin": "analysis",
+      "from": "2900000000179",
+      "to": "2900000000070",
+      "evidence": {
+        "from": "herbs",
+        "to": "yogurt"
+      },
+      "support": 0.0037,
+      "confidence": 0.2358,
+      "lift": 1.713,
+      "testLift": 1.104,
+      "reason": "生バジルと一緒に選ばれています"
+    },
+    {
+      "id": "grc-2900000000179-2900000000025",
+      "origin": "analysis",
+      "from": "2900000000179",
+      "to": "2900000000025",
+      "evidence": {
+        "from": "herbs",
+        "to": "bottled water"
+      },
+      "support": 0.0027,
+      "confidence": 0.1707,
+      "lift": 1.509,
+      "testLift": 2.429,
+      "reason": "生バジルと一緒に選ばれています"
+    },
+    {
+      "id": "grc-PLU-1001-2900000000063",
+      "origin": "analysis",
+      "from": "PLU-1001",
+      "to": "2900000000063",
+      "evidence": {
+        "from": "onions",
+        "to": "domestic eggs"
+      },
+      "support": 0.0051,
+      "confidence": 0.1575,
+      "lift": 2.544,
+      "testLift": 2.252,
+      "reason": "玉ねぎと一緒に選ばれています"
+    },
+    {
+      "id": "grc-PLU-1001-PLU-2002",
+      "origin": "analysis",
+      "from": "PLU-1001",
+      "to": "PLU-2002",
+      "evidence": {
+        "from": "onions",
+        "to": "chicken"
+      },
+      "support": 0.0032,
+      "confidence": 0.0984,
+      "lift": 2.271,
+      "testLift": 1.428,
+      "reason": "玉ねぎと一緒に選ばれています"
+    },
+    {
+      "id": "grc-PLU-1001-2900000000131",
+      "origin": "analysis",
+      "from": "PLU-1001",
+      "to": "2900000000131",
+      "evidence": {
+        "from": "onions",
+        "to": "napkins"
+      },
+      "support": 0.0034,
+      "confidence": 0.1063,
+      "lift": 2.06,
+      "testLift": 1.415,
+      "reason": "玉ねぎと一緒に選ばれています"
+    },
+    {
+      "id": "grc-PLU-1001-2900000000056",
+      "origin": "analysis",
+      "from": "PLU-1001",
+      "to": "2900000000056",
+      "evidence": {
+        "from": "onions",
+        "to": "white bread"
+      },
+      "support": 0.0025,
+      "confidence": 0.0787,
+      "lift": 1.822,
+      "testLift": 2.085,
+      "reason": "玉ねぎと一緒に選ばれています"
+    },
+    {
+      "id": "grc-PLU-1001-2900000000087",
+      "origin": "analysis",
+      "from": "PLU-1001",
+      "to": "2900000000087",
+      "evidence": {
+        "from": "onions",
+        "to": "tropical fruit"
+      },
+      "support": 0.0061,
+      "confidence": 0.189,
+      "lift": 1.807,
+      "testLift": 1.476,
+      "reason": "玉ねぎと一緒に選ばれています"
+    },
+    {
+      "id": "grc-PLU-1001-PLU-1003",
+      "origin": "analysis",
+      "from": "PLU-1001",
+      "to": "PLU-1003",
+      "evidence": {
+        "from": "onions",
+        "to": "tropical fruit"
+      },
+      "support": 0.0061,
+      "confidence": 0.189,
+      "lift": 1.807,
+      "testLift": 1.476,
+      "reason": "玉ねぎと一緒に選ばれています"
+    },
+    {
+      "id": "grc-PLU-1001-2900000000070",
+      "origin": "analysis",
+      "from": "PLU-1001",
+      "to": "2900000000070",
+      "evidence": {
+        "from": "onions",
+        "to": "yogurt"
+      },
+      "support": 0.0076,
+      "confidence": 0.2362,
+      "lift": 1.716,
+      "testLift": 1.468,
+      "reason": "玉ねぎと一緒に選ばれています"
+    },
+    {
+      "id": "grc-PLU-1001-2900000000049",
+      "origin": "analysis",
+      "from": "PLU-1001",
+      "to": "2900000000049",
+      "evidence": {
+        "from": "onions",
+        "to": "whole milk"
+      },
+      "support": 0.0123,
+      "confidence": 0.3819,
+      "lift": 1.495,
+      "testLift": 1.687,
+      "reason": "玉ねぎと一緒に選ばれています"
+    },
+    {
+      "id": "grc-PLU-1002-2900000000087",
+      "origin": "analysis",
+      "from": "PLU-1002",
+      "to": "2900000000087",
+      "evidence": {
+        "from": "pip fruit",
+        "to": "tropical fruit"
+      },
+      "support": 0.0207,
+      "confidence": 0.2663,
+      "lift": 2.546,
+      "testLift": 2.709,
+      "reason": "国産りんごと一緒に選ばれています"
+    },
+    {
+      "id": "grc-PLU-1002-PLU-1003",
+      "origin": "analysis",
+      "from": "PLU-1002",
+      "to": "PLU-1003",
+      "evidence": {
+        "from": "pip fruit",
+        "to": "tropical fruit"
+      },
+      "support": 0.0207,
+      "confidence": 0.2663,
+      "lift": 2.546,
+      "testLift": 2.709,
+      "reason": "国産りんごと一緒に選ばれています"
+    },
+    {
+      "id": "grc-PLU-1002-2900000000056",
+      "origin": "analysis",
+      "from": "PLU-1002",
+      "to": "2900000000056",
+      "evidence": {
+        "from": "pip fruit",
+        "to": "white bread"
+      },
+      "support": 0.007,
+      "confidence": 0.0899,
+      "lift": 2.08,
+      "testLift": 2.014,
+      "reason": "国産りんごと一緒に選ばれています"
+    },
+    {
+      "id": "grc-PLU-1002-2900000000155",
+      "origin": "analysis",
+      "from": "PLU-1002",
+      "to": "2900000000155",
+      "evidence": {
+        "from": "pip fruit",
+        "to": "hygiene articles"
+      },
+      "support": 0.0051,
+      "confidence": 0.0654,
+      "lift": 1.993,
+      "testLift": 1.58,
+      "reason": "国産りんごと一緒に選ばれています"
+    },
+    {
+      "id": "grc-PLU-1002-2900000000070",
+      "origin": "analysis",
+      "from": "PLU-1002",
+      "to": "2900000000070",
+      "evidence": {
+        "from": "pip fruit",
+        "to": "yogurt"
+      },
+      "support": 0.0189,
+      "confidence": 0.2435,
+      "lift": 1.769,
+      "testLift": 1.444,
+      "reason": "国産りんごと一緒に選ばれています"
+    },
+    {
+      "id": "grc-PLU-1002-2900000000049",
+      "origin": "analysis",
+      "from": "PLU-1002",
+      "to": "2900000000049",
+      "evidence": {
+        "from": "pip fruit",
+        "to": "whole milk"
+      },
+      "support": 0.0309,
+      "confidence": 0.3971,
+      "lift": 1.554,
+      "testLift": 1.57,
+      "reason": "国産りんごと一緒に選ばれています"
+    },
+    {
+      "id": "grc-PLU-1003-PLU-1002",
+      "origin": "analysis",
+      "from": "PLU-1003",
+      "to": "PLU-1002",
+      "evidence": {
+        "from": "tropical fruit",
+        "to": "pip fruit"
+      },
+      "support": 0.0207,
+      "confidence": 0.1981,
+      "lift": 2.546,
+      "testLift": 2.709,
+      "reason": "アボカドと一緒に選ばれています"
+    },
+    {
+      "id": "grc-PLU-1003-2900000000056",
+      "origin": "analysis",
+      "from": "PLU-1003",
+      "to": "2900000000056",
+      "evidence": {
+        "from": "tropical fruit",
+        "to": "white bread"
+      },
+      "support": 0.0095,
+      "confidence": 0.0911,
+      "lift": 2.109,
+      "testLift": 1.399,
+      "reason": "アボカドと一緒に選ばれています"
+    },
+    {
+      "id": "grc-PLU-1003-2900000000070",
+      "origin": "analysis",
+      "from": "PLU-1003",
+      "to": "2900000000070",
+      "evidence": {
+        "from": "tropical fruit",
+        "to": "yogurt"
+      },
+      "support": 0.0282,
+      "confidence": 0.2697,
+      "lift": 1.96,
+      "testLift": 2.149,
+      "reason": "アボカドと一緒に選ばれています"
+    },
+    {
+      "id": "grc-PLU-1003-2900000000155",
+      "origin": "analysis",
+      "from": "PLU-1003",
+      "to": "2900000000155",
+      "evidence": {
+        "from": "tropical fruit",
+        "to": "hygiene articles"
+      },
+      "support": 0.0065,
+      "confidence": 0.062,
+      "lift": 1.89,
+      "testLift": 2.139,
+      "reason": "アボカドと一緒に選ばれています"
+    },
+    {
+      "id": "grc-PLU-1003-2900000000049",
+      "origin": "analysis",
+      "from": "PLU-1003",
+      "to": "2900000000049",
+      "evidence": {
+        "from": "tropical fruit",
+        "to": "whole milk"
+      },
+      "support": 0.0419,
+      "confidence": 0.401,
+      "lift": 1.57,
+      "testLift": 1.609,
+      "reason": "アボカドと一緒に選ばれています"
+    },
+    {
+      "id": "grc-PLU-1003-PLU-3001",
+      "origin": "analysis",
+      "from": "PLU-1003",
+      "to": "PLU-3001",
+      "evidence": {
+        "from": "tropical fruit",
+        "to": "rolls/buns"
+      },
+      "support": 0.025,
+      "confidence": 0.2394,
+      "lift": 1.294,
+      "testLift": 1.196,
+      "reason": "アボカドと一緒に選ばれています"
+    },
+    {
+      "id": "grc-PLU-2002-2900000000179",
+      "origin": "analysis",
+      "from": "PLU-2002",
+      "to": "2900000000179",
+      "evidence": {
+        "from": "chicken",
+        "to": "herbs"
+      },
+      "support": 0.0019,
+      "confidence": 0.044,
+      "lift": 2.814,
+      "testLift": 3.282,
+      "reason": "若鶏の唐揚げと一緒に選ばれています"
+    },
+    {
+      "id": "grc-PLU-2002-PLU-1001",
+      "origin": "analysis",
+      "from": "PLU-2002",
+      "to": "PLU-1001",
+      "evidence": {
+        "from": "chicken",
+        "to": "onions"
+      },
+      "support": 0.0032,
+      "confidence": 0.0733,
+      "lift": 2.271,
+      "testLift": 1.428,
+      "reason": "若鶏の唐揚げと一緒に選ばれています"
+    },
+    {
+      "id": "grc-PLU-2002-2900000000063",
+      "origin": "analysis",
+      "from": "PLU-2002",
+      "to": "2900000000063",
+      "evidence": {
+        "from": "chicken",
+        "to": "domestic eggs"
+      },
+      "support": 0.0057,
+      "confidence": 0.132,
+      "lift": 2.132,
+      "testLift": 2.836,
+      "reason": "若鶏の唐揚げと一緒に選ばれています"
+    },
+    {
+      "id": "grc-PLU-2002-2900000000049",
+      "origin": "analysis",
+      "from": "PLU-2002",
+      "to": "2900000000049",
+      "evidence": {
+        "from": "chicken",
+        "to": "whole milk"
+      },
+      "support": 0.0189,
+      "confidence": 0.437,
+      "lift": 1.71,
+      "testLift": 1.159,
+      "reason": "若鶏の唐揚げと一緒に選ばれています"
+    },
+    {
+      "id": "grc-PLU-2002-2900000000070",
+      "origin": "analysis",
+      "from": "PLU-2002",
+      "to": "2900000000070",
+      "evidence": {
+        "from": "chicken",
+        "to": "yogurt"
+      },
+      "support": 0.0088,
+      "confidence": 0.2023,
+      "lift": 1.47,
+      "testLift": 1.092,
+      "reason": "若鶏の唐揚げと一緒に選ばれています"
+    },
+    {
+      "id": "grc-PLU-2002-2900000000087",
+      "origin": "analysis",
+      "from": "PLU-2002",
+      "to": "2900000000087",
+      "evidence": {
+        "from": "chicken",
+        "to": "tropical fruit"
+      },
+      "support": 0.0065,
+      "confidence": 0.1496,
+      "lift": 1.43,
+      "testLift": 1.394,
+      "reason": "若鶏の唐揚げと一緒に選ばれています"
+    },
+    {
+      "id": "grc-PLU-2002-PLU-1003",
+      "origin": "analysis",
+      "from": "PLU-2002",
+      "to": "PLU-1003",
+      "evidence": {
+        "from": "chicken",
+        "to": "tropical fruit"
+      },
+      "support": 0.0065,
+      "confidence": 0.1496,
+      "lift": 1.43,
+      "testLift": 1.394,
+      "reason": "若鶏の唐揚げと一緒に選ばれています"
+    },
+    {
+      "id": "grc-PLU-3001-2900000000063",
+      "origin": "analysis",
+      "from": "PLU-3001",
+      "to": "2900000000063",
+      "evidence": {
+        "from": "rolls/buns",
+        "to": "domestic eggs"
+      },
+      "support": 0.0154,
+      "confidence": 0.0832,
+      "lift": 1.344,
+      "testLift": 1.338,
+      "reason": "焼きたて塩パンと一緒に選ばれています"
+    },
+    {
+      "id": "grc-PLU-3001-2900000000070",
+      "origin": "analysis",
+      "from": "PLU-3001",
+      "to": "2900000000070",
+      "evidence": {
+        "from": "rolls/buns",
+        "to": "yogurt"
+      },
+      "support": 0.0338,
+      "confidence": 0.1828,
+      "lift": 1.328,
+      "testLift": 1.384,
+      "reason": "焼きたて塩パンと一緒に選ばれています"
+    },
+    {
+      "id": "grc-PLU-3001-2900000000087",
+      "origin": "analysis",
+      "from": "PLU-3001",
+      "to": "2900000000087",
+      "evidence": {
+        "from": "rolls/buns",
+        "to": "tropical fruit"
+      },
+      "support": 0.025,
+      "confidence": 0.1354,
+      "lift": 1.294,
+      "testLift": 1.196,
+      "reason": "焼きたて塩パンと一緒に選ばれています"
+    },
+    {
+      "id": "grc-PLU-3001-PLU-1003",
+      "origin": "analysis",
+      "from": "PLU-3001",
+      "to": "PLU-1003",
+      "evidence": {
+        "from": "rolls/buns",
+        "to": "tropical fruit"
+      },
+      "support": 0.025,
+      "confidence": 0.1354,
+      "lift": 1.294,
+      "testLift": 1.196,
+      "reason": "焼きたて塩パンと一緒に選ばれています"
+    },
+    {
+      "id": "grc-PLU-3001-2900000000025",
+      "origin": "analysis",
+      "from": "PLU-3001",
+      "to": "2900000000025",
+      "evidence": {
+        "from": "rolls/buns",
+        "to": "bottled water"
+      },
+      "support": 0.0253,
+      "confidence": 0.1368,
+      "lift": 1.209,
+      "testLift": 1.1,
+      "reason": "焼きたて塩パンと一緒に選ばれています"
+    }
+  ],
+  "initialRules": [
+    {
+      "id": "init-pasta-sauce",
+      "from": "2900000000100",
+      "to": "2900000000162",
+      "reason": "スパゲッティと一緒に使えます",
+      "origin": "initial"
+    },
+    {
+      "id": "init-pasta-basil",
+      "from": "2900000000100",
+      "to": "2900000000179",
+      "reason": "スパゲッティの仕上げに合います",
+      "origin": "initial"
+    },
+    {
+      "id": "init-sauce-pasta",
+      "from": "2900000000162",
+      "to": "2900000000100",
+      "reason": "トマトパスタソースと一緒に使えます",
+      "origin": "initial"
+    },
+    {
+      "id": "init-curry-onion",
+      "from": "2900000000094",
+      "to": "PLU-1001",
+      "reason": "カレーの具材に使えます",
+      "origin": "initial"
+    },
+    {
+      "id": "init-bread-milk",
+      "from": "2900000000056",
+      "to": "2900000000049",
+      "reason": "朝食の組み合わせです",
+      "origin": "initial"
+    },
+    {
+      "id": "init-bread-egg",
+      "from": "2900000000056",
+      "to": "2900000000063",
+      "reason": "朝食の組み合わせです",
+      "origin": "initial"
+    }
+  ]
+}

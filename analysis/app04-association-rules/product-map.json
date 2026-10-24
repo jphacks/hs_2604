@@ -1,0 +1,120 @@
+{
+  "note": "デモ商品コードと公開データGroceriesの品目カテゴリの対応表。1商品は1カテゴリに対応し、同じカテゴリ同士の組はルールにしない。",
+  "products": [
+    {
+      "code": "2900000000018",
+      "name": "KAGO 緑茶 500ml",
+      "groceriesItem": "tea"
+    },
+    {
+      "code": "2900000000025",
+      "name": "KAGO 天然水 550ml",
+      "groceriesItem": "bottled water"
+    },
+    {
+      "code": "2900000000032",
+      "name": "KAGO カフェラテ",
+      "groceriesItem": "coffee"
+    },
+    {
+      "code": "2900000000049",
+      "name": "成分無調整牛乳 1L",
+      "groceriesItem": "whole milk"
+    },
+    {
+      "code": "2900000000056",
+      "name": "もっちり食パン 6枚切",
+      "groceriesItem": "white bread"
+    },
+    {
+      "code": "2900000000063",
+      "name": "新鮮たまご 10個",
+      "groceriesItem": "domestic eggs"
+    },
+    {
+      "code": "2900000000070",
+      "name": "プレーンヨーグルト",
+      "groceriesItem": "yogurt"
+    },
+    {
+      "code": "2900000000087",
+      "name": "フィリピン産バナナ",
+      "groceriesItem": "tropical fruit"
+    },
+    {
+      "code": "2900000000094",
+      "name": "中辛ビーフカレー",
+      "groceriesItem": "Instant food products"
+    },
+    {
+      "code": "2900000000100",
+      "name": "スパゲッティ 500g",
+      "groceriesItem": "pasta"
+    },
+    {
+      "code": "2900000000117",
+      "name": "うすしおポテトチップス",
+      "groceriesItem": "salty snack"
+    },
+    {
+      "code": "2900000000124",
+      "name": "ミルクチョコレート",
+      "groceriesItem": "chocolate"
+    },
+    {
+      "code": "2900000000131",
+      "name": "箱ティッシュ 5個組",
+      "groceriesItem": "napkins"
+    },
+    {
+      "code": "2900000000148",
+      "name": "液体洗濯洗剤 詰替",
+      "groceriesItem": "detergent"
+    },
+    {
+      "code": "2900000000155",
+      "name": "不織布マスク 30枚",
+      "groceriesItem": "hygiene articles"
+    },
+    {
+      "code": "2900000000162",
+      "name": "トマトパスタソース",
+      "groceriesItem": "sauces"
+    },
+    {
+      "code": "2900000000179",
+      "name": "生バジル",
+      "groceriesItem": "herbs"
+    },
+    {
+      "code": "PLU-1001",
+      "name": "玉ねぎ 1個",
+      "groceriesItem": "onions"
+    },
+    {
+      "code": "PLU-1002",
+      "name": "国産りんご 1個",
+      "groceriesItem": "pip fruit"
+    },
+    {
+      "code": "PLU-1003",
+      "name": "アボカド 1個",
+      "groceriesItem": "tropical fruit"
+    },
+    {
+      "code": "PLU-2001",
+      "name": "お店のコロッケ 1個",
+      "groceriesItem": "potato products"
+    },
+    {
+      "code": "PLU-2002",
+      "name": "若鶏の唐揚げ 100g",
+      "groceriesItem": "chicken"
+    },
+    {
+      "code": "PLU-3001",
+      "name": "焼きたて塩パン 1個",
+      "groceriesItem": "rolls/buns"
+    }
+  ]
+}

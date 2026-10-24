@@ -19,5 +19,11 @@ try {
     const products=await listProducts(client,visits[0].id,"",0);
     console.log(JSON.stringify({result:"passed",mode:"read-only",cartLines:snapshot.cart.length,listedProducts:products.products.length,mutationVerified:false}));
   }
-}catch(error){console.log(JSON.stringify({result:"failed",code:cartError(error).code,mode:"read-only"}));process.exitCode=1;}
+}catch(error){const code = cartError(error).code;
+  console.log(JSON.stringify({result:"failed",code,mode:"read-only",
+    ...(code === "database_not_ready" ? {
+      nextStep: "管理者がkago-core/supabase/checks/app-cart-readiness.sqlを実行し、APP-02 migration・関数の実行権限・API schema cacheを確認してください。",
+      requiredMigration: "20261024110000_app_cart.sql",
+    } : {})
+  }));process.exitCode=1;}
 finally {if(client)try{await signOutBackend(client);}catch{/* No provider detail or credentials in output. */}}
