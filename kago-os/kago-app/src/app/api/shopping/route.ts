@@ -1,4 +1,4 @@
-import { backendErrorStatus, signInBackend, signOutBackend } from "@kago/backend";
+import { BackendError, backendErrorStatus, signInBackend, signOutBackend } from "@kago/backend";
 import { NextRequest, NextResponse } from "next/server";
 import { createServerBackendClient } from "@/lib/backend/server";
 import { loadShoppingContext, shoppingError, startShoppingVisit } from "@/features/shopping/service";
@@ -16,12 +16,19 @@ export async function GET(request: NextRequest) {
   try {
     const client = await createServerBackendClient({ writableCookies: true });
     return NextResponse.json(await loadShoppingContext(client, request.cookies.get(VISIT_COOKIE)?.value), { headers });
-  } catch (error) { return failure(error); }
+  } catch (error) {
+    const safe = shoppingError(error);
+    // SDKs may report a revoked session as missing. A selected visit means this
+    // browser had a shopping session, so give the re-login explanation.
+    return failure(safe.code === "unauthenticated" && request.cookies.has(VISIT_COOKIE) ? new BackendError("session_expired") : safe);
+  }
 }
 
 export async function POST(request: NextRequest) {
   // Cookie-authenticated mutations require a same-origin JSON request.
-  if (request.headers.get("origin") !== request.nextUrl.origin || !request.headers.get("content-type")?.startsWith("application/json")) {
+  // NextURL normalizes 127.0.0.1 to localhost; compare the original Host instead.
+  const expectedOrigin = `${request.nextUrl.protocol}//${request.headers.get("host")}`;
+  if (request.headers.get("origin") !== expectedOrigin || !request.headers.get("content-type")?.startsWith("application/json")) {
     return NextResponse.json({ code: "forbidden", message: "この操作は許可されていません。" }, { status: 403, headers });
   }
   let input;
