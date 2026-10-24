@@ -1352,8 +1352,39 @@
         }
       ],
       "ad_placements": [],
-      "creative_versions": [],
-      "ad_applications": [],
+      "creative_versions": [
+        {
+          "id": "0da7a007-0000-4000-8000-000000000003",
+          "note": "確認用（架空）",
+          "version": 1,
+          "headline": "朝の一杯に、プレーンヨーグルト。",
+          "created_at": "2026-10-23T01:00:00+00:00",
+          "image_path": "0da7a003-0000-4000-8000-000000000002/0da7a006-0000-4000-8000-000000000002/0da7a011-0000-4000-8000-000000000003.png",
+          "creative_id": "0da7a006-0000-4000-8000-000000000002"
+        }
+      ],
+      "ad_applications": [
+        {
+          "id": "0da7a008-0000-4000-8000-000000000003",
+          "status": "submitted",
+          "message": "駅前店のおすすめ枠で、通勤帰りの方に案内したいです。",
+          "channels": [
+            "app"
+          ],
+          "maker_id": "0da7a003-0000-4000-8000-000000000002",
+          "revision": 1,
+          "store_id": "0da7a001-0000-4000-8000-000000000002",
+          "ad_call_id": "0da7a005-0000-4000-8000-000000000004",
+          "created_at": "2026-10-24T00:00:00+00:00",
+          "updated_at": "2026-10-24T00:00:00+00:00",
+          "creative_id": "0da7a006-0000-4000-8000-000000000002",
+          "reviewed_at": null,
+          "reviewed_by": null,
+          "review_comment": null,
+          "requested_period": "[\"2026-10-26 15:00:00+00\",\"2026-12-08 15:00:00+00\")",
+          "creative_version_id": "0da7a007-0000-4000-8000-000000000003"
+        }
+      ],
       "signage_devices": [
         {
           "id": "0da7a004-0000-4000-8000-000000000003",
@@ -1768,8 +1799,36 @@
           "disclosure_scope": []
         }
       ],
-      "creatives": [],
-      "ad_applications": [],
+      "creatives": [
+        {
+          "id": "0da7a006-0000-4000-8000-000000000002",
+          "maker_id": "0da7a003-0000-4000-8000-000000000002",
+          "created_at": "2026-10-23T01:00:00+00:00",
+          "product_id": "0da7a002-0000-4000-8000-000000000007"
+        }
+      ],
+      "ad_applications": [
+        {
+          "id": "0da7a008-0000-4000-8000-000000000003",
+          "status": "submitted",
+          "message": "駅前店のおすすめ枠で、通勤帰りの方に案内したいです。",
+          "channels": [
+            "app"
+          ],
+          "maker_id": "0da7a003-0000-4000-8000-000000000002",
+          "revision": 1,
+          "store_id": "0da7a001-0000-4000-8000-000000000002",
+          "ad_call_id": "0da7a005-0000-4000-8000-000000000004",
+          "created_at": "2026-10-24T00:00:00+00:00",
+          "updated_at": "2026-10-24T00:00:00+00:00",
+          "creative_id": "0da7a006-0000-4000-8000-000000000002",
+          "reviewed_at": null,
+          "reviewed_by": null,
+          "review_comment": null,
+          "requested_period": "[\"2026-10-26 15:00:00+00\",\"2026-12-08 15:00:00+00\")",
+          "creative_version_id": "0da7a007-0000-4000-8000-000000000003"
+        }
+      ],
       "ad_placements": []
     },
     "DV1": {

@@ -223,6 +223,26 @@ select '0da7a008-0000-4000-8000-000000000002', '0da7a005-0000-4000-8000-00000000
   '入口の画面で、夕方の惣菜と一緒に案内したいです。', '2026-10-24T08:00:00+09'
 where not exists (select 1 from public.ad_applications where id = '0da7a008-0000-4000-8000-000000000002');
 
+-- A3: M2 -> S2 (C4, App), waiting for review. Gives S2 / M2 their own rows so store and maker
+-- isolation can be checked against non-empty data in both directions (INS-06, DB-06).
+insert into public.creatives(id, maker_id, product_id, created_at) values
+ ('0da7a006-0000-4000-8000-000000000002', '0da7a003-0000-4000-8000-000000000002',
+  pg_temp.data01_product('2900000000070'), '2026-10-23T10:00:00+09')
+on conflict (id) do nothing;
+insert into public.creative_versions(id, creative_id, version, image_path, headline, note, created_at)
+select '0da7a007-0000-4000-8000-000000000003', '0da7a006-0000-4000-8000-000000000002', 1,
+  '0da7a003-0000-4000-8000-000000000002/0da7a006-0000-4000-8000-000000000002/0da7a011-0000-4000-8000-000000000003.png',
+  '朝の一杯に、プレーンヨーグルト。', '確認用（架空）', '2026-10-23T10:00:00+09'
+where not exists (select 1 from public.creative_versions where id = '0da7a007-0000-4000-8000-000000000003');
+insert into public.ad_applications(id, ad_call_id, store_id, maker_id, creative_id, creative_version_id,
+  channels, requested_period, message, created_at)
+select '0da7a008-0000-4000-8000-000000000003', '0da7a005-0000-4000-8000-000000000004',
+  '0da7a001-0000-4000-8000-000000000002', '0da7a003-0000-4000-8000-000000000002',
+  '0da7a006-0000-4000-8000-000000000002', '0da7a007-0000-4000-8000-000000000003', '{app}',
+  tstzrange('2026-10-27T00:00:00+09', '2026-12-09T00:00:00+09', '[)'),
+  '駅前店のおすすめ枠で、通勤帰りの方に案内したいです。', '2026-10-24T09:00:00+09'
+where not exists (select 1 from public.ad_applications where id = '0da7a008-0000-4000-8000-000000000003');
+
 -- Store promotions: SP1 P-CROQ 16-19h App+Signage (common spec 11.2 No.6), SP2 salt bread all day Signage.
 insert into public.store_promotions(id, store_id, product_id, created_at) values
  ('0da7a00a-0000-4000-8000-000000000001', '0da7a001-0000-4000-8000-000000000001',
@@ -336,11 +356,15 @@ begin
     problems := array_append(problems, 'signage_devices'); end if;
   if (select count(*) from public.ad_calls where id::text like '0da7a005-%') <> 6 then
     problems := array_append(problems, 'ad_calls'); end if;
-  if (select count(*) from public.creative_versions where creative_id = '0da7a006-0000-4000-8000-000000000001'
-      and id in ('0da7a007-0000-4000-8000-000000000001', '0da7a007-0000-4000-8000-000000000002')) <> 2 then
+  if (select count(*) from public.creative_versions where (id, creative_id, version) in (
+      ('0da7a007-0000-4000-8000-000000000001', '0da7a006-0000-4000-8000-000000000001', 1),
+      ('0da7a007-0000-4000-8000-000000000002', '0da7a006-0000-4000-8000-000000000001', 2),
+      ('0da7a007-0000-4000-8000-000000000003', '0da7a006-0000-4000-8000-000000000002', 1))) <> 3 then
     problems := array_append(problems, 'creative_versions'); end if;
-  if (select count(*) from public.ad_applications where id::text like '0da7a008-%'
-      and maker_id = '0da7a003-0000-4000-8000-000000000001' and store_id = '0da7a001-0000-4000-8000-000000000001') <> 2 then
+  if (select count(*) from public.ad_applications where (id, store_id, maker_id) in (
+      ('0da7a008-0000-4000-8000-000000000001', '0da7a001-0000-4000-8000-000000000001', '0da7a003-0000-4000-8000-000000000001'),
+      ('0da7a008-0000-4000-8000-000000000002', '0da7a001-0000-4000-8000-000000000001', '0da7a003-0000-4000-8000-000000000001'),
+      ('0da7a008-0000-4000-8000-000000000003', '0da7a001-0000-4000-8000-000000000002', '0da7a003-0000-4000-8000-000000000002'))) <> 3 then
     problems := array_append(problems, 'ad_applications'); end if;
   if not exists (select 1 from public.ad_placements where id = '0da7a009-0000-4000-8000-000000000001'
       and application_id = '0da7a008-0000-4000-8000-000000000001' and revision = 2
