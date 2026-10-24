@@ -1,7 +1,9 @@
 packages:
   - kago-app
+  - kago-ads
   - shared/backend
 
 allowBuilds:
+  esbuild: false
   sharp: false
   unrs-resolver: false
