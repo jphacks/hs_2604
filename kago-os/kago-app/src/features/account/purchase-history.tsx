@@ -49,7 +49,7 @@ export function PurchaseHistorySection() {
     {loaded && !loading && !error && orders.length === 0 && <p className="mt-5 rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-600">この店舗での過去の購入履歴はまだありません。</p>}
     <div className="mt-4 grid gap-4">
       {orders.map(order => <article key={order.id} aria-label={`${date.format(new Date(order.orderedAt))}の購入`} className="overflow-hidden rounded-2xl border border-slate-200">
-        <div className="flex flex-wrap items-center justify-between gap-2 bg-emerald-50 px-4 py-3"><time dateTime={order.orderedAt} className="text-sm font-bold text-emerald-950">{date.format(new Date(order.orderedAt))}</time>{order.dataOrigin !== "operated" && <span className="rounded-full bg-white px-2 py-1 text-[10px] font-bold text-slate-600">デモの購入記録</span>}</div>
+        <div className="flex flex-wrap items-center justify-between gap-2 bg-emerald-50 px-4 py-3"><time dateTime={order.orderedAt} className="text-sm font-bold text-emerald-950">{date.format(new Date(order.orderedAt))}</time><span className="rounded-full bg-white px-2 py-1 text-[10px] font-bold text-slate-600">{order.dataOrigin==="operated"?"Appでの疑似購入":"デモの購入記録"}</span></div>
         <ul className="divide-y divide-slate-100 px-4">
           {order.items.map(item => <li key={item.productId} className="flex justify-between gap-3 py-3"><div className="min-w-0"><p className="break-words text-sm font-semibold">{item.name}</p><p className="mt-1 text-xs text-slate-500">{yen.format(item.unitPrice)} × {item.quantity}点</p></div><p className="shrink-0 text-sm font-bold">{yen.format(item.unitPrice * item.quantity)}</p></li>)}
         </ul>
