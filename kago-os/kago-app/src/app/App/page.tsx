@@ -140,7 +140,10 @@ export default function Home() {
             </li>)}
           </ul>}
         </div>
-        <div className="border-t border-slate-200 p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">{cart.discountTotal > 0 && <div className="mb-2 grid gap-1 text-sm"><p className="flex justify-between"><span>小計</span><span>{yen.format(cart.subtotal)}</span></p><p className="flex justify-between font-bold text-pink-700"><span>クーポン・セール割引</span><span>−{yen.format(cart.discountTotal)}</span></p></div>}<div className="flex justify-between text-lg font-black"><span>合計 {cart.itemCount}点</span><span>{yen.format(cart.total)}</span></div><button type="button" disabled={cart.busy} onClick={cart.reload} className="mt-3 min-h-11 w-full text-sm text-emerald-800 underline">かごを最新にする</button><p className="mt-1 text-center text-xs text-slate-500">購入手続きは準備中です</p></div>
+        <div className="border-t border-slate-200 p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">{cart.discountTotal > 0 && <div className="mb-2 grid gap-1 text-sm"><p className="flex justify-between"><span>小計</span><span>{yen.format(cart.subtotal)}</span></p><p className="flex justify-between font-bold text-pink-700"><span>クーポン・セール割引</span><span>−{yen.format(cart.discountTotal)}</span></p></div>}<div className="flex justify-between text-lg font-black"><span>合計 {cart.itemCount}点</span><span>{yen.format(cart.total)}</span></div><button type="button" disabled={cart.busy} onClick={cart.reload} className="mt-3 min-h-11 w-full text-sm text-emerald-800 underline">かごを最新にする</button>
+          {cart.canEdit&&cart.itemCount>0&&cart.lines.every(line=>line.available)?<Link href="/App/checkout" className="mt-2 block min-h-12 rounded-xl bg-emerald-700 px-4 py-3 text-center text-sm font-black text-white">疑似購入の確認へ</Link>:<button type="button" disabled className="mt-2 min-h-12 w-full rounded-xl bg-emerald-700 px-4 py-3 text-sm font-black text-white opacity-40">疑似購入の確認へ</button>}
+          <p className="mt-2 text-center text-xs text-slate-500">デモ用の疑似購入です。実際の支払いは発生しません。</p>
+        </div>
       </section>
     </div>}
   </main>;
