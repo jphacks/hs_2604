@@ -1,13 +1,4 @@
+// 見出しは期間・比較・サンプルデータ表示と同じ行に置くため、画面側（CouponEffectScreen）で持つ。
 export default function CouponsLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="grid gap-6">
-      <header>
-        <h1 className="text-xl font-bold">クーポンの効果</h1>
-        <p className="mt-1 text-sm text-[var(--muted)]">
-          配ったクーポンの受け取り・購入をクーポン同士で比べ、次の販促で見直す点を確認します。
-        </p>
-      </header>
-      {children}
-    </div>
-  );
+  return <div className="grid gap-6">{children}</div>;
 }

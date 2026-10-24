@@ -1,16 +1,19 @@
 import Link from "next/link";
 import couponEffect from "@/data/mock/coupon-effect.json";
-import { formatRate, formatYen, rate } from "@/lib/format";
+import { formatRate, rate } from "@/lib/format";
 import {
-  buildSuggestions,
+  buildDashboard,
+  changePoints,
+  changeRatio,
   formatPerYen,
-  summarizeOffer,
-  summarizeTotal,
-  type Suggestion,
+  formatSigned,
+  type OfferSummary,
+  type Totals,
+  type Verdict,
 } from "./coupon-effect";
 
 /**
- * DEMO-09 クーポンの効果。結果を比べ、次の販促の見直しにつなぐダッシュボード。
+ * DEMO-09 販促効果と次の打ち手。
  *
  * 値はすべて src/data/mock/coupon-effect.json の固定値で、実測ではない。
  * 画面内に「サンプルデータ」を明示し、実測と誤認させない。
@@ -23,243 +26,452 @@ import {
  * ここをDBへ差し替えるには DB-09 と同じ形の集計関数が必要（Coreへ依頼済み）。
  */
 
-const STAGES = [
-  { key: "distributed", label: "配布", step: "var(--viz-step-1)" },
-  { key: "claimed", label: "受け取り", step: "var(--viz-step-2)" },
-  { key: "purchased", label: "購入", step: "var(--viz-step-3)" },
-] as const;
+const panel = "rounded-xl border border-[var(--line)] bg-[var(--panel)] p-5";
 
-const SUGGESTION_STYLE: Record<Suggestion["kind"], { label: string; className: string }> = {
-  review: { label: "見直す", className: "bg-rose-100 text-rose-900" },
-  check: { label: "確かめる", className: "bg-amber-100 text-amber-900" },
-  keep: { label: "続ける", className: "bg-emerald-100 text-emerald-900" },
+const yen = (value: number) => `¥${value.toLocaleString("ja-JP")}`;
+
+const weekday = new Intl.DateTimeFormat("ja-JP", {
+  timeZone: "Asia/Tokyo",
+  month: "numeric",
+  day: "numeric",
+  weekday: "short",
+});
+
+const VERDICT: Record<Verdict, { label: string; className: string }> = {
+  keep: { label: "継続候補", className: "bg-emerald-50 text-emerald-800 ring-emerald-200" },
+  expand: { label: "拡大候補", className: "bg-sky-50 text-sky-800 ring-sky-200" },
+  review: { label: "見直し候補", className: "bg-amber-50 text-amber-800 ring-amber-300" },
 };
 
-const panel = "rounded-lg border border-[var(--line)] bg-[var(--panel)] p-5";
-
 export function CouponEffectScreen() {
-  const { offers, segments, period_label } = couponEffect;
-
-  const summaries = offers.map(summarizeOffer);
-  const total = summarizeTotal(summaries);
-  const suggestions = buildSuggestions(summaries, segments);
-
-  // クーポン同士を比べられるよう、ファネルの棒は全クーポン共通の目盛りにする
-  const maxDistributed = Math.max(...offers.map((o) => o.distributed), 1);
-  const maxPerYen = Math.max(...summaries.map((s) => s.salesPerYen ?? 0), 1);
+  const { offers, segments, period, days } = couponEffect;
+  const { current, previous, daily, offers: rows } = buildDashboard(offers, days.length);
 
   const kpis = [
     {
-      label: "配布",
-      value: `${total.distributed.toLocaleString("ja-JP")}件`,
-      note: `クーポン${offers.length}種の合計`,
+      label: "クーポン経由の売上",
+      help: "値引き後の価格 × 購入数",
+      value: yen(current.salesTotal),
+      change: formatSigned(changeRatio(current.salesTotal, previous.salesTotal), "%"),
+      series: daily.map((d) => d.salesTotal),
+      tone: "good" as const,
+    },
+    {
+      label: "購入率",
+      help: "購入 ÷ 配布",
+      value: formatRate(current.purchaseRate),
+      change: formatSigned(changePoints(current.purchaseRate, previous.purchaseRate), "pt"),
+      series: daily.map((d) => d.purchaseRate ?? 0),
+      tone: "good" as const,
     },
     {
       label: "受け取り率",
-      value: formatRate(total.claimRate),
-      note: `${total.claimed} / ${total.distributed} 件`,
+      help: "受け取り ÷ 配布",
+      value: formatRate(current.claimRate),
+      change: formatSigned(changePoints(current.claimRate, previous.claimRate), "pt"),
+      series: daily.map((d) => d.claimRate ?? 0),
+      tone: "good" as const,
     },
     {
-      label: "受け取り後の購入率",
-      value: formatRate(total.purchaseRate),
-      note: `${total.purchased} / ${total.claimed} 件`,
-    },
-    {
-      label: "値引き1円あたりの売上",
-      value: formatPerYen(total.salesPerYen),
-      note: `売上 ${formatYen(total.salesTotal)} / 値引き ${formatYen(total.discountTotal)}`,
+      label: "値引き総額",
+      help: "値引き単価 × 購入数。店舗の負担額",
+      value: yen(current.discountTotal),
+      change: formatSigned(changeRatio(current.discountTotal, previous.discountTotal), "%"),
+      series: daily.map((d) => d.discountTotal),
+      tone: "neutral" as const,
     },
   ];
 
   return (
-    <div className="grid gap-6">
-      <div className="flex flex-wrap items-center gap-3">
-        <p className="rounded bg-amber-100 px-3 py-1.5 text-sm font-bold text-amber-900">
-          サンプルデータ — 実際の計測値ではありません
-        </p>
-        <p className="text-xs text-[var(--muted)]">{period_label}</p>
-      </div>
+    <div className="grid gap-5">
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">販促効果と次の打ち手</h1>
+          <p className="mt-1 text-sm text-[var(--muted)]">結果を振り返り、次の施策へつなげる</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="flex items-center gap-2 rounded-md border border-[var(--line)] bg-[var(--panel)] px-3 py-1.5 tabular-nums">
+            <CalendarIcon />
+            {period.label}
+          </span>
+          <span className="rounded-md border border-[var(--line)] bg-[var(--panel)] px-3 py-1.5">
+            {period.compare_label}
+          </span>
+          <span
+            className="rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 font-bold text-amber-800"
+            title="実際の計測値ではありません"
+          >
+            サンプルデータ
+          </span>
+        </div>
+      </header>
 
-      {/* 先頭の数字。全体の結果を一目で示す */}
-      <section aria-label="全体の結果" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section aria-label="全体の結果" className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {kpis.map((kpi) => (
           <div key={kpi.label} className={panel}>
-            <p className="text-sm text-[var(--muted)]">{kpi.label}</p>
-            <p className="mt-1 text-3xl font-bold tabular-nums">{kpi.value}</p>
-            <p className="mt-1 text-xs text-[var(--muted)] tabular-nums">{kpi.note}</p>
+            <p className="flex items-center gap-1 text-sm font-bold text-[var(--muted)]">
+              {kpi.label}
+              <InfoIcon title={kpi.help} />
+            </p>
+            <div className="mt-2 flex items-end justify-between gap-3">
+              <div>
+                <p className="text-3xl font-bold tabular-nums">{kpi.value}</p>
+                <p className="mt-1 text-sm text-[var(--muted)]">
+                  前週比{" "}
+                  <span
+                    className={`font-bold tabular-nums ${kpi.tone === "good" ? "text-[var(--good)]" : "text-[var(--ink)]"}`}
+                  >
+                    {kpi.change}
+                  </span>
+                </p>
+              </div>
+              <Sparkline values={kpi.series} tone={kpi.tone} />
+            </div>
           </div>
         ))}
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* クーポン別のファネル */}
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
         <section className={panel}>
-          <h2 className="text-base font-bold">クーポン別：配布から購入まで</h2>
-          <p className="mt-1 text-sm text-[var(--muted)]">
-            棒は全クーポン共通の目盛り（最大 {maxDistributed}件）。右は件数
-          </p>
-          <ul className="mt-2 flex flex-wrap gap-4 text-xs text-[var(--muted)]">
-            {STAGES.map((stage) => (
-              <li key={stage.key} className="flex items-center gap-1.5">
-                <span className="inline-block size-3 rounded-sm" style={{ background: stage.step }} />
-                {stage.label}
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <h2 className="text-lg font-bold">売上と値引きの推移</h2>
+              <p className="text-sm text-[var(--muted)]">クーポン経由・日別</p>
+            </div>
+            <ul className="flex gap-4 text-xs text-[var(--muted)]">
+              <li className="flex items-center gap-1.5">
+                <span className="inline-block size-3 rounded-sm bg-[var(--viz-step-1)]" />
+                売上（円）
               </li>
-            ))}
-          </ul>
-          <div className="mt-4 grid gap-5">
-            {summaries.map(({ offer, claimRate, purchaseRate }) => (
-              <div key={offer.offer_id}>
-                <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-                  <p className="text-sm font-bold">
-                    {offer.product_name} {offer.discount_percent}%OFF
-                  </p>
-                  <p className="text-xs text-[var(--muted)]">
-                    きっかけ：{offer.trigger_product_name}
-                  </p>
-                </div>
-                <div className="mt-2 grid gap-1">
-                  {STAGES.map((stage) => {
-                    const value = offer[stage.key];
-                    return (
-                      <div key={stage.key} className="flex items-center gap-2">
-                        <span className="w-14 shrink-0 text-xs text-[var(--muted)]">{stage.label}</span>
-                        {/* 棒は必ずトラックの中に収める。外に置くとラベルが画面外へ押し出される */}
-                        <div className="h-3.5 min-w-0 flex-1 rounded-r bg-[var(--viz-track)]">
-                          <div
-                            className="h-3.5 rounded-r"
-                            style={{
-                              width: `${(value / maxDistributed) * 100}%`,
-                              background: stage.step,
-                            }}
-                            title={`${offer.product_name} ${stage.label} ${value}件`}
-                          />
-                        </div>
-                        <span className="w-8 shrink-0 text-right text-xs font-bold tabular-nums">
-                          {value}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-                <p className="mt-1.5 text-xs text-[var(--muted)] tabular-nums">
-                  受け取り率 <b className="text-[var(--ink)]">{formatRate(claimRate)}</b>
-                  {" ・ "}受け取り後の購入率 <b className="text-[var(--ink)]">{formatRate(purchaseRate)}</b>
-                </p>
-              </div>
-            ))}
+              <li className="flex items-center gap-1.5">
+                <span className="inline-block h-0.5 w-4 bg-[var(--viz-line)]" />
+                値引き（円）
+              </li>
+            </ul>
           </div>
-          <p className="mt-4 text-xs text-[var(--muted)]">
-            受け取りが0件のクーポンは、購入率の分母が0になるため「—」と表示します（0%ではありません）。
-          </p>
+          <TrendChart days={days} daily={daily} />
         </section>
 
-        <div className="grid content-start gap-6">
-          {/* 値引き1円あたりの売上 */}
-          <section className={panel}>
-            <h2 className="text-base font-bold">値引き1円あたりの売上</h2>
-            <p className="mt-1 text-sm text-[var(--muted)]">
-              値引き後の売上 ÷ 値引き総額。値引きが0円のものは「—」
-            </p>
-            <div className="mt-4 grid gap-3">
-              {summaries.map(({ offer, salesTotal, discountTotal, salesPerYen }) => (
-                <div key={offer.offer_id}>
-                  <div className="flex items-center gap-3">
-                    <span className="w-32 shrink-0 truncate text-sm font-bold" title={offer.product_name}>
-                      {offer.product_name}
-                    </span>
-                    <div className="h-4 min-w-0 flex-1 rounded-r bg-[var(--viz-track)]">
-                      {salesPerYen === null ? null : (
-                        <div
-                          className="h-4 rounded-r bg-[var(--viz-bar)]"
-                          style={{ width: `${(salesPerYen / maxPerYen) * 100}%` }}
-                          title={`${offer.product_name} 値引き1円あたり ${formatPerYen(salesPerYen)}`}
-                        />
-                      )}
-                    </div>
-                    <span className="w-16 shrink-0 text-right text-sm font-bold tabular-nums">
-                      {formatPerYen(salesPerYen)}
-                    </span>
-                  </div>
-                  <p className="mt-0.5 pl-35 text-xs text-[var(--muted)] tabular-nums">
-                    売上 {formatYen(salesTotal)} / 値引き {formatYen(discountTotal)}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* 履歴あり / なし */}
-          <section className={panel}>
-            <h2 className="text-base font-bold">購入履歴の有無別の受け取り率</h2>
-            <p className="mt-1 text-sm text-[var(--muted)]">棒の長さは受け取り率（0〜100%）</p>
-            <div className="mt-4 grid gap-3">
+        <section className={panel}>
+          <h2 className="flex items-center gap-1 text-lg font-bold">
+            配布から購入まで
+            <InfoIcon title="配布 = クーポン表示、受け取り = クーポン取得、購入 = クーポン利用" />
+          </h2>
+          <Funnel totals={current} />
+          <div className="mt-5 border-t border-[var(--line)] pt-4">
+            <p className="text-xs font-bold text-[var(--muted)]">購入履歴別の受け取り率</p>
+            <div className="mt-2 grid gap-2">
               {segments.map((segment) => {
-                const claimRate = rate(segment.claimed, segment.distributed);
+                const value = rate(segment.claimed, segment.distributed);
                 return (
-                  <div key={segment.key} className="flex items-center gap-3">
-                    <span className="w-28 shrink-0 text-sm font-bold">{segment.label}</span>
-                    <div className="h-4 min-w-0 flex-1 rounded-r bg-[var(--viz-track)]">
+                  <div
+                    key={segment.key}
+                    className="flex items-center gap-2 text-sm"
+                    title={`${segment.claimed} / ${segment.distributed} 件`}
+                  >
+                    <span className="w-24 shrink-0">{segment.label}</span>
+                    <div className="h-2.5 min-w-0 flex-1 rounded-full bg-[var(--viz-track)]">
                       <div
-                        className="h-4 rounded-r bg-[var(--viz-bar)]"
-                        style={{ width: `${(claimRate ?? 0) * 100}%` }}
-                        title={`${segment.label} 配布 ${segment.distributed}件・受け取り ${segment.claimed}件`}
+                        className="h-2.5 rounded-full bg-[var(--viz-step-2)]"
+                        style={{ width: `${(value ?? 0) * 100}%` }}
                       />
                     </div>
-                    <span className="w-14 shrink-0 text-right text-sm font-bold tabular-nums">
-                      {formatRate(claimRate)}
-                    </span>
-                    <span className="w-20 shrink-0 text-right text-xs text-[var(--muted)] tabular-nums">
-                      {segment.claimed} / {segment.distributed} 件
-                    </span>
+                    <span className="w-14 shrink-0 text-right font-bold tabular-nums">{formatRate(value)}</span>
                   </div>
                 );
               })}
             </div>
-          </section>
-        </div>
+          </div>
+        </section>
       </div>
 
-      {/* 結果を次の販促設定へつなぐ */}
       <section className={panel}>
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 className="text-base font-bold">次の販促で検討すること</h2>
-            <p className="mt-1 text-sm text-[var(--muted)]">
-              上の数値から固定のルールで選んだ候補です。効果を保証するものではありません。
-            </p>
-          </div>
-          <Link
-            href="/promotions"
-            className="rounded bg-[var(--accent)] px-4 py-2 text-sm font-bold text-white hover:opacity-90"
-          >
-            販促設定で値引き率を見直す →
-          </Link>
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-lg font-bold">
+            クーポン別に比較する
+            <span className="ml-3 text-sm font-normal text-[var(--muted)]">同期間の実績</span>
+          </h2>
+          <p className="text-xs text-[var(--muted)]">対象商品が異なるため、単純な優劣ではありません</p>
         </div>
-        {suggestions.length === 0 ? (
-          <p className="mt-4 text-sm text-[var(--muted)]">いまの数値から挙げる候補はありません。</p>
-        ) : (
-          <ol className="mt-4 grid gap-3 md:grid-cols-2">
-            {suggestions.map((s) => {
-              const style = SUGGESTION_STYLE[s.kind];
-              return (
-                <li key={s.key} className="rounded-md border border-[var(--line)] p-4">
-                  <span className={`rounded px-2 py-0.5 text-xs font-bold ${style.className}`}>
-                    {style.label}
-                  </span>
-                  <p className="mt-2 text-sm font-bold">{s.title}</p>
-                  <p className="mt-1 text-xs text-[var(--muted)] tabular-nums">{s.evidence}</p>
-                  <p className="mt-2 text-sm">{s.action}</p>
-                </li>
-              );
-            })}
-          </ol>
-        )}
+        <ComparisonTable rows={rows} />
       </section>
 
-      <p className="text-xs leading-relaxed text-[var(--muted)]">
-        この画面は配ったクーポンに対する反応を並べたものです。値引きをしなかった場合と比べていないため、
-        「値引きをしたから売れた」ことを示すものではありません。比較対象を置いた検証は INS-04 で扱います。
+      <section className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-5">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-lg font-bold">
+            次に試すこと
+            <span className="ml-3 text-sm font-normal text-[var(--muted)]">結果からの仮説を、小さな検証につなげる</span>
+          </h2>
+          <span className="rounded-md bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-800">
+            改善案は仮説です
+          </span>
+        </div>
+        <ol className="mt-4 grid gap-4 md:grid-cols-3">
+          {rows.map((row, index) => (
+            <ActionCard key={row.offer.offer_id} row={row} index={index + 1} overall={current} />
+          ))}
+        </ol>
+      </section>
+
+      <p className="text-xs text-[var(--muted)]">
+        サンプルデータのため実測値ではありません。値引きしなかった場合と比べていないため、値引きが売上の原因であることは示しません。
+        受け取りが0件のときの購入率は、分母が0のため「—」と表示します。
       </p>
     </div>
+  );
+}
+
+function ComparisonTable({ rows }: { rows: OfferSummary[] }) {
+  const maxRate = Math.max(...rows.map((r) => r.current.purchaseRate ?? 0), 0.01);
+  const th = "whitespace-nowrap px-3 py-2.5 font-bold";
+
+  return (
+    <div className="mt-3 overflow-x-auto rounded-lg border border-[var(--line)]">
+      <table className="w-full min-w-[48rem] border-collapse whitespace-nowrap text-sm">
+        <thead className="bg-[var(--surface)] text-left text-[var(--muted)]">
+          <tr>
+            <th className={th}>クーポン</th>
+            <th className={`${th} text-right`}>配布</th>
+            <th className={`${th} text-right`}>受け取り率</th>
+            <th className={th}>購入率</th>
+            <th className={`${th} text-right`}>受け取り後の購入率</th>
+            <th className={`${th} text-right`}>
+              <span title="値引き後の売上 ÷ 値引き総額">値引き1円あたり売上</span>
+            </th>
+            <th className={th}>判断</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(({ offer, current, verdict }) => (
+            <tr key={offer.offer_id} className="border-t border-[var(--line)]">
+              <td className="px-3 py-2.5">
+                <p className="font-bold">
+                  {offer.product_name}
+                  <span className="ml-1.5 text-xs font-normal text-[var(--muted)]">{offer.discount_percent}%OFF</span>
+                </p>
+                <p className="text-xs text-[var(--muted)]">きっかけ：{offer.trigger_product_name}</p>
+              </td>
+              <td className="px-3 py-3 text-right tabular-nums">{current.distributed}</td>
+              <td className="px-3 py-3 text-right tabular-nums">{formatRate(current.claimRate)}</td>
+              <td className="px-3 py-3">
+                <div className="flex items-center gap-3">
+                  <span className="w-12 text-right tabular-nums">{formatRate(current.purchaseRate)}</span>
+                  <div className="h-2.5 w-28 rounded-full bg-[var(--viz-track)]">
+                    <div
+                      className={`h-2.5 rounded-full ${verdict === "review" ? "bg-amber-500" : "bg-[var(--good)]"}`}
+                      style={{ width: `${((current.purchaseRate ?? 0) / maxRate) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              </td>
+              <td className="px-3 py-3 text-right tabular-nums">{formatRate(current.purchaseAfterClaimRate)}</td>
+              <td className="px-3 py-3 text-right tabular-nums">{formatPerYen(current.salesPerYen)}</td>
+              <td className="px-3 py-3">
+                <span className={`rounded-md px-2 py-1 text-xs font-bold ring-1 ${VERDICT[verdict].className}`}>
+                  {VERDICT[verdict].label}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+const ACTION_BADGE: Record<Verdict, { label: string; dot: string }> = {
+  keep: { label: "継続", dot: "bg-emerald-600" },
+  expand: { label: "拡大", dot: "bg-sky-600" },
+  review: { label: "見直し", dot: "bg-amber-500" },
+};
+
+function ActionCard({ row, index, overall }: { row: OfferSummary; index: number; overall: Totals }) {
+  const { offer, current, verdict } = row;
+  const content = {
+    keep: {
+      title: `${offer.product_name}のクーポンを継続`,
+      reason: `購入率${formatRate(current.purchaseRate)}（全体${formatRate(overall.purchaseRate)}）`,
+      metrics: "購入率・値引き総額",
+      cta: "設定を確認",
+    },
+    expand: {
+      title: `${offer.product_name}の${offer.discount_percent}%OFFを対象拡大`,
+      reason: `値引き1円あたり${formatPerYen(current.salesPerYen)}で最大`,
+      metrics: "購入率・値引き1円あたり売上",
+      cta: "販促を作成",
+    },
+    review: {
+      title: `${offer.product_name}のきっかけ商品を変更`,
+      reason: `配布${current.distributed}件で受け取り${current.claimed}件`,
+      metrics: "受け取り率",
+      cta: "設定を見直す",
+    },
+  }[verdict];
+  const badge = ACTION_BADGE[verdict];
+
+  return (
+    <li className="flex flex-col rounded-lg border border-[var(--line)] bg-[var(--panel)] p-4">
+      <div className="flex items-center gap-2">
+        <span
+          className={`grid size-7 place-items-center rounded-full text-sm font-bold text-white ${badge.dot}`}
+        >
+          {index}
+        </span>
+        <span className={`rounded-md px-2 py-0.5 text-xs font-bold ring-1 ${VERDICT[verdict].className}`}>
+          {badge.label}
+        </span>
+      </div>
+      <p className="mt-3 font-bold">{content.title}</p>
+      <p className="mt-1 mb-4 text-sm text-[var(--muted)] tabular-nums">{content.reason}</p>
+      <div className="mt-auto flex items-center justify-between gap-2 border-t border-[var(--line)] pt-3">
+        <span className="text-xs text-[var(--muted)]">確認する指標：{content.metrics}</span>
+        <Link
+          href="/promotions"
+          className={`shrink-0 rounded-md px-3 py-1.5 text-sm font-bold ${
+            verdict === "expand"
+              ? "bg-[var(--good)] text-white hover:opacity-90"
+              : "border border-[var(--line)] hover:bg-[var(--surface)]"
+          }`}
+        >
+          {content.cta}
+        </Link>
+      </div>
+    </li>
+  );
+}
+
+function Funnel({ totals }: { totals: Totals }) {
+  const stages = [
+    { label: "配布", value: totals.distributed, color: "var(--viz-step-1)" },
+    { label: "受け取り", value: totals.claimed, color: "var(--viz-step-2)" },
+    { label: "購入", value: totals.purchased, color: "var(--viz-step-3)" },
+  ];
+  const steps = [totals.claimRate, totals.purchaseAfterClaimRate];
+  const max = Math.max(totals.distributed, 1);
+
+  return (
+    <div className="mt-4 grid gap-1">
+      {stages.map((stage, i) => (
+        <div key={stage.label}>
+          <div className="flex items-center gap-3">
+            <span className="w-16 shrink-0 text-sm font-bold">{stage.label}</span>
+            <div className="h-9 min-w-0 flex-1">
+              <div
+                className="h-9 rounded-r-md"
+                style={{ width: `${(stage.value / max) * 100}%`, background: stage.color }}
+              />
+            </div>
+            <span className="w-14 shrink-0 text-right text-xl font-bold tabular-nums">
+              {stage.value.toLocaleString("ja-JP")}
+            </span>
+          </div>
+          {i < steps.length ? (
+            <p className="py-1 pl-[4.75rem] text-sm font-bold text-[var(--viz-step-2)] tabular-nums">
+              ↓ {formatRate(steps[i])}
+            </p>
+          ) : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function TrendChart({ days, daily }: { days: string[]; daily: Totals[] }) {
+  const width = 640;
+  const height = 230;
+  const pad = { top: 22, right: 8, bottom: 28, left: 44 };
+  const plotW = width - pad.left - pad.right;
+  const plotH = height - pad.top - pad.bottom;
+
+  const peak = Math.max(...daily.map((d) => d.salesTotal), 1);
+  const step = 2000;
+  const top = Math.ceil(peak / step) * step;
+  const ticks = Array.from({ length: top / step + 1 }, (_, i) => i * step);
+  const y = (v: number) => pad.top + plotH - (v / top) * plotH;
+  const slot = plotW / daily.length;
+  const barW = slot * 0.56;
+  const cx = (i: number) => pad.left + slot * i + slot / 2;
+  const line = daily.map((d, i) => `${cx(i)},${y(d.discountTotal)}`).join(" ");
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} className="mt-3 w-full" role="img" aria-label="日別の売上と値引きの推移">
+      {ticks.map((t) => (
+        <g key={t}>
+          <line x1={pad.left} x2={width - pad.right} y1={y(t)} y2={y(t)} stroke="var(--line)" />
+          <text x={pad.left - 8} y={y(t) + 4} textAnchor="end" fontSize="11" fill="var(--muted)">
+            {t.toLocaleString("ja-JP")}
+          </text>
+        </g>
+      ))}
+      {daily.map((d, i) => (
+        <g key={days[i]}>
+          <rect
+            x={cx(i) - barW / 2}
+            y={y(d.salesTotal)}
+            width={barW}
+            height={pad.top + plotH - y(d.salesTotal)}
+            rx="4"
+            fill="var(--viz-step-1)"
+          >
+            <title>{`${days[i]} 売上 ${d.salesTotal}円・値引き ${d.discountTotal}円`}</title>
+          </rect>
+          <text x={cx(i)} y={y(d.salesTotal) - 6} textAnchor="middle" fontSize="11" fontWeight="700" fill="var(--ink)">
+            {d.salesTotal.toLocaleString("ja-JP")}
+          </text>
+          <text x={cx(i)} y={height - 8} textAnchor="middle" fontSize="11" fill="var(--muted)">
+            {weekday.format(new Date(days[i]))}
+          </text>
+        </g>
+      ))}
+      <polyline points={line} fill="none" stroke="var(--viz-line)" strokeWidth="2.5" />
+      {daily.map((d, i) => (
+        <g key={`p-${days[i]}`}>
+          <circle cx={cx(i)} cy={y(d.discountTotal)} r="4" fill="var(--viz-line)" stroke="var(--panel)" strokeWidth="1.5" />
+          {/* 文字を減らすため、値引きの数値は最終日だけ出す */}
+          {i === daily.length - 1 ? (
+            <text x={cx(i)} y={y(d.discountTotal) - 9} textAnchor="middle" fontSize="11" fontWeight="700" fill="var(--viz-line)">
+              {d.discountTotal.toLocaleString("ja-JP")}
+            </text>
+          ) : null}
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+function Sparkline({ values, tone }: { values: number[]; tone: "good" | "neutral" }) {
+  const max = Math.max(...values, 1e-9);
+  const w = 8;
+  const gap = 3;
+  const h = 40;
+  return (
+    <svg width={values.length * (w + gap)} height={h} aria-hidden className="shrink-0">
+      {values.map((v, i) => {
+        const bh = Math.max((v / max) * h, 2);
+        const last = i === values.length - 1;
+        const fill = tone === "good" ? "var(--good)" : "var(--muted)";
+        return <rect key={i} x={i * (w + gap)} y={h - bh} width={w} height={bh} rx="1.5" fill={fill} opacity={last ? 1 : 0.35 + (i / values.length) * 0.4} />;
+      })}
+    </svg>
+  );
+}
+
+function InfoIcon({ title }: { title: string }) {
+  return (
+    <span
+      title={title}
+      className="grid size-4 cursor-help place-items-center rounded-full bg-[var(--line)] text-[10px] font-bold text-[var(--muted)]"
+    >
+      i
+    </span>
+  );
+}
+
+function CalendarIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M3 10h18M8 3v4M16 3v4" />
+    </svg>
   );
 }
