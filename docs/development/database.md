@@ -320,3 +320,96 @@ Supabaseからは`client.rpc("kago_approve_application", {...})`などで呼ぶ�
 - `db08.sql`：他店担当・メーカー・所属のない担当・未ログインを拒否した。範囲外の期間・媒体では申請が未審査のまま残った。承認と再送、第2版の承認による第1版の置換、第3版の承認途中の失敗（操作履歴の書込みで失敗させ、申請・配信・履歴が変わらないこと）を確認した。却下でも前の回の配信が続き、停止と再送、履歴の改ざん拒否も確認した。全過程で申請ごとの`active`は1件以下。
 - 実PostgreSQLの別接続で、2人の担当が同じ回を同時に承認すると配信対象1件（作成1・再送1）、操作履歴1件だった。新しい回の承認と旧配信の停止を同時に行うと、承認が先に確定して旧配信は`superseded`、停止は23514になった。どちらも`active`は1件で、デッドロックはなかった。
 - 実Supabaseへの適用、Insight画面からの呼出しは未検証。
+
+<a id="db09"></a>
+
+## DB-09：表示・反応・購入とSignageの共通集計
+
+DB-08の後に`20261024100000_metric_views.sql`を適用する。HTTP API・画面・率の計算は追加しない。本人JWTを持つ既存クライアントから、下記ビューのSELECTまたはDB関数のRPCを使う。
+
+| 入口 | 内容・権限 |
+| --- | --- |
+| `kago_app_metrics_view` | 全期間のApp集計。自店の店舗担当、または許可指標のみの自社広告メーカー |
+| `kago_signage_metrics_view` | 全期間のSignage集計。同上。端末・東京時間の1時間枠・配信対象／販促版・mode別 |
+| `kago_selection_counts` | 自店担当のみ。店舗・東京日付・種別・施策版・ルール版別の選定枠数 |
+| `kago_app_metrics(p_start, p_end, p_store_id?, p_data_origin?)` | 期間を指定したApp集計。先頭2引数の省略時は全期間 |
+| `kago_signage_metrics(p_start, p_end, p_store_id?, p_data_origin?)` | 期間を指定したSignage集計。先頭2引数の省略時は全期間 |
+| `kago_order_totals(p_start, p_end, p_store_id)` | 自店担当のみの注文総数・数量・金額。提案の帰属と独立した正本の合計 |
+
+期間は`[p_start,p_end)`。NULL・逆転・同時刻の期間、未知のdata_originは22023を返す。App／Signageの集計で所属外を指定しても行は返らない。全体の注文合計で所属外を指定した場合は42501。記録がない期間は空配列／0行を返す。既存の集計行のうち購入なし等は0、非公開はNULLなので、画面でNULLを0へ置き換えないこと。
+
+```sql
+-- 実行者は認証済みの自店担当または自社メーカー。
+-- 例のUUIDは実際に所属する検証店舗へ置き換える。
+select * from public.kago_app_metrics(
+  '2026-10-22T00:00:00+09', '2026-10-23T00:00:00+09',
+  '20000000-0000-4000-8000-000000000001', 'operated');
+select * from public.kago_signage_metrics(
+  '2026-10-22T17:00:00+09', '2026-10-22T18:00:00+09',
+  '20000000-0000-4000-8000-000000000001', 'operated');
+```
+
+### Appの数え方
+
+基準は[共通仕様9章](../specs/common-spec.md#metrics)。`(visit_id,product_id,placement_type,data_origin)`で最初の有効な実表示を選び、その枠の配信対象・販促版・ルール版へ帰属する。期間もその実表示時刻で絞るため、後日に同じ商品が再表示されても新たな表示として計上しない。同時刻の表示はevent_id順で決定する。
+
+返却する軸はstore_id・channel=`app`・data_origin・placement_type・ad_placement_id・promotion_version_id・rule_version。件数は以下。
+
+| 列 | 内容 |
+| --- | --- |
+| `impressions`／`shown_visits` | 重複排除した表示組数／その集計行の異なる来店数 |
+| `clicks` | 基準表示以降〜来店終了のクリックが1回以上ある組数。表示前クリックは保存されても除外 |
+| `recommendation_adds`／`adds_after_impression` | 提案経由の追加／経路を問わない追加がある組数 |
+| `recommendation_removes` | 提案経由の追加後、購入前に全量削除した組数。削除後再追加・購入した場合も削除1・購入1 |
+| `purchases`／`purchased_quantity`／`purchase_amount` | 同じ由来・来店の実表示以降の注文に対象商品がある組数／数量／円 |
+| `small_sample` | その集計行の表示来店数が5未満。表示数非公開ならNULL |
+| `disclosed_metrics` | 今回許可される指標。自店担当には内部指標、メーカーには募集のdisclosure_scope |
+
+反応は実際に操作した枠を保持したまま、同じ来店・商品・種別・由来の基準表示へ帰属させる。反応の行数と明細の行数を直接掛け合わせず、存在判定と1商品1明細で購入金額の増殖を防ぐ。来店終了後のイベントは除外する。
+
+表示のない選定はimpressionsへ入れない。DB-05のselectionsには由来列がないため、`kago_selection_counts.data_origin`は**unclassified**（operatedの別名ではない）。表示イベントがある選定だけから全選定の由来を推測せず、未表示の枠も選定数に残す。由来別の選定数が必要なら、後続の選定書込み契約で由来を追加してから対応する。由来別の表示・反応・購入は既存のdata_originで分けて取得できる。
+
+表示来店数は集計行を跨いで足すと重複し得る。任意期間の値は日別値の合算ではなく期間指定関数で再集計する。同じ来店・商品が複数の種別で表示されると、その購入は各種別で評価されるため、提案別の購入数・金額を全店総計として足さない。全店の正本は`kago_order_totals`を使う。
+
+### Signageの数え方
+
+終了済み・3秒以上・fallback以外を対象とし、開始時刻の東京時間の1時間枠へ1回だけ帰属させる。時間境界を跨ぐ15秒の再生も、開始した時間枠に1回・15秒として数える。Appの表示・購入と個人単位で結合しない。
+
+- `plays`・`play_seconds`：再生回数と秒数。
+- `measured_plays`・`not_measured_plays`・`error_plays`：同じ由来の計測状態。推定行がない再生も未計測。
+- `estimated_viewers`・`estimated_view_seconds`：同じ由来のmeasuredのみの合計。実測0は0、計測がなければNULL。人数は延べ人数でユニーク人数ではない。
+- `synthetic_estimates`・`synthetic_viewers`・`synthetic_view_seconds`：実操作／事前投入の再生に添えた疑似計測の件数と値を分離。実測側の分子・推定合計へは入れない。再生自体がsyntheticなら通常の列をdata_origin=syntheticで返す。
+- `reference_sales_quantity`：同店舗・同じ1時間枠・同商品・同由来の販売数量の参考値。任意期間の境界が時間枠の途中でも、選ばれた再生の**時間枠全体**で販売を数える。同じ商品・時間枠を複数端末や複数版で出した場合は同じ参考値が各行に現れるため、行を足して総販売数にしない。
+
+### メーカーへの公開制限
+
+DB関数は所有者権限で集計するが、必ず認証利用者のstore_members／maker_membersと役割を確認し、集計済みの行だけ返す。呼出し側の任意の利用者IDを引数にしない。
+
+| disclosure_scope | 公開する列 |
+| --- | --- |
+| impressions | impressions、shown_visits、small_sample |
+| clicks | clicks |
+| cart_adds | recommendation_adds、adds_after_impression、recommendation_removes |
+| purchases | purchases、purchased_quantity、purchase_amount、reference_sales_quantity |
+| signage_views | 再生・計測の各列（疑似値の分離列も含む） |
+
+メーカーには自社の広告行だけが見え、通常推薦・店舗販促・他社広告・生イベント・利用者ID・来店ID・注文IDを返さない。公開範囲は読取時の募集設定を使う。指標が非公開でも自社配信対象の行は存在し得るが、値はNULLになる。自店担当は公開設定にかかわらず自店の内部指標を取得できる。
+
+`kago_app_cohorts_internal`には帰属計算のため来店IDがあるが、PUBLIC・anon・authenticated・service_roleからの直接アクセスを剥奪する。公開ビューは集計関数または自店だけに絞った集計を呼び、個人列を持たない。customer・Signage役割は集計行0件、anonは関数・ビューの実行自体を拒否する。
+
+### DB-09の検証記録（2026-10-24・hackday）
+
+`supabase/tests/db09.sql`を破棄可能な検証DBの所有者で実行する。全fixtureはROLLBACKする。実Auth・RLSの最終検証は共有Supabaseの本人JWTで別途行う。
+
+```sh
+# kago-os/kago-core/から、全migration適用済みの破棄可能な検証DBへ
+psql -X -v ON_ERROR_STOP=1 -f supabase/tests/db09.sql
+```
+
+- PGlite 0.5.11へCOM-02〜DB-09の全migrationを適用し、DB-02〜09の検証SQLを各2回実行して成功。毎回fixtureのロールバックを確認。
+- 2店舗・2利用者・2メーカーで確認。S1のM1広告はoperatedで表示1・クリック1・追加1・削除1・購入1・数量2・金額200円。再送と別枠での再表示は表示数を増やさず、初回のルール版へ帰属。
+- 通常推薦の2商品は表示2・表示来店1・購入2・金額400円。別種別との購入重複があるため、S1のoperated正本の注文2件・数量4・500円とは足し合わせない。
+- seededの表示とoperatedの注文、およびoperatedの表示とseededの注文を結合しない。対象なしの期間、期間端、表示前クリックも検証。
+- M1のoperated Signageは3再生・45秒。実測0人・エラー1・疑似計測1（5人・10秒）を分け、3秒未満とfallbackを除外。17:59:50〜18:00:05を17時台だけに計上。
+- 自店／自社だけの取得、公開範囲の変更、個人列なし、内部ビュー拒否、customer・端末・anon拒否を確認。
+- 実PostgreSQLサーバー・実Supabaseへの適用、実JWT、画面からの確認は今回未実施。UIのグラフ・率はINS-03／ADS-04で実装する。

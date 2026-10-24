@@ -110,6 +110,7 @@ create function public.kago_signage_metrics(
   ad_placement_id uuid,promotion_version_id uuid,mode text,
   plays bigint,play_seconds numeric,measured_plays bigint,not_measured_plays bigint,error_plays bigint,
   estimated_viewers bigint,estimated_view_seconds numeric,synthetic_estimates bigint,
+  synthetic_viewers bigint,synthetic_view_seconds numeric,
   reference_sales_quantity numeric,disclosed_metrics text[]
 ) language plpgsql stable security definer set search_path='' as $$
 begin
@@ -142,11 +143,13 @@ begin
       f.product_id,f.internal,f.disclosure_scope,
       count(*) as n,sum(extract(epoch from(f.ended_at-f.started_at))) as seconds,
       count(*) filter(where f.measurement_status='measured' and f.estimate_origin=f.data_origin) as nm,
-      count(*) filter(where f.measurement_status is null or f.measurement_status='not_measured') as nn,
-      count(*) filter(where f.measurement_status='error') as ne,
+      count(*) filter(where f.measurement_status is null or (f.measurement_status='not_measured' and f.estimate_origin=f.data_origin)) as nn,
+      count(*) filter(where f.measurement_status='error' and f.estimate_origin=f.data_origin) as ne,
       sum(f.estimated_viewers) filter(where f.measurement_status='measured' and f.estimate_origin=f.data_origin) as viewers,
       sum(f.estimated_view_seconds) filter(where f.measurement_status='measured' and f.estimate_origin=f.data_origin) as view_seconds,
-      count(*) filter(where f.estimate_origin='synthetic' and f.data_origin<>'synthetic') as ns
+      count(*) filter(where f.estimate_origin='synthetic' and f.data_origin<>'synthetic') as ns,
+      sum(f.estimated_viewers) filter(where f.measurement_status='measured' and f.estimate_origin='synthetic' and f.data_origin<>'synthetic') as synthetic_viewers,
+      sum(f.estimated_view_seconds) filter(where f.measurement_status='measured' and f.estimate_origin='synthetic' and f.data_origin<>'synthetic') as synthetic_seconds
     from allowed f group by f.store_id,f.data_origin,f.device_id,f.bucket,f.ad_placement_id,f.promotion_version_id,
       f.mode,f.product_id,f.internal,f.disclosure_scope
   ) select g.store_id,'signage'::text,g.data_origin,g.device_id,g.bucket,g.ad_placement_id,g.promotion_version_id,g.mode,
@@ -158,6 +161,8 @@ begin
     case when g.internal or 'signage_views'=any(g.disclosure_scope) then g.viewers end,
     case when g.internal or 'signage_views'=any(g.disclosure_scope) then g.view_seconds end,
     case when g.internal or 'signage_views'=any(g.disclosure_scope) then g.ns end,
+    case when g.internal or 'signage_views'=any(g.disclosure_scope) then g.synthetic_viewers end,
+    case when g.internal or 'signage_views'=any(g.disclosure_scope) then g.synthetic_seconds end,
     case when g.internal or 'purchases'=any(g.disclosure_scope) then (
       select coalesce(sum(i.quantity::bigint),0) from public.orders o join public.order_items i on i.order_id=o.id
       where o.store_id=g.store_id and i.product_id=g.product_id and o.data_origin=g.data_origin
