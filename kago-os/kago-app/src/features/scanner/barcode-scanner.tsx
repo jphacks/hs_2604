@@ -8,10 +8,11 @@ type ScannerStatus = "idle" | "starting" | "scanning" | "error";
 type BarcodeScannerProps = {
   onDetected: (code: string) => void;
   disabled?: boolean;
+  purpose?: "product" | "store";
   onReadFailure?: (reason: "camera_unavailable" | "permission_denied" | "unreadable") => void;
 };
 
-export function BarcodeScanner({ onDetected, onReadFailure, disabled = false }: BarcodeScannerProps) {
+export function BarcodeScanner({ onDetected, onReadFailure, disabled = false, purpose = "product" }: BarcodeScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const controlsRef = useRef<IScannerControls | null>(null);
   const lastCodeRef = useRef("");
@@ -102,7 +103,7 @@ export function BarcodeScanner({ onDetected, onReadFailure, disabled = false }: 
       timeout.current = setTimeout(() => {
         if (current !== generation.current) return;
         generation.current++; controls.stop(); controlsRef.current = null;
-        setStatus("error"); setErrorMessage("読み取れませんでした。商品コード入力や商品一覧も利用できます。");
+        setStatus("error"); setErrorMessage(purpose === "store" ? "QRを読み取れませんでした。もう一度試すか、デモ用の店舗選択をご利用ください。" : "読み取れませんでした。商品コード入力や商品一覧も利用できます。");
         onReadFailure?.("unreadable");
       }, 20_000);
     } catch (error) {
@@ -153,7 +154,7 @@ export function BarcodeScanner({ onDetected, onReadFailure, disabled = false }: 
               <p className="absolute bottom-5 rounded-full bg-slate-950/75 px-4 py-2 text-xs font-bold text-white backdrop-blur">
                 {status === "starting"
                   ? "カメラを起動中…"
-                  : "バーコードを枠内に合わせてください"}
+                  : purpose === "store" ? "店舗のQRコードを枠内に合わせてください" : "バーコードを枠内に合わせてください"}
               </p>
             </div>
         )}
@@ -178,8 +179,8 @@ export function BarcodeScanner({ onDetected, onReadFailure, disabled = false }: 
               </svg>
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-black sm:text-base">バーコードをカメラで読み取る</p>
-              <p className="mt-1 text-xs leading-5 text-slate-300 sm:text-sm">読み取り後、商品を自動でかごへ追加します</p>
+              <p className="text-sm font-black sm:text-base">{purpose === "store" ? "店舗のQRコードを読み取る" : "バーコードをカメラで読み取る"}</p>
+              <p className="mt-1 text-xs leading-5 text-slate-300 sm:text-sm">{purpose === "store" ? "店頭に設置されたQRコードを読み取ってください" : "読み取り後、商品を自動でかごへ追加します"}</p>
             </div>
           </div>
           {status === "error" && (

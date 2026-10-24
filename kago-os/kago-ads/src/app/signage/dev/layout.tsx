@@ -1,4 +1,4 @@
-import { AdsHeader } from "@/features/shell/ads-header";
+import { DemoAdsHeader as AdsHeader } from "@/features/shell/ads-header";
 
 export default function SignageDevLayout({ children }: LayoutProps<"/signage/dev">) {
   return (

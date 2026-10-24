@@ -2,7 +2,7 @@
 // ADS-01：メーカーが複数店舗の募集（ad_calls）を探して比べる
 import Link from "next/link";
 import { useState } from "react";
-import { getRepository } from "@/lib/data";
+import { usePortalRepository } from "@/features/auth/ads-runtime";
 import { canApplyTo, callPhase, filterAdCalls, periodLabel, storeLabel, type PortalFilter } from "@/lib/domain/rules";
 import { CHANNEL_LABEL, CHANNELS, type AdCall, type Channel, type Store } from "@/lib/domain/types";
 import { ChannelTags, PhaseBadge } from "@/components/badges";
@@ -12,6 +12,7 @@ import { useLoad } from "@/lib/use-load";
 const initial: PortalFilter = { keyword: "", category: "", channel: "", storeId: "", date: "", includeEnded: false };
 
 export function Portal() {
+  const getRepository = usePortalRepository();
   const { state } = useLoad(async () => {
     const repo = getRepository();
     const [calls, stores, categories] = await Promise.all([repo.listPublicAdCalls(), repo.listStores(), repo.listCategories()]);

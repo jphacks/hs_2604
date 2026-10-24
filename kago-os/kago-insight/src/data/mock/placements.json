@@ -2,15 +2,18 @@
   {
     "id": "PL1",
     "application_id": "A1",
+    "revision": 1,
     "store_id": "S1",
     "creative_version_id": "CR1-v2",
     "product_name": "トマトパスタソース",
     "maker_display_name": "瀬戸内トマト食品",
     "channels": ["app", "signage"],
     "starts_at": "2026-10-25T00:00:00+09:00",
-    "ends_at": "2026-11-30T23:59:59+09:00",
+    "ends_at": "2026-12-01T00:00:00+09:00",
     "status": "active",
     "approved_by": "store-member-01",
-    "approved_at": "2026-10-25T16:00:00+09:00"
+    "approved_at": "2026-10-25T16:00:00+09:00",
+    "suspend_reason": null,
+    "suspended_at": null
   }
 ]

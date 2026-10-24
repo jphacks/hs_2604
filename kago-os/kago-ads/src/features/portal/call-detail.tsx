@@ -2,17 +2,17 @@
 // ADS-01：募集の詳細（募集条件・公開される成果・店舗情報）から申請へ進む
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { getRepository } from "@/lib/data";
+import { usePortalRepository, usePortalSession } from "@/features/auth/ads-runtime";
 import { canApplyTo, callPhase, periodLabel, storeLabel } from "@/lib/domain/rules";
 import { CHANNEL_LABEL, DISCLOSURE_LABEL } from "@/lib/domain/types";
-import { useSession } from "@/lib/session";
 import { ChannelTags, PhaseBadge } from "@/components/badges";
 import { ButtonLink, Card, ErrorList, Loading } from "@/components/parts";
 import { useLoad } from "@/lib/use-load";
 
 export function RecruitmentDetail() {
+  const getRepository = usePortalRepository();
   const id = useSearchParams().get("id") ?? "";
-  const session = useSession();
+  const session = usePortalSession();
   const { state } = useLoad(async () => {
     const repo = getRepository();
     const call = await repo.getAdCall(session, id);
@@ -103,7 +103,7 @@ export function RecruitmentDetail() {
 
           <Card>
             {!applicable ? (
-              <p className="text-sm text-muted">この募集は{phase === "closed" ? "終了" : "期間が終わって"}いるため、新しい申請は受け付けていません。</p>
+              <p className="text-sm text-muted">この募集は{phase === "closed" ? "終了して" : "期間が終わって"}いるため、新しい申請は受け付けていません。</p>
             ) : session.role === "maker_staff" ? (
               <div className="space-y-3">
                 <ButtonLink href={`/ads/maker/applications/new?call=${c.id}`}>この募集に申請する</ButtonLink>
@@ -123,7 +123,7 @@ export function RecruitmentDetail() {
                 )}
               </div>
             ) : (
-              <p className="text-sm text-muted">申請するには、右上の「ログイン（デモ）」でメーカーを選んでください。</p>
+              <p className="text-sm text-muted">申請するにはメーカーとしてログインしてください。</p>
             )}
           </Card>
         </div>

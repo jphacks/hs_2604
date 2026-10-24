@@ -1,0 +1,32 @@
+[
+  {
+    "store_id": "S1",
+    "day_jst": "2026-10-25",
+    "placement_type": "sponsored",
+    "ad_placement_id": "PL1",
+    "promotion_version_id": null,
+    "rule_version": null,
+    "data_origin": "unclassified",
+    "selected_slots": 3
+  },
+  {
+    "store_id": "S1",
+    "day_jst": "2026-10-25",
+    "placement_type": "store_promo",
+    "ad_placement_id": null,
+    "promotion_version_id": "SP1-v1",
+    "rule_version": null,
+    "data_origin": "unclassified",
+    "selected_slots": 3
+  },
+  {
+    "store_id": "S1",
+    "day_jst": "2026-10-25",
+    "placement_type": "organic",
+    "ad_placement_id": null,
+    "promotion_version_id": null,
+    "rule_version": 1,
+    "data_origin": "unclassified",
+    "selected_slots": 6
+  }
+]
