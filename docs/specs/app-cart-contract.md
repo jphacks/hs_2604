@@ -60,3 +60,18 @@ Node.js 22で`pnpm test:cart`と`pnpm test:cart:e2e`を実行する。E2EはPlay
 4. 公開URLでログイン・店舗選択・商品追加・数量変更・削除・再読込を確認する。実機カメラの許可／拒否も確認する。
 
 2026-10-24の共有Supabaseへの読取専用確認は`database_not_ready`でした。今回の新関数の適用が必要です。Vercelでの更新操作と実機カメラは未確認であり、ローカル成功と区別します。接続値・ログイン情報はこの文書やPRへ記載しません。
+
+## 503 / database_not_ready の復旧（#91）
+
+来店画面を開けても、APP-02のDB関数が未適用なら `/api/cart` と商品一覧は503になります。
+2026-10-24の共有環境で、下記4関数がすべて存在せず、migration履歴もDB-09までだったことを管理者の読取SQLで確認しました。複数端末のログイン制限が原因ではありません。
+
+1. 対象のVercel環境とSupabase接続先が一致することを確認します。接続値をIssueへ貼らないでください。
+2. DB管理者が `kago-os/kago-core/supabase/checks/app-cart-readiness.sql` を実行します。利用者データを読まず、関数4件、authenticatedの実行権限、anonの拒否、空のsearch_path、要求記録のRLSと直接アクセス禁止を確認します。`ready=true`が適用状態の目安です。関数内部の正しさや実利用者での動作確認は別に必要です。
+3. 4件とも欠落している場合、マージ済みの `20261024110000_app_cart.sql` を確認のうえ対象DBへ実行します。単独トランザクションなので失敗時は反映されません。既存テーブルや関数が一部ある場合は再実行せず差分を調べます。既存データの削除、RLS解除、anonへの実行許可は不要です。
+4. 同じ`20261024110000`の`checkout_price_lock`も存在するため、日時だけで適用済みと判断しません。別ファイルの履歴を上書きしたり、この復旧で未承認の全migrationをまとめて適用しないでください。今回はAPP-02の実オブジェクトを照合します。CLIの一括適用前には重複versionの整理が必要です。
+5. 定義後、`NOTIFY pgrst, 'reload schema';` でAPIのschema cacheを再読込し、診断SQLを再実行します。`ready=true`でもAPIが関数不在を返す場合は、接続先の不一致やcache更新を再確認します。
+6. 検証用利用者のログイン・既存来店で `pnpm check:cart` を実行します。`.env.shopping-check.local`にpublishable設定、`KAGO_CHECK_CUSTOMER_A_EMAIL` / `KAGO_CHECK_CUSTOMER_A_PASSWORD` / `KAGO_CHECK_STORE_ID`が必要です。この確認は既存の来店・商品・かごを読み取るだけで、買い物を新しく開始しません。
+7. 公開画面で再読み込みし、商品一覧と既存かごが表示されることを確認します。更新操作・実機カメラ・複数端末の同時更新は別途確認し、読取成功と混同しません。
+
+コードのマージ、Vercelのビルド成功、DB定義の適用、認証した利用者のAPI成功をそれぞれ記録します。`pnpm check:cart`で`database_not_ready`の場合は診断SQLへの案内も出ます。
