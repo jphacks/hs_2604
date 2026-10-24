@@ -2,13 +2,14 @@
 // ADS-01：店舗の詳細と、その店舗の募集
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { getRepository } from "@/lib/data";
+import { usePortalRepository } from "@/features/auth/ads-runtime";
 import { callPhase, canApplyTo, periodLabel, storeLabel } from "@/lib/domain/rules";
 import { ChannelTags, PhaseBadge } from "@/components/badges";
 import { Card, Empty, ErrorList, Loading } from "@/components/parts";
 import { useLoad } from "@/lib/use-load";
 
 export function StoreDetail() {
+  const getRepository = usePortalRepository();
   const id = useSearchParams().get("id") ?? "";
   const { state } = useLoad(async () => {
     const repo = getRepository();
