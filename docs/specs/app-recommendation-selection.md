@@ -23,7 +23,7 @@
 - 補充（`replenishment`）は2回以上購入し、平均購入間隔の8割以上が経過した商品。履歴利用OFFでは使わない（DBトリガーでも拒否）。
 - かご利用OFFでは、かごを材料にする`co_purchase`と`sponsored_related`を出さない。かご内の商品を候補から外すことは続ける。
 - 表示順（`slot`・`rank`）：通常推薦の1件目、店舗販促、メーカー広告、残りの通常推薦。画面での見せ方はAPP-06。
-- ルール版`rule_version`はAPP-04のルールファイルの版（現在1）。店舗販促は`promotion_version_id`、広告は`ad_placement_id`で版をたどれる。
+- ルール版`rule_version`はAPP-04のルールファイルの版（現在2）。店舗販促は`promotion_version_id`、広告は`ad_placement_id`で版をたどれる。
 - APP-10の実験群（広告なし群など）は未実装。`app_selection_candidates`が来店の`experiment_arm`を返すので、APP-10で広告枠の扱いを追加する。
 
 ## 接続契約

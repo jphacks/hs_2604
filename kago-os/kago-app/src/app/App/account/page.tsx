@@ -48,5 +48,6 @@ function AccountContent(){
      {preference.pending&&<button type="button" disabled={preference.busy} onClick={preference.retry} className="account-retry">同じ設定を再試行</button>}
      <button type="button" disabled={preference.busy} onClick={preference.reload} className="account-reload">設定を再読み込み</button>
    </section>
+   <div className="account-session-actions"><button type="button" onClick={session.chooseStore}>店舗・来店を選ぶ</button><button type="button" onClick={session.logout}>ログアウト</button></div>
  </>;
 }

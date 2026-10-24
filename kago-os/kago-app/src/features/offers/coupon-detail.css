@@ -128,3 +128,5 @@ html:has(.coupon-preview),body:has(.coupon-preview){height:100%;margin:0;overflo
 /* Lower accents follow the ticket edge instead of floating beside it. */
 .coupon-ticket-sparks i:nth-child(4){display:block;right:10px;top:auto;bottom:24px;width:3px;height:10px;transform:rotate(48deg)}
 .coupon-ticket-sparks i:nth-child(5){display:block;right:22px;top:auto;bottom:15px;width:3px;height:8px;transform:rotate(12deg)}
+
+.coupon-redemption{padding:4px 0}.coupon-redemption>.shopping-scanner{height:210px;overflow:hidden;border-radius:21px;background:#0E2841}.coupon-redemption>button:last-child{background:#07576B;border-radius:25px}.coupon-redemption form button{border-color:#019FA3;color:#07576B;border-radius:23px}.coupon-redemption>code{font-size:14px}.coupon-detail-body:has(.coupon-redemption){justify-content:flex-start}

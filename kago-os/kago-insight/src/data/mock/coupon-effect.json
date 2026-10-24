@@ -1,6 +1,7 @@
 {
-  "note": "DEMO-09のサンプルデータ。実測ではない。手計算で検算できるよう、合計が一致する固定値にしてある。",
-  "period_label": "デモ用の固定値（実際の計測期間ではありません）",
+  "note": "DEMO-09のサンプルデータ。実測ではない。日別の値を足すと週の合計になり、手計算で検算できる。",
+  "period": { "label": "10/18 – 10/24", "compare_label": "前週と比較" },
+  "days": ["2026-10-18", "2026-10-19", "2026-10-20", "2026-10-21", "2026-10-22", "2026-10-23", "2026-10-24"],
   "offers": [
     {
       "offer_id": "OF1",
@@ -9,9 +10,12 @@
       "discount_percent": 25,
       "list_price": 198,
       "unit_discount": 49,
-      "distributed": 24,
-      "claimed": 12,
-      "purchased": 9
+      "daily": {
+        "distributed": [40, 44, 48, 52, 58, 64, 70],
+        "claimed": [18, 20, 22, 24, 27, 30, 33],
+        "purchased": [11, 12, 14, 15, 17, 19, 21]
+      },
+      "previous": { "distributed": 320, "claimed": 140, "purchased": 84 }
     },
     {
       "offer_id": "OF2",
@@ -20,9 +24,12 @@
       "discount_percent": 10,
       "list_price": 268,
       "unit_discount": 26,
-      "distributed": 18,
-      "claimed": 6,
-      "purchased": 3
+      "daily": {
+        "distributed": [30, 32, 34, 36, 38, 40, 42],
+        "claimed": [9, 10, 10, 11, 12, 12, 13],
+        "purchased": [6, 7, 7, 8, 8, 9, 9]
+      },
+      "previous": { "distributed": 240, "claimed": 70, "purchased": 50 }
     },
     {
       "offer_id": "OF3",
@@ -31,13 +38,16 @@
       "discount_percent": 15,
       "list_price": 258,
       "unit_discount": 38,
-      "distributed": 12,
-      "claimed": 0,
-      "purchased": 0
+      "daily": {
+        "distributed": [20, 22, 22, 24, 24, 26, 26],
+        "claimed": [0, 0, 0, 0, 0, 0, 0],
+        "purchased": [0, 0, 0, 0, 0, 0, 0]
+      },
+      "previous": { "distributed": 150, "claimed": 0, "purchased": 0 }
     }
   ],
   "segments": [
-    { "key": "with_history", "label": "購入履歴あり", "distributed": 30, "claimed": 15 },
-    { "key": "without_history", "label": "購入履歴なし", "distributed": 24, "claimed": 3 }
+    { "key": "with_history", "label": "購入履歴あり", "distributed": 430, "claimed": 196 },
+    { "key": "without_history", "label": "購入履歴なし", "distributed": 362, "claimed": 55 }
   ]
 }

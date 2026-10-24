@@ -6,6 +6,7 @@
 import { relatedProducts, type AssociationRuleSet } from "./association.ts";
 import type { ProductPurchaseSummary } from "./customer.ts";
 import type { Listing, ReasonCode, Selection, SelectionCandidates, SelectionItem } from "./selection-contracts.ts";
+import { shortProductName } from "../../lib/product-name.ts";
 
 export const MAX_SLOTS = 3;
 export const REPLENISH_RATIO = 0.8; // "due" when 80% of the usual interval has passed
@@ -18,7 +19,6 @@ export type SelectionInput = {
   summaries: ProductPurchaseSummary[];
 };
 type Draft = Omit<SelectionItem, "slot" | "rank">;
-const shortName = (name: string) => name.replace(/\s.*$/, "");
 
 function strongestRelation(rules: AssociationRuleSet, cartCodes: Set<string>, target: string) {
   let best: { ruleId: string; origin: "initial" | "analysis"; from: string; strength: number } | null = null;
@@ -63,7 +63,7 @@ export function selectRecommendations(input: SelectionInput, rules: AssociationR
     const { a, rel } = ads[0];
     const trigger = byCode.get(rel!.from);
     sponsored = { placementType: "sponsored", reasonCode: "sponsored_related",
-      reasonText: `${shortName(trigger?.name ?? "かごの商品")}を選んだ方への広告です`, product: byId.get(a.productId)!,
+      reasonText: `${shortProductName(trigger?.name ?? "かごの商品")}を選んだ方への広告です`, product: byId.get(a.productId)!,
       adPlacementId: a.adPlacementId, promotionVersionId: null,
       sponsor: { makerName: a.makerName, headline: a.headline, creativeVersionId: a.creativeVersionId },
       evidence: { ruleId: rel!.ruleId, ruleOrigin: rel!.origin, triggeredBy: rel!.from } };

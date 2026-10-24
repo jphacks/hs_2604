@@ -4,6 +4,7 @@
 import type { AssociationRuleSet } from "../recommendations/association";
 import type { OfferList, SerendipityOffer, SerendipityResponse, StoreOffer } from "./contracts";
 import { targetCoupon, type CouponHistory, type CouponDecision } from "./targeting.ts";
+import { shortProductName } from "../../lib/product-name.ts";
 
 const INITIAL_RELATION = 1.5; // curated pairs count as a moderate, explainable relation
 const STORE_TRIGGER = 1.2;    // store said "show when X is in the cart" without a data rule
@@ -11,7 +12,6 @@ const STORE_TRIGGER = 1.2;    // store said "show when X is in the cart" without
 export function discountLabel(offer: Pick<StoreOffer, "discountPercent" | "discountAmount">) {
   return offer.discountPercent !== null ? `${offer.discountPercent}% OFF` : `${offer.discountAmount}円引き`;
 }
-const shortName = (name: string) => name.replace(/\s.*$/, "");
 
 /** Best rule from any cart product to the target (lift = how specific/unexpected the pair is). */
 function relation(rules: AssociationRuleSet, cartCodes: Set<string>, target: string) {
@@ -53,17 +53,24 @@ export function rankSerendipity(list: OfferList, rules: AssociationRuleSet, hist
       sets.push({ ...base, action: offer.productInCart ? "apply" : "add", score: (related?.strength ?? STORE_TRIGGER) * (1 + rate),
         relation: related ? { ruleId: related.ruleId, origin: related.origin, triggeredBy: related.triggeredBy }
           : { ruleId: `store-${offer.offerId}`, origin: "store", triggeredBy: offer.trigger.code },
-        reason: `${shortName(offer.trigger.name)}と${shortName(offer.product.name)}を一緒に買うとお得です` });
+        reason: `${shortProductName(offer.trigger.name)}と${shortProductName(offer.product.name)}を一緒に買うとお得です` });
     }
   }
   const order = (a: SerendipityOffer, b: SerendipityOffer) => b.score - a.score || a.offerId.localeCompare(b.offerId);
+  // Existing store offers can overlap with a day's rehearsal offers. Show a product/pair once.
+  const distinct = (offers: SerendipityOffer[], key: (offer: SerendipityOffer) => string) => {
+    const seen = new Set<string>();
+    return offers.filter(offer => { const value = key(offer); if (seen.has(value)) return false; seen.add(value); return true; });
+  };
   return {
     visitId: list.visitId, cartVersion: list.cartVersion, serverTime: list.serverTime, nextChangeAt: list.nextChangeAt,
     ruleVersion: rules.version,
-    timeSales: timeSales.sort((a, b) => a.endsAt.localeCompare(b.endsAt) || order(a, b)),
+    timeSales: distinct(timeSales.sort((a, b) => b.unitDiscount - a.unitDiscount || a.endsAt.localeCompare(b.endsAt) || order(a, b)), offer => offer.product.productId)
+      .sort((a, b) => a.endsAt.localeCompare(b.endsAt) || order(a, b)),
     // One sticker at a time keeps it a surprise: the best Association × Novelty × Deal for this customer.
     coupon: toCoupon(list, decideCoupon(list, rules, history)),
-    sets: sets.sort(order).slice(0, 2),
+    sets: distinct(sets.sort((a, b) => (b.discountPercent ?? 0) - (a.discountPercent ?? 0) || order(a, b)),
+      offer => [offer.product.productId, offer.trigger!.productId].sort().join(":")).sort(order).slice(0, 2),
   };
 }
 

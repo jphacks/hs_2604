@@ -1,7 +1,7 @@
 "use client";
 
 import { AppBrandHeader } from "@/components/app-brand-header";
-import { useState, type FormEvent } from "react";
+import { useState,useSyncExternalStore, type FormEvent } from "react";
 import { ShoppingIcon } from "@/components/shopping-icons";
 import "./session-screen.css";
 
@@ -12,7 +12,10 @@ type Props={
  onRetry?:()=>void;
  onLogout?:()=>void;
 };
+const subscribeReady=()=>()=>{};
+const readyClient=()=>true,readyServer=()=>false;
 export function SessionScreen({kind,error,onLogin,onRetry,onLogout}:Props){
+ const interactive=useSyncExternalStore(subscribeReady,readyClient,readyServer);
  const [showPassword,setShowPassword]=useState(false);
  return <main className="session-screen">
    <AppBrandHeader/>
@@ -25,7 +28,7 @@ export function SessionScreen({kind,error,onLogin,onRetry,onLogout}:Props){
        {kind==="login"?<>
          <p className="session-screen-lead">ログインして、いつものお店で<br/>かんたん・気軽にお買い物。</p>
          {error&&<p role="alert" className="session-screen-notice">{error}</p>}
-         <form onSubmit={onLogin} className="session-screen-form">
+         <form method="post" onSubmit={event=>{event.preventDefault();onLogin?.(event);}} className="session-screen-form">
            <label htmlFor="shopping-login-email">メールアドレス</label>
            <input id="shopping-login-email" name="email" type="email" inputMode="email" required maxLength={254} autoComplete="username" placeholder="メールアドレスを入力"/>
            <label htmlFor="shopping-login-password">パスワード</label>
@@ -33,7 +36,7 @@ export function SessionScreen({kind,error,onLogin,onRetry,onLogout}:Props){
              <input id="shopping-login-password" name="password" type={showPassword?"text":"password"} required maxLength={1024} autoComplete="current-password" placeholder="パスワードを入力"/>
              <button type="button" aria-label={showPassword?"パスワードを隠す":"パスワードを表示"} aria-pressed={showPassword} onClick={()=>setShowPassword(value=>!value)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>{showPassword&&<path d="m3 3 18 18"/>}</svg></button>
            </div>
-           <button type="submit" className="session-screen-primary">ログイン<ShoppingIcon name="arrow"/></button>
+           <button type="submit" disabled={!interactive} className="session-screen-primary">ログイン<ShoppingIcon name="arrow"/></button>
          </form>
          <p className="session-screen-footnote">ログイン後に、店舗のQRコードを読み取って<br/>お買い物を始められます。</p>
        </>:kind==="error"?<>

@@ -11,10 +11,11 @@ type BarcodeScannerProps = {
   onDetected: (code: string) => void;
   disabled?: boolean;
   purpose?: "product" | "store";
+  description?:string;
   onReadFailure?: (reason: "camera_unavailable" | "permission_denied" | "unreadable") => void;
 };
 
-export function BarcodeScanner({ onDetected, onReadFailure, disabled = false, purpose = "product", appearance = "default" }: BarcodeScannerProps) {
+export function BarcodeScanner({ onDetected, onReadFailure, disabled = false, purpose = "product", description, appearance = "default" }: BarcodeScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const controlsRef = useRef<IScannerControls | null>(null);
   const lastCodeRef = useRef("");
@@ -182,8 +183,8 @@ export function BarcodeScanner({ onDetected, onReadFailure, disabled = false, pu
               </svg>
             </div>
             <div className="scanner-copy min-w-0">
-              {appearance !== "shopping" && (              <Heading aria-label={appearance === "shopping" ? "商品をスキャン" : undefined} className="text-sm font-black sm:text-base">{purpose === "store" ? "店舗のQRコードを読み取る" : "バーコードをカメラで読み取る"}</Heading>)}
-              <p className="mt-1 text-xs leading-5 text-slate-300 sm:text-sm">{purpose === "store" ? "店頭に設置されたQRコードを読み取ってください" : appearance === "shopping" ? "読み取り後、商品を自動で\nカートに追加します" : "読み取り後、商品を自動でかごへ追加します"}</p>
+              {appearance !== "shopping" && (              <Heading className="text-sm font-black sm:text-base">{purpose === "store" ? "店舗のQRコードを読み取る" : "バーコードをカメラで読み取る"}</Heading>)}
+              <p className="mt-1 text-xs leading-5 text-slate-300 sm:text-sm">{description ?? (purpose === "store" ? "店頭に設置されたQRコードを読み取ってください" : appearance === "shopping" ? "読み取り後、商品を自動で\nカートに追加します" : "読み取り後、商品を自動でかごへ追加します")}</p>
             </div>
           </div>
           {status === "error" && (

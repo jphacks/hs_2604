@@ -8,7 +8,7 @@ import type { ShoppingContext } from "./service";
 
 type Failure = { code: string; message: string };
 type State = { kind: "loading" } | { kind: "login"; error?: string } | { kind: "error"; error: Failure } | { kind: "connected"; context: ShoppingContext };
-const ShoppingSession = createContext<(ShoppingContext & { revalidate: () => void }) | null>(null);
+const ShoppingSession = createContext<(ShoppingContext & { revalidate: () => void; chooseStore:()=>void; logout:()=>void }) | null>(null);
 
 async function request(body?: Record<string, unknown>, signal?: AbortSignal) {
   const response = await fetch("/api/shopping", {
@@ -151,7 +151,7 @@ export function ShoppingSessionProvider({ children }: { children: ReactNode }) {
   if (state.kind === "connected" && state.context.visit && (state.context.demo || !choosingStore)) {
     const context = state.context;
     const store = context.stores.find(s => s.id === context.visit!.store_id)!;
-    return <ShoppingSession.Provider value={{ ...context, revalidate: () => { void check(); } }}>
+    return <ShoppingSession.Provider value={{ ...context, revalidate: () => { void check(); }, chooseStore:()=>setChoosingStore(true), logout }}>
       <div className="shopping-session-bar border-b border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950">
         <div className="mx-auto flex max-w-xl flex-wrap items-center justify-between gap-2">
           <span className="font-bold">{store.name} {store.branch_name}</span>

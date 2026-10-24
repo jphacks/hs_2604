@@ -12,6 +12,9 @@ const PRODUCT_ICONS: Record<string, string> = {
   菓子: "🍫",
   日用品: "🧺",
   衛生用品: "🫧",
+  野菜: "🥬",
+  肉: "🥩",
+  魚: "🐟",
 };
 
 const PRODUCT_CODE_ICONS: Record<string, string> = {
@@ -36,6 +39,13 @@ const PRODUCT_CODE_ICONS: Record<string, string> = {
   "PLU-2001": "🥔",
   "PLU-2002": "🍗",
   "PLU-3001": "🥐",
+  // #144 menu genres (seed/app_menu_fresh_products.sql)
+  "PLU-4001": "🍅", "PLU-4002": "🍆", "PLU-4003": "🥒", "PLU-4004": "🥬", "PLU-4005": "🥕",
+  "PLU-4006": "🥔", "PLU-4007": "🫑", "PLU-4008": "🥬", "PLU-4009": "🥦",
+  "PLU-5001": "🥓", "PLU-5002": "🥩", "PLU-5003": "🥩", "PLU-5004": "🍗", "PLU-5005": "🍗",
+  "PLU-5006": "🍗", "PLU-5007": "🥩", "PLU-5008": "🍖", "PLU-5009": "🥓",
+  "PLU-6001": "🐟", "PLU-6002": "🐟", "PLU-6003": "🐟", "PLU-6004": "🍣", "PLU-6005": "🍣",
+  "PLU-6006": "🐟", "PLU-6007": "🦐", "PLU-6008": "🦑", "PLU-6009": "🐟",
 };
 
 export const productIcon = (product: Product) =>

@@ -110,3 +110,5 @@
 .account-store-options button>span:nth-child(2){flex:1;min-width:0}
 .account-store-options [aria-pressed=true]{background:var(--kago-mint);color:#07576B}
 .account-store-check{width:18px;height:18px;flex:none;color:var(--kago-logo-teal);font-size:15px}
+
+.account-session-actions{display:flex;justify-content:center;gap:12px;margin-top:10px}.account-session-actions button{min-height:40px;border-radius:23px;padding:8px 15px;background:#fff;color:#5C6C7A;font-size:12px}

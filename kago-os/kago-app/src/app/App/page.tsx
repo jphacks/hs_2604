@@ -3,9 +3,15 @@
 import Image from "next/image";
 import "@/components/app-brand-header.css";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { productGenre } from "@/lib/product-genres";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { cartRequest, useCart } from "@/features/cart/cart-provider";
 import { cartMessages, type ProductPage, type StoreProduct } from "@/features/cart/contracts";
+import { SuggestionDetail } from "@/features/recommendations/suggestion-detail";
+import type { SavedSelectionItem } from "@/features/recommendations/selection-contracts";
+import { useAppEvents } from "@/features/events/event-provider";
+import { ProductScanDialog } from "@/features/scanner/product-scan-dialog";
 import { BarcodeScanner } from "@/features/scanner/barcode-scanner";
 import { SerendipityOffers } from "@/features/offers/serendipity-offers";
 import { SuggestionCards } from "@/features/recommendations/suggestion-cards";
@@ -19,15 +25,18 @@ import "./shopping-home.css";
 const yen = new Intl.NumberFormat("ja-JP", { style: "currency", currency: "JPY" });
 const button = "min-h-11 rounded-xl bg-[#019FA3] px-4 py-2 text-sm font-bold text-white disabled:opacity-40";
 
-type Category = "all" | "fruit" | "deli" | "vegetables" | "bread";
+type Category = "all" | "fruit" | "deli" | "vegetables" | "bread" | "meat" | "fish";
 const categories: {id:Exclude<Category,"all">;label:string;image:string}[] = [
   {id:"fruit",label:"果物",image:"/images/shopping/category-fruit.png"},
   {id:"deli",label:"惣菜",image:"/images/products/karaage.png"},
   {id:"vegetables",label:"野菜",image:"/images/shopping/category-vegetables.png"},
   {id:"bread",label:"パン",image:"/images/shopping/category-bread.png"},
+  {id:"meat",label:"肉",image:"/images/products/karaage.png"},
+  {id:"fish",label:"魚",image:"/images/shopping/category-vegetables.png"},
 ];
 function inCategory(product:StoreProduct, category:Category){
-  const fruit=/果物|フルーツ/.test(product.category) || (/青果/.test(product.category) && /りんご|リンゴ|バナナ|みかん|オレンジ|いちご|ぶどう|キウイ|梨|メロン|すいか|スイカ|もも|桃|柿|レモン/.test(product.name));
+  if(category==="meat"||category==="fish")return productGenre(product)===category;
+  const fruit=/果物|フルーツ/.test(product.category) || (/青果|野菜/.test(product.category) && /りんご|リンゴ|バナナ|みかん|オレンジ|いちご|ぶどう|キウイ|梨|メロン|すいか|スイカ|もも|桃|柿|レモン/.test(product.name));
   if(category==="fruit")return fruit;
   if(category==="vegetables")return /青果|野菜/.test(product.category)&&!fruit;
   if(category==="deli")return /惣菜/.test(product.category);
@@ -37,7 +46,12 @@ function inCategory(product:StoreProduct, category:Category){
 
 export default function Home() {
   const cart = useCart();
+  const router=useRouter();
+  const track=useAppEvents();
+  const [homeDetail,setHomeDetail]=useState<{item:SavedSelectionItem;version:number}|null>(null);
+  const [scanSelectionId,setScanSelectionId]=useState<string|null>(null);
   const session = useShoppingSession();
+  const [scanProduct,setScanProduct]=useState<StoreProduct|null>(null);
   const [cartOpen, setCartOpen] = useState(false);
   const [dismissedError,setDismissedError]=useState<string|null>(null);
   const [panel, setPanel] = useState<"products"|"recommendations"|null>(null);
@@ -126,13 +140,13 @@ export default function Home() {
         <button type="submit" aria-label="検索" disabled={catalogLoading}><ShoppingIcon name="search" /></button>
       </form>
       <section aria-label="カテゴリーから探す" className="shopping-categories">
-        {categories.map(item => <button key={item.id} type="button" className="shopping-category" aria-label={item.label+"から探す"} onClick={() => {
+        {categories.slice(0,4).map(item => <button key={item.id} type="button" className="shopping-category" aria-label={item.label+"から探す"} onClick={() => {
           setCategory(item.id); setQuery(""); void loadProducts(""); setPanel("products");
         }}>
           <span className="shopping-category-photo"><Image src={item.image} alt="" fill sizes="100px" /></span><strong>{item.label}</strong><ShoppingIcon name="arrow" />
         </button>)}
       </section>
-      <HomeCardStack onOpen={()=>setPanel("recommendations")} blocked={cartOpen||panel!==null}/>
+      <HomeCardStack onOpen={item=>{if(item)setHomeDetail({item,version:cart.version});else setPanel("recommendations");}} blocked={cartOpen||panel!==null||homeDetail?.version===cart.version}/>
     </div>
     {cart.itemCount > 0 && <div className="shopping-cart-summary" inert={cartOpen || panel!==null || errorPopupOpen}>
       <button type="button" onClick={() => setCartOpen(true)} aria-label={`買い物かごを開く、現在${cart.itemCount}点`}>
@@ -181,14 +195,14 @@ export default function Home() {
             <div className="shopping-product-image" aria-hidden="true">{MENU_PRODUCT_IMAGES[product.code] ? <Image src={MENU_PRODUCT_IMAGES[product.code]} alt="" fill sizes="200px" /> : productIcon(product)}</div>
             <p className="mt-3 text-xs text-slate-500">{product.category}</p><h3 className="mt-1 min-h-10 text-sm font-bold">{product.name}</h3>
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2"><p className="shopping-product-price">{yen.format(product.price)}</p>
-              <button type="button" className="shopping-product-add" disabled={!cart.canEdit} onClick={() => cart.addProduct(product)} aria-label={`${product.name}をかごに追加`}><span aria-hidden="true">＋</span> かごに追加</button></div>
+              <button type="button" className="shopping-product-add" disabled={!cart.canEdit} onClick={() => {setScanSelectionId(null);setScanProduct(product);}} aria-label={`${product.name}をスキャンして追加`}><span aria-hidden="true">＋</span> スキャンして追加</button></div>
           </article>)}
         </div>
         {catalogLoading && <p role="status" className="py-5 text-sm">商品を読み込んでいます…</p>}
         {!catalogLoading && !catalogError && visibleProducts.length === 0 && <p className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-600">該当する商品がありません</p>}
         {hasMore && !catalogError && <button type="button" className={`${button} mt-4 w-full`} disabled={catalogLoading} onClick={() => { void loadProducts(search.current.query, products.length); }}>さらに表示</button>}
       </section>
-          </>:<div className="space-y-5"><SuggestionCards/><SerendipityOffers/></div>}
+          </>:<div className="space-y-5"><SuggestionCards/></div>}
         </div>
         {panel==="products"&&cart.itemCount>0&&<div className="shopping-sheet-cart"><button type="button" onClick={()=>{setPanel(null);setCartOpen(true);}} aria-label={`買い物かごを開く、現在${cart.itemCount}点`}>買い物かご · {cart.itemCount}点　{yen.format(cart.total)}</button></div>}
       </section>
@@ -213,7 +227,7 @@ export default function Home() {
                   {!line.available&&<span className="shopping-basket-warning">取扱停止中</span>}
                   {!!line.discount&&line.offerKind&&<span className="shopping-basket-discount">{offerKindLabel[line.offerKind]}</span>}
                 </div>
-                <div className="shopping-basket-quantity"><button type="button" disabled={!cart.canEdit||(!line.available&&line.quantity>1)} onClick={()=>cart.setQuantity(line.productId,line.quantity-1)} aria-label={line.name+"を1点減らす"}>−</button><span aria-label={line.name+"の数量"}>{line.quantity}</span><button type="button" disabled={!cart.canEdit||!line.available||line.quantity>=999} onClick={()=>cart.setQuantity(line.productId,line.quantity+1)} aria-label={line.name+"を1点増やす"}>＋</button></div>
+                <div className="shopping-basket-quantity"><button type="button" disabled={!cart.canEdit||(!line.available&&line.quantity>1)} onClick={()=>cart.setQuantity(line.productId,line.quantity-1)} aria-label={line.name+"を1点減らす"}>−</button><span aria-label={line.name+"の数量"}>{line.quantity}</span><button type="button" disabled={!cart.canEdit||!line.available||line.quantity>=999} onClick={()=>{setScanSelectionId(null);setScanProduct(line);}} aria-label={line.name+"を1点増やす"}>＋</button></div>
                 <button type="button" className="shopping-basket-delete" disabled={!cart.canEdit} onClick={()=>cart.setQuantity(line.productId,0)} aria-label={line.name+"を削除"}><ShoppingIcon name="trash"/></button>
               </li>;
             })}
@@ -222,10 +236,13 @@ export default function Home() {
         <footer className="shopping-basket-footer">
           {cart.discountTotal>0&&<p className="shopping-basket-saving"><span>クーポン・セール割引</span><span>−{yen.format(cart.discountTotal)}</span></p>}
           <div className="shopping-basket-total"><span>合計</span><strong>{yen.format(cart.total)}</strong></div>
-          <button type="button" className="shopping-checkout-button" disabled={cart.lines.length===0||cart.busy} aria-describedby="shopping-checkout-note">レジに進む</button>
-          <span id="shopping-checkout-note" className="sr-only">UI確認用です。購入処理は行いません。</span>
+          <button type="button" onClick={()=>{router.push("/App/checkout");}} className="shopping-checkout-button" disabled={cart.lines.length===0||cart.busy} aria-describedby="shopping-checkout-note">レジに進む</button>
+          <span id="shopping-checkout-note" className="sr-only">商品と合計を確認してから確定します。</span>
         </footer>
       </section>
     </div>}
+    {homeDetail&&homeDetail.version===cart.version&&<SuggestionDetail scanRequired item={homeDetail.item} label={homeDetail.item.placementType==="sponsored"?"広告":homeDetail.item.placementType==="store_promo"?"店舗からのおすすめ":"あなたへのおすすめ"} added={cart.lines.some(line=>line.productId===homeDetail.item.product.productId)} disabled={!cart.canEdit} onClose={()=>setHomeDetail(null)} onAdd={()=>{setScanSelectionId(homeDetail.item.selectionItemId);setScanProduct({...homeDetail.item.product,available:true});}}/>}
+    <SerendipityOffers/>
+    {scanProduct&&<ProductScanDialog product={scanProduct} disabled={!cart.canEdit} onClose={()=>setScanProduct(null)} onVerified={()=>{if(scanSelectionId){track({event_type:"recommendation_click",selection_item_id:scanSelectionId,product_id:scanProduct.productId,payload:{target:"add_button"}});cart.addRecommendation(scanProduct.productId,scanSelectionId);}else cart.setQuantity(scanProduct.productId,(cart.lines.find(line=>line.productId===scanProduct.productId)?.quantity??0)+1);setHomeDetail(null);}}/>}
   </main>;
 }

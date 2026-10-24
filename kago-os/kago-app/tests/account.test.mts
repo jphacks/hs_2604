@@ -113,3 +113,16 @@ test("cart version changes during recommendation loading invalidate stale inputs
   });
   await assert.rejects(loadRecommendationInput(racing,id(13)),hasCode("input_changed"));
 });
+
+test("all-store history retains customer and visit boundaries while filtering stores",async()=>{
+ const first=await loadPurchaseHistory(a,id(13),null,"all");
+ const rest=first.nextCursor?await loadPurchaseHistory(a,id(13),first.nextCursor,"all"):{orders:[]};
+ const all=[...first.orders,...rest.orders];
+ assert.equal(all.length,13);
+ assert(all.some(o=>o.storeId===id(2)));
+ assert(!all.some(o=>o.items.some(i=>i.name==="別利用者の購入品"||i.name==="未来の購入品")));
+ const other=await loadPurchaseHistory(a,id(13),null,id(2));
+ assert.equal(other.orders.length,1);assert.equal(other.orders[0].storeId,id(2));
+ await assert.rejects(loadPurchaseHistory(a,id(13),null,"invalid"),hasCode("invalid_request"));
+ await assert.rejects(loadPurchaseHistory(b,id(13),null,"all"),hasCode("visit_unavailable"));
+});

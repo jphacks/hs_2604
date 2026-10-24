@@ -23,6 +23,6 @@ export function CouponPreview(){
  return <div className="coupon-preview" style={{height:"100dvh",background:"#F2F5F6",fontFamily:"Arial,sans-serif"}}>
    <AppBrandHeader/>
    <div className="coupon-preview-variant" aria-label="クーポンの見た目"><button type="button" aria-pressed={variant==="guerrilla"} onClick={()=>setVariant("guerrilla")}>ゲリラ</button><button type="button" aria-pressed={variant==="standard"} onClick={()=>{setVariant("standard");setScreen("detail");}}>通常</button></div>
-   {screen==="arrival"?<><div style={{marginTop:30}}>{controls}</div><p style={{textAlign:"center",fontSize:13,color:"#5C6C7A",marginTop:100}}>商品を追加したあとの、お知らせの見本です。</p>{!hidden&&<CouponArrival name={offer.product.name} discount={offer.discountLabel} onOpen={()=>setScreen("detail")} onDismiss={()=>setHidden(true)}/>}</>:<CouponDetail scanPreview appearance={variant} offer={offer} disabled={false} onClose={()=>setScreen("arrival")} onDismiss={()=>setScreen("arrival")} onClaim={()=>setScreen("arrival")} previewControls={controls}/>}
+   {screen==="arrival"?<><div style={{marginTop:30}}>{controls}</div><p style={{textAlign:"center",fontSize:13,color:"#5C6C7A",marginTop:100}}>商品を追加したあとの、お知らせの見本です。</p>{!hidden&&<CouponArrival name={offer.product.name} discount={offer.discountLabel} onOpen={()=>setScreen("detail")} onDismiss={()=>setHidden(true)}/>}</>:<CouponDetail scanRequired appearance={variant} offer={offer} disabled={false} onClose={()=>setScreen("arrival")} onDismiss={()=>setScreen("arrival")} onClaim={()=>setScreen("arrival")} previewControls={controls}/>}
  </div>;
 }

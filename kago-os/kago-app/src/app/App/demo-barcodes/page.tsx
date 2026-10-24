@@ -3,7 +3,7 @@ import Link from "next/link";
 import { UtilityShell } from "@/components/utility-shell";
 
 import { BarcodeImageCheck } from "@/components/demo/barcode-image-check";
-import { DEMO_PRODUCT_LIST } from "@/lib/products";
+import { DEMO_BARCODE_LIST } from "@/lib/demo-barcodes";
 
 const yen = new Intl.NumberFormat("ja-JP", {
   style: "currency",
@@ -23,7 +23,7 @@ export default function DemoBarcodesPage() {
               <h1 className="mt-1 text-2xl font-black">読み取り用デモバーコード</h1>
               <p className="mt-2 max-w-2xl text-sm text-slate-300 print:text-black">
                 この画面を別の端末で表示するか印刷し、KAGO Appのカメラを向けてください。
-                15件すべてが商品マスタと対応しています。
+                広島デモ店のデモ商品に対応した{DEMO_BARCODE_LIST.length}件を用意しています。価格はデモの参考価格で、購入時は店舗の現在価格が適用されます。
               </p>
             </div>
             <Link
@@ -36,15 +36,23 @@ export default function DemoBarcodesPage() {
           <p className="mt-4 rounded-xl bg-white/10 px-4 py-3 text-xs text-slate-200 print:border print:border-black print:bg-white print:text-black">
             印刷する場合：ブラウザの印刷機能を開き、倍率100%・背景グラフィック有効を推奨します。
           </p>
+          <nav aria-label="クーポンのデモ用バーコード" className="mt-3 flex flex-wrap gap-3 text-sm underline print:hidden">
+            <a href="#barcode-2900000000100">きっかけのパスタ</a>
+            <a href="#barcode-2900000000063">新鮮たまご</a>
+            <a href="#barcode-2900000000162">トマトパスタソース</a>
+            <a href="#barcode-2900000000179">生バジル</a>
+          </nav>
           <BarcodeImageCheck
-            codes={DEMO_PRODUCT_LIST.map((product) => product.code)}
+            codes={DEMO_BARCODE_LIST.map((product) => product.code)}
           />
         </header>
 
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 print:grid-cols-3 print:gap-2">
-          {DEMO_PRODUCT_LIST.map((product, index) => (
+          {DEMO_BARCODE_LIST.map((product, index) => (
             <article
               key={product.code}
+              id={`barcode-${product.code}`}
+              aria-label={product.name}
               className="break-inside-avoid rounded-2xl border border-slate-200 bg-white p-4 shadow-sm print:rounded-none print:border-black print:p-2 print:shadow-none"
             >
               <div className="mb-2 flex items-start justify-between gap-2">
@@ -69,6 +77,7 @@ export default function DemoBarcodesPage() {
                   className="h-auto w-full"
                 />
               </div>
+              <p className="mt-2 text-center text-xs text-slate-600">商品コード：<code className="select-all font-bold">{product.code}</code></p>
 
               <a
                 href={`/demo/barcodes/${product.code}.svg`}

@@ -19,7 +19,7 @@ export function ProductPreview(){
  return <div className="product-detail-preview" style={{height:"100dvh",background:"#F2F5F6",margin:0,fontFamily:"Arial,sans-serif"}}>
    <AppBrandHeader/>
    {!open&&<button type="button" onClick={()=>setOpen(true)} style={{display:"block",margin:"100px auto",border:0,borderRadius:24,padding:"14px 24px",background:"#07576B",color:"white"}}>商品詳細を開く</button>}
-   {open&&<SuggestionDetail scanPreview item={item} label={type==="organic"?"一緒におすすめ":type==="store_promo"?"店舗からのおすすめ":"広告"} added={false} disabled={false} previewControls={<div className="suggestion-detail-preview-controls" aria-label="見本の種類">
+   {open&&<SuggestionDetail scanRequired item={item} label={type==="organic"?"一緒におすすめ":type==="store_promo"?"店舗からのおすすめ":"広告"} added={false} disabled={false} previewControls={<div className="suggestion-detail-preview-controls" aria-label="見本の種類">
      {(["organic","store_promo","sponsored"] as const).map(value=><button key={value} type="button" aria-pressed={type===value} onClick={()=>{setType(value);setOpen(true);}}>{value==="organic"?"おすすめ":value==="store_promo"?"店舗のおすすめ":"広告"}</button>)}
    </div>} onClose={()=>setOpen(false)} onAdd={()=>setOpen(false)}/>}
  </div>;
