@@ -15,11 +15,14 @@ import placementsMock from "@/data/mock/placements.json";
 import promotionsMock from "@/data/mock/promotions.json";
 import appMetricsMock from "@/data/mock/metrics-app.json";
 import signageMetricsMock from "@/data/mock/metrics-signage.json";
+import productsMock from "@/data/mock/products.json";
 import type {
   AppMetricRow,
   Application,
   Placement,
+  Product,
   Promotion,
+  PromotionDraft,
   SignageMetricRow,
 } from "./types";
 
@@ -92,5 +95,29 @@ export async function suspendPlacement(
   reason: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   console.info("[mock] suspend_ad", { placementId, reason });
+  return delay({ ok: true } as const);
+}
+
+export async function fetchProducts(): Promise<Product[]> {
+  return delay(productsMock as Product[]);
+}
+
+/**
+ * 店舗販促の保存。
+ * common-spec 6章「内容を変えると新しい版を作る」に従い、更新は新版の作成になる。
+ * 版の採番が DB 側か画面側かは未確定（G-08）。ここでは DB 側で採番する前提。
+ */
+export async function savePromotion(
+  draft: PromotionDraft,
+): Promise<{ ok: true; version: number } | { ok: false; error: string }> {
+  console.info("[mock] save_store_promotion", draft);
+  return delay({ ok: true, version: 1 } as const);
+}
+
+/** 販促の停止。過去の選定記録は書き換えない */
+export async function deactivatePromotion(
+  promotionId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  console.info("[mock] deactivate_store_promotion", { promotionId });
   return delay({ ok: true } as const);
 }
