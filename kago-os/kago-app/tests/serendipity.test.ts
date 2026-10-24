@@ -61,3 +61,20 @@ test("a store-tied coupon no longer jumps the queue; the higher Association × D
   ]), rules);
   assert.equal(r.coupon?.offerId, "rule-only"); assert.equal(r.coupon?.targeting?.relation.source, "analysis");
 });
+
+test("overlapping set offers show a pair once, retaining the higher discount and another distinct pair", () => {
+  const r = rankSerendipity(list([PASTA.code, EGG.code], [
+    offer({ offerId: "same-low", kind: "set_deal", product: SAUCE, trigger: { ...PASTA, unitDiscount: 24 }, triggerInCart: true, discountPercent: 10, unitDiscount: 29 }),
+    offer({ offerId: "same-high", kind: "set_deal", product: SAUCE, trigger: { ...PASTA, unitDiscount: 49 }, triggerInCart: true, discountPercent: 20, unitDiscount: 59 }),
+    offer({ offerId: "other", kind: "set_deal", product: ONION, trigger: { ...EGG, unitDiscount: 29 }, triggerInCart: true, discountPercent: 10, unitDiscount: 7 }),
+  ]), rules);
+  assert.equal(r.sets.length, 2); assert(r.sets.some(o => o.offerId === "same-high")); assert(r.sets.some(o => o.offerId === "other"));
+});
+test("overlapping time sales show each product once with the largest discount; distinct products stay ordered by end", () => {
+  const r = rankSerendipity(list([], [
+    offer({ offerId: "low", kind: "time_sale", product: KARAAGE, unitDiscount: 20 }),
+    offer({ offerId: "high", kind: "time_sale", product: KARAAGE, unitDiscount: 43, endsAt: "2026-10-25T10:00:00Z" }),
+    offer({ offerId: "other", kind: "time_sale", product: SAUCE }),
+  ]), rules);
+  assert.deepEqual(r.timeSales.map(o => o.offerId), ["other", "high"]);
+});

@@ -10,6 +10,6 @@ import { EventProvider } from "../events/event-provider";
 export function AppProviders({children}:{children:ReactNode}) {
   // Checkout owns its auth; printed reference barcodes need no shopping session.
   const pathname = usePathname();
-  if(pathname==="/App/checkout" || pathname==="/App/demo-barcodes") return children;
+  if(pathname==="/App/checkout" || pathname==="/App/demo-barcodes" || pathname==="/App/demo-offers") return children;
   return <ShoppingSessionProvider><StoreProvider><EventProvider><CartProvider>{children}</CartProvider></EventProvider></StoreProvider></ShoppingSessionProvider>;
 }
