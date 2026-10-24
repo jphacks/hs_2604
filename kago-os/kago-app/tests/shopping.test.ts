@@ -121,6 +121,8 @@ test("missing DB/columns/relations/RPC is explicit and does not expose SQL", asy
     await assert.rejects(loadShoppingContext(client, visit(2).id), e => hasCode("database_not_ready")(e) && !String(e).includes("PRIVATE"));
   }
   assert.equal(shoppingError({ code: "42501", message: "PRIVATE" }).code, "forbidden");
+  assert.equal(shoppingError({ code: "42501", message: "permission denied for table visits" }).code, "database_not_ready");
+  assert.equal(shoppingError({ code: "42501", message: "permission denied for function app_start_visit" }).code, "database_not_ready");
   assert.equal(shoppingError(new Error("PRIVATE network details")).code, "connection_failed");
 });
 

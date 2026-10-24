@@ -61,6 +61,8 @@ Supabaseの既定権限がある環境でも、5表のPUBLIC・anon・authentica
 
 ## DB-03：来店・かご・注文・明細
 
+APP-01からの開始・再開には、DB-03適用後に`20261024041000_app_start_visit.sql`も適用します。本人・店舗をDB側で確認し、再開と明示的な新規来店を一体の処理で保存する関数です。`SECURITY INVOKER`のためDB-02・DB-03のアクセス拒否は迂回せず、DB-06の権限適用まで一般利用者からの実行は拒否されます。[Appとの接続仕様](../specs/app-session-contract.md)を参照してください。共有Supabaseへの適用は本変更では実施していません。
+
 DB-02の後に`20261024040000_visits_cart_orders.sql`を適用する。`visits`・`cart_items`・`orders`・`order_items`を作成する。DB-02が未適用の環境では実行しない。DB-03単独の検証も、空のSupabase検証プロジェクトへCOM-02→DB-02→DB-03の順に適用してから行う。
 
 ```sh

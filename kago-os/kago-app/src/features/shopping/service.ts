@@ -15,8 +15,12 @@ export type ShoppingContext = {
 export const isUuid = (value: unknown): value is string => typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 
 export function shoppingError(error: unknown): BackendError {
-  const code = (error as { code?: string } | null)?.code;
+  const detail = error as { code?: string; message?: string } | null;
+  const code = detail?.code;
   if (["42P01", "42703", "PGRST200", "PGRST202", "PGRST204", "PGRST205"].includes(code ?? "")) return new BackendError("database_not_ready");
+  // DB-02/03 explicitly revoke table grants until DB-06. A missing DB grant is
+  // setup still pending, not a wrong customer login. Business/RLS refusals stay 403.
+  if (code === "42501" && /^permission denied for (table|schema|function)\b/i.test(detail?.message ?? "")) return new BackendError("database_not_ready");
   return toBackendError(error);
 }
 
