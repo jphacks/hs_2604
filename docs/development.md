@@ -12,6 +12,8 @@ hs_2604/
 ├── CONTRIBUTING.md
 ├── LICENSE
 ├── .github/                 Issue・PRテンプレート
+├── analysis/                公開データの分析（原データはGit管理外）
+│   └── app04-association-rules/  関連購買ルールの生成手順・評価（APP-04）
 ├── docs/
 │   ├── development.md       この開発ガイド
 │   ├── issues/issues.md     全体Issue案
@@ -53,6 +55,7 @@ hs_2604/
 | 機能をまたいで使うUI | `kago-app/src/components/` |
 | 共通の商品定義・表示補助 | `kago-app/src/lib/` |
 | 固定の架空データ | `kago-app/src/data/demo/` |
+| 公開データの分析手順・評価（原データは`raw/`でGit管理外） | `analysis/` |
 | LPの編集対象 | `lp/src/` |
 | 各サービスでWebに配信する素材 | 各サービスの`public/` |
 | 今後のDB定義・変更履歴・初期データ | `kago-core/`（実装時に追加） |

@@ -26,7 +26,8 @@
     "check:shopping": "node --experimental-strip-types --env-file=.env.shopping-check.local scripts/check-shopping.mts",
     "generate:barcodes": "node scripts/generate-barcodes.mjs",
     "generate:icons": "node scripts/generate-icons.mjs",
-    "sync:lp": "node scripts/sync-lp.mjs"
+    "sync:lp": "node scripts/sync-lp.mjs",
+    "test:association": "node --experimental-strip-types --test tests/association.test.ts"
   },
   "dependencies": {
     "@kago/backend": "workspace:*",
