@@ -1,4 +1,5 @@
 import { signOutAction } from "@/lib/auth-actions";
+import { isDemoAutoSignInEnabled } from "@/lib/demo";
 import { getStoreSession } from "@/lib/store";
 import { Nav } from "@/components/nav";
 
@@ -8,6 +9,7 @@ import { Nav } from "@/components/nav";
  */
 export async function SiteHeader() {
   const session = await getStoreSession().catch(() => null);
+  const demo = isDemoAutoSignInEnabled();
 
   return (
     <>
@@ -20,6 +22,11 @@ export async function SiteHeader() {
                 {session.store.name}
                 {session.store.branchName ? ` ${session.store.branchName}` : ""}
               </span>
+              {demo ? (
+                <span className="rounded bg-amber-200 px-2 py-0.5 text-xs font-bold text-amber-900">
+                  デモ用アカウントで表示中
+                </span>
+              ) : null}
               <form action={signOutAction} className="ml-auto">
                 <button
                   type="submit"

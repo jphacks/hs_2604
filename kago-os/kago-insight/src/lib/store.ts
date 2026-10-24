@@ -1,8 +1,10 @@
 import "server-only";
 
 import { BackendError, getBackendIdentity } from "@kago/backend";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
+import { isDemoAutoSignInEnabled } from "./demo";
 import { createServerBackendClient } from "./backend/server";
 
 export type MyStore = {
@@ -59,14 +61,21 @@ export const getStoreSession = cache(async (): Promise<StoreSession> => {
 });
 
 /**
- * 画面用。未ログインならログイン画面へ送り、それ以外の失敗はそのまま投げる。
+ * 画面用。未ログインならログインへ送り、それ以外の失敗はそのまま投げる。
  * 投げた場合は各画面の error.tsx が受け取る。
+ *
+ * デモ用の環境変数が設定されている場合は、ログイン画面ではなく
+ * サーバ側で自動サインインする経路へ送る（DEMO-04）。認証自体は通る。
  */
 export async function requireStoreSession(): Promise<StoreSession> {
   try {
     return await getStoreSession();
   } catch (error) {
     if (error instanceof BackendError && (error.code === "unauthenticated" || error.code === "session_expired")) {
+      if (isDemoAutoSignInEnabled()) {
+        const pathname = (await headers()).get("x-kago-pathname") ?? "/review";
+        redirect(`/api/demo-signin?next=${encodeURIComponent(pathname)}`);
+      }
       redirect("/login");
     }
     throw error;
