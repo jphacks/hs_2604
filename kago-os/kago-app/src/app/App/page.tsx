@@ -10,15 +10,34 @@ import { SerendipityOffers } from "@/features/offers/serendipity-offers";
 import { SuggestionCards } from "@/features/recommendations/suggestion-cards";
 import { offerKindLabel } from "@/features/offers/contracts";
 import { useShoppingSession } from "@/features/shopping/session-provider";
-import { productIcon } from "@/lib/product-visuals";
+import { productIcon, MENU_PRODUCT_IMAGES } from "@/lib/product-visuals";
+import { ShoppingIcon } from "@/components/shopping-icons";
+import "./shopping-home.css";
 
 const yen = new Intl.NumberFormat("ja-JP", { style: "currency", currency: "JPY" });
 const button = "min-h-11 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white disabled:opacity-40";
+
+type Category = "all" | "fruit" | "deli" | "vegetables" | "bread";
+const categories: {id:Exclude<Category,"all">;label:string;image:string}[] = [
+  {id:"fruit",label:"果物",image:"/images/products/apple.png"},
+  {id:"deli",label:"惣菜",image:"/images/products/karaage.png"},
+  {id:"vegetables",label:"野菜",image:"/images/products/onion.png"},
+  {id:"bread",label:"パン",image:"/images/products/shio-pan.png"},
+];
+function inCategory(product:StoreProduct, category:Category){
+  const fruit=/果物|フルーツ|りんご|リンゴ|バナナ|みかん|オレンジ|いちご|ぶどう|キウイ|梨/.test(product.name+" "+product.category);
+  if(category==="fruit")return fruit;
+  if(category==="vegetables")return /青果|野菜/.test(product.category)&&!fruit;
+  if(category==="deli")return /惣菜/.test(product.category);
+  if(category==="bread")return /パン/.test(product.category);
+  return true;
+}
 
 export default function Home() {
   const cart = useCart();
   const session = useShoppingSession();
   const [cartOpen, setCartOpen] = useState(false);
+  const [category, setCategory] = useState<Category>("all");
   const [barcode, setBarcode] = useState("");
   const [query, setQuery] = useState("");
   const [products, setProducts] = useState<StoreProduct[]>([]);
@@ -71,58 +90,79 @@ export default function Home() {
   const submitCode = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); if (cart.canEdit && barcode.trim()) cart.scan(barcode.trim());
   };
-  const status = <div className={`rounded-2xl border p-4 ${cart.error ? "border-red-200 bg-red-50 text-red-900" : "border-emerald-100 bg-emerald-50 text-emerald-950"}`}>
+  const visibleProducts = products.filter(product => inCategory(product, category));
+  const status = <div className={`shopping-feedback ${cart.error ? "shopping-error border border-red-200 bg-red-50 text-red-900" : "border-emerald-100 bg-emerald-50 text-emerald-950"}`}>
     <p role={cart.error ? "alert" : "status"} className="text-sm font-semibold">{cart.message}</p>
     {cart.pending && <button type="button" disabled={cart.busy} onClick={cart.retry} className={`${button} mt-3`}>同じ操作を再試行</button>}
     {!cart.pending && cart.error && <button type="button" disabled={cart.busy} onClick={cart.reload} className={`${button} mt-3`}>かごを再読み込み</button>}
   </div>;
 
-  return <main className="min-h-screen overflow-x-hidden bg-[#f4f7f5] pb-28 text-slate-950">
-    <header className="sticky top-0 z-30 border-b border-emerald-100 bg-white/95 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-xl items-center justify-between gap-3 px-4 py-4">
-        <div><h1><Image src="/brand/light/logo-kago-app.png" alt="KAGO/App" width={2124} height={384} className="h-auto w-40" priority /></h1>
-          <p className="mt-1 text-[11px] font-bold text-slate-500">ログイン中の利用者の買い物</p></div>
-        <div className="flex gap-2"><Link href="/App/account" className="grid size-11 place-items-center rounded-full bg-emerald-50 font-bold text-emerald-800" aria-label="マイページを開く">人</Link>
-          <button type="button" onClick={() => setCartOpen(true)} className="min-h-11 rounded-full bg-slate-950 px-4 text-sm font-bold text-white" aria-label={`買い物かごを開く、現在${cart.itemCount}点`}>かご {cart.itemCount}</button></div>
-      </div>
+  return <main id="shopping-top" className="shopping-home min-h-screen overflow-x-hidden">
+    <header className="shopping-header">
+      <h1><Image src="/brand/light/logo-kago-app.png" alt="KAGO/App" width={2124} height={384} className="shopping-logo" priority /></h1>
+      <button type="button" onClick={() => setCartOpen(true)} className="shopping-cart" aria-label={`買い物かごを開く、現在${cart.itemCount}点`}>
+        <ShoppingIcon name="cart" /><span className="shopping-cart-count" aria-hidden="true">{cart.itemCount}</span>
+      </button>
     </header>
-    <div className="mx-auto grid max-w-xl gap-7 px-4 py-5">
+    <div className="shopping-content">
       <section aria-labelledby="scan-heading">
-        <p className="text-xs font-black tracking-wider text-emerald-700">SCAN</p>
-        <h2 id="scan-heading" className="mb-3 text-2xl font-black">商品をスキャン</h2>
-        <BarcodeScanner onDetected={cart.scan} onReadFailure={cart.scanFailed} disabled={!cart.canEdit} />
+        <h2 id="scan-heading" className="sr-only">商品をスキャン</h2>
+        <BarcodeScanner onDetected={cart.scan} onReadFailure={cart.scanFailed} disabled={!cart.canEdit} appearance="shopping" />
+      </section>
+      <form role="search" onSubmit={event => { event.preventDefault(); setCategory("all"); void loadProducts(query); document.getElementById("manual-products")?.scrollIntoView(); }} className="shopping-search">
+        <ShoppingIcon name="search" />
+        <input aria-label="商品名・商品コードで検索" value={query} onChange={e => setQuery(e.target.value)} maxLength={100} placeholder="商品を検索" />
+        <button type="submit" aria-label="検索" disabled={catalogLoading}><ShoppingIcon name="arrow" /></button>
+      </form>
+      <section aria-label="カテゴリーから探す" className="shopping-categories">
+        {categories.map(item => <button key={item.id} type="button" className="shopping-category" aria-label={item.label+"から探す"} aria-pressed={category===item.id} onClick={() => {
+          setCategory(item.id); setQuery(""); void loadProducts(""); document.getElementById("manual-products")?.scrollIntoView();
+        }}>
+          <span className="shopping-category-photo"><Image src={item.image} alt="" fill sizes="80px" /></span><strong>{item.label}</strong><ShoppingIcon name="arrow" />
+        </button>)}
+      </section>
+      <section className="shopping-fresh" aria-label="新鮮な食材のおすすめ">
+        <Image src="/images/shopping/fresh-family.png" alt="" fill sizes="(max-width: 520px) 100vw, 520px" />
+        <div className="shopping-fresh-copy"><p>毎日の食卓を、もっとかんたんに</p>
+          <h2><em>新鮮</em>な食材で<br/>家族の笑顔を。</h2>
+          <a href="#shopping-recommendations">おすすめ商品を見る<ShoppingIcon name="arrow" /></a>
+        </div>
+      </section>
+      <div className="shopping-code">
         <form onSubmit={submitCode} className="mt-3 flex items-end gap-2">
           <label className="grid min-w-0 flex-1 gap-1 text-sm font-bold">商品コードを入力<input value={barcode} onChange={e => setBarcode(e.target.value)} required maxLength={100} autoComplete="off" className="min-h-11 min-w-0 rounded-xl border border-slate-300 bg-white px-3 font-normal" placeholder="バーコードの数字など" /></label>
           <button className={button} disabled={!cart.canEdit || !barcode.trim()}>コードで追加</button>
         </form>
-        <a href="#manual-products" className="mt-3 block py-2 text-sm font-bold text-emerald-800 underline">読み取れない・バーコードがない商品は一覧から選ぶ ↓</a>
-      </section>
+        <a href="#manual-products" className="mt-2 block py-2 text-xs font-bold text-teal-700 underline">読み取れない・バーコードがない商品は一覧から選ぶ ↓</a>
+      </div>
       {!cartOpen && status}
-      <SuggestionCards />
-      <SerendipityOffers />
-      <section id="manual-products" className="scroll-mt-24" aria-labelledby="products-heading">
+      <div id="shopping-recommendations" className="space-y-5 scroll-mt-5"><SuggestionCards /><SerendipityOffers /></div>
+      <section id="manual-products" className="shopping-products" aria-labelledby="products-heading">
         <p className="text-xs font-black tracking-wider text-emerald-700">PRODUCT MENU</p>
         <h2 id="products-heading" className="text-2xl font-black">商品から選ぶ</h2>
         <p className="mt-1 text-sm text-slate-600">選択中の店舗で取り扱っている商品と価格です。</p>
-        <form onSubmit={event => { event.preventDefault(); void loadProducts(query); }} className="my-4 flex gap-2">
-          <input aria-label="商品名・商品コードで検索" value={query} onChange={e => setQuery(e.target.value)} maxLength={100} placeholder="商品名・商品コードで検索" className="min-h-11 min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 text-sm" />
-          <button className={button} disabled={catalogLoading}>検索</button>
-        </form>
+
+        <button type="button" onClick={() => { setCategory("all"); setQuery(""); void loadProducts(""); }} className="my-3 min-h-11 rounded-full bg-white px-4 text-sm font-bold text-teal-800" aria-pressed={category==="all"}>すべての商品</button>
         {catalogError && <div role="alert" className="mb-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900"><p>{catalogError}</p><button type="button" onClick={() => { void loadProducts(search.current.query, search.current.offset); }} className={`${button} mt-3`}>商品一覧を再試行</button></div>}
         <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2">
-          {products.map(product => <article key={product.productId} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="grid h-20 place-items-center rounded-xl bg-emerald-50 text-4xl" aria-hidden="true">{productIcon(product)}</div>
+          {visibleProducts.map(product => <article key={product.productId} className="shopping-product rounded-2xl bg-white p-4">
+            <div className="shopping-product-image" aria-hidden="true">{MENU_PRODUCT_IMAGES[product.code] ? <Image src={MENU_PRODUCT_IMAGES[product.code]} alt="" fill sizes="200px" /> : productIcon(product)}</div>
             <p className="mt-3 text-xs text-slate-500">{product.category}</p><h3 className="mt-1 min-h-10 text-sm font-bold">{product.name}</h3>
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2"><p className="font-black text-emerald-800">{yen.format(product.price)}</p>
               <button type="button" className={button} disabled={!cart.canEdit} onClick={() => cart.addProduct(product)} aria-label={`${product.name}をかごに追加`}>追加</button></div>
           </article>)}
         </div>
         {catalogLoading && <p role="status" className="py-5 text-sm">商品を読み込んでいます…</p>}
-        {!catalogLoading && !catalogError && products.length === 0 && <p className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-600">該当する商品がありません</p>}
+        {!catalogLoading && !catalogError && visibleProducts.length === 0 && <p className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-600">該当する商品がありません</p>}
         {hasMore && !catalogError && <button type="button" className={`${button} mt-4 w-full`} disabled={catalogLoading} onClick={() => { void loadProducts(search.current.query, products.length); }}>さらに表示</button>}
       </section>
     </div>
-    {cart.itemCount > 0 && <div className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+    <nav className="shopping-nav" aria-label="買い物ナビ"><div>
+      <Link href="/App/account#history-heading" aria-label="りれき"><span><ShoppingIcon name="history" /></span>りれき</Link>
+      <Link href="/App" aria-current="page" aria-label="ホーム"><span><ShoppingIcon name="home" /></span>ホーム</Link>
+      <Link href="/App/account" aria-label="マイページ"><span><ShoppingIcon name="user" /></span>マイページ</Link>
+    </div></nav>
+    {cart.itemCount > 0 && <div className="shopping-cart-summary fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
       <button type="button" onClick={() => setCartOpen(true)} className="mx-auto flex w-full max-w-xl items-center justify-between rounded-2xl bg-emerald-700 px-5 py-4 font-black text-white"><span>買い物かご・{cart.itemCount}点</span><span>{yen.format(cart.total)} ›</span></button>
     </div>}
     {cartOpen && <div className="fixed inset-0 z-50 flex items-end justify-center">

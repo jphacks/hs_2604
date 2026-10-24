@@ -2,17 +2,19 @@
 
 import { BrowserMultiFormatReader, IScannerControls } from "@zxing/browser";
 import { useEffect, useRef, useState } from "react";
+import { ShoppingIcon } from "@/components/shopping-icons";
 
 type ScannerStatus = "idle" | "starting" | "scanning" | "error";
 
 type BarcodeScannerProps = {
+  appearance?: "default" | "shopping";
   onDetected: (code: string) => void;
   disabled?: boolean;
   purpose?: "product" | "store";
   onReadFailure?: (reason: "camera_unavailable" | "permission_denied" | "unreadable") => void;
 };
 
-export function BarcodeScanner({ onDetected, onReadFailure, disabled = false, purpose = "product" }: BarcodeScannerProps) {
+export function BarcodeScanner({ onDetected, onReadFailure, disabled = false, purpose = "product", appearance = "default" }: BarcodeScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const controlsRef = useRef<IScannerControls | null>(null);
   const lastCodeRef = useRef("");
@@ -138,7 +140,7 @@ export function BarcodeScanner({ onDetected, onReadFailure, disabled = false, pu
   const isActive = status === "starting" || status === "scanning";
 
   return (
-    <div className="min-w-0 overflow-hidden rounded-3xl bg-slate-950 shadow-lg">
+    <div className={appearance === "shopping" ? "shopping-scanner" : "min-w-0 overflow-hidden rounded-3xl bg-slate-950 shadow-lg"}>
       <div className={isActive ? "relative aspect-[4/3] w-full bg-slate-950" : "hidden"}>
         <video
           ref={videoRef}
@@ -171,14 +173,14 @@ export function BarcodeScanner({ onDetected, onReadFailure, disabled = false, pu
           </button>
         </div>
       ) : (
-        <div className="p-4 text-white">
-          <div className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-3 sm:gap-4 sm:p-4">
-            <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-emerald-400 text-slate-950 sm:size-14">
+        <div className="scanner-idle p-4 text-white">
+          <div className="scanner-intro flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-3 sm:gap-4 sm:p-4">
+            <div className="scanner-symbol grid size-12 shrink-0 place-items-center rounded-2xl bg-emerald-400 text-slate-950 sm:size-14">
               <svg viewBox="0 0 32 32" fill="none" className="size-7 sm:size-8" aria-hidden="true">
                 <path d="M5 10V6a1 1 0 0 1 1-1h4M22 5h4a1 1 0 0 1 1 1v4M27 22v4a1 1 0 0 1-1 1h-4M10 27H6a1 1 0 0 1-1-1v-4M10 11v10M14 11v10M18 11v10M22 11v10" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
               </svg>
             </div>
-            <div className="min-w-0">
+            <div className="scanner-copy min-w-0">
               <p className="text-sm font-black sm:text-base">{purpose === "store" ? "店舗のQRコードを読み取る" : "バーコードをカメラで読み取る"}</p>
               <p className="mt-1 text-xs leading-5 text-slate-300 sm:text-sm">{purpose === "store" ? "店頭に設置されたQRコードを読み取ってください" : "読み取り後、商品を自動でかごへ追加します"}</p>
             </div>
@@ -192,8 +194,9 @@ export function BarcodeScanner({ onDetected, onReadFailure, disabled = false, pu
             type="button"
             disabled={disabled}
             onClick={startScanner}
-            className="mt-3 w-full rounded-2xl bg-emerald-400 px-4 py-3.5 font-black text-slate-950 transition hover:bg-emerald-300 active:scale-[0.99] disabled:opacity-40"
+            className="scanner-start mt-3 w-full rounded-2xl bg-emerald-400 px-4 py-3.5 font-black text-slate-950 transition hover:bg-emerald-300 active:scale-[0.99] disabled:opacity-40"
           >
+            {appearance === "shopping" && <ShoppingIcon name="camera" />}
             カメラで読み取る
           </button>
         </div>
