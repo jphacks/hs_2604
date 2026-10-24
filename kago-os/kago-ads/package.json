@@ -14,7 +14,8 @@
     "generate:ad-assets": "python3 scripts/ad-assets/generate.py",
     "test:portal:e2e": "node --experimental-strip-types tests/portal.e2e.mts",
     "check:portal": "node --experimental-strip-types --env-file=.env.local scripts/check-portal.mts",
-    "check:store-calls": "node --experimental-strip-types --env-file=.env.local scripts/check-store-calls.mts"
+    "check:store-calls": "node --experimental-strip-types --env-file=.env.local scripts/check-store-calls.mts",
+    "test:signage:crowd:e2e": "node --experimental-strip-types tests/signage-crowd.e2e.mts"
   },
   "dependencies": {
     "@kago/backend": "workspace:*",

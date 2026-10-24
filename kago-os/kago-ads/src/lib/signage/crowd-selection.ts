@@ -26,7 +26,7 @@ const object=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==="object"&&
 const exact=(v:Record<string,unknown>,keys:string[])=>Object.keys(v).length===keys.length&&Object.keys(v).every(k=>keys.includes(k));
 function parse(raw:unknown,storeId:string,allowed:Set<string>):CrowdSnapshot|null{
  if(!object(raw)||!exact(raw,["schema_version","store_id","data_origin","observed_at","expires_at","sample_size","categories"]))return null;
- if(raw.schema_version!==1||raw.store_id!==storeId||!["operated","seeded","synthetic"].includes(String(raw.data_origin)))return null;
+ if(raw.schema_version!==1||raw.store_id!==storeId||typeof raw.data_origin!=="string"||!["operated","seeded","synthetic"].includes(raw.data_origin))return null;
  if(typeof raw.observed_at!=="string"||typeof raw.expires_at!=="string"||!Number.isFinite(Date.parse(raw.observed_at))||!Number.isFinite(Date.parse(raw.expires_at)))return null;
  if(!Number.isSafeInteger(raw.sample_size)||Number(raw.sample_size)<0||Number(raw.sample_size)>100000||!Array.isArray(raw.categories)||raw.categories.length>100)return null;
  const categories:{category:string;visits:number}[]=[];
@@ -39,14 +39,15 @@ function parse(raw:unknown,storeId:string,allowed:Set<string>):CrowdSnapshot|nul
 }
 /** 集計だけを受け取る決定的な選定。個人のかご・履歴・IDを受け取らず、不明なフィールドも記録へ転送しない。 */
 export function selectCrowdAd(feed:SignageFeed,categoryByKey:Readonly<Record<string,string>>,raw:unknown,now:Date,ready:(item:FeedItem)=>boolean=()=>true):CrowdDecision{
- const base={policy_version:CROWD_POLICY_VERSION,store_id:feed.device.store_id,selected_at:now.toISOString()} as const;
+ const serverNow=now.getTime()+feed.clock_offset_ms;
+ const base={policy_version:CROWD_POLICY_VERSION,store_id:feed.device.store_id,selected_at:new Date(serverNow).toISOString()} as const;
  const fallback=(reason_code:CrowdDecision["reason_code"]):CrowdDecision=>({...base,selected_key:null,reason_code,reason_text:messages[reason_code],weights:[],snapshot:null});
  if(raw===null||raw===undefined)return fallback("crowd_missing");
  const snapshot=parse(raw,feed.device.store_id,new Set(Object.values(categoryByKey)));
  if(!snapshot)return fallback("crowd_invalid");
  const observed=Date.parse(snapshot.observed_at),end=Date.parse(snapshot.expires_at);
- if(observed>now.getTime()||end<=observed||end-observed>CROWD_MAX_AGE_MS)return fallback("crowd_invalid");
- if(now.getTime()>=end||now.getTime()-observed>=CROWD_MAX_AGE_MS)return fallback("crowd_expired");
+ if(observed>serverNow||end<=observed||end-observed>CROWD_MAX_AGE_MS)return fallback("crowd_invalid");
+ if(serverNow>=end||serverNow-observed>=CROWD_MAX_AGE_MS)return fallback("crowd_expired");
  if(snapshot.sample_size<CROWD_MIN_SAMPLE)return fallback("crowd_small");
  const items=playableItems(feed,now.getTime(),ready).filter(i=>i.placement_type==="sponsored"&&!feed.suspended_keys.includes(i.key));
  if(!items.length)return fallback("crowd_no_content");

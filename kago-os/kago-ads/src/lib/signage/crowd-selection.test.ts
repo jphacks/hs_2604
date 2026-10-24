@@ -34,7 +34,7 @@ describe("SIG-06 固定集計による選定",()=>{
  });
  it("不正な人数・カテゴリ・時刻・重複カテゴリを拒否する",()=>{
   const x=crowdDemo("pasta");
-  const cases=[{sample_size:-1},{sample_size:1.5},{sample_size:NaN},{categories:[{category:"不明",visits:1}]},
+  const cases=[{data_origin:["synthetic"]},{sample_size:-1},{sample_size:1.5},{sample_size:NaN},{categories:[{category:"不明",visits:1}]},
    {categories:[{category:"パン",visits:9}]},{categories:[{category:"パン",visits:1},{category:"パン",visits:1}]},
    {observed_at:"invalid"},{observed_at:"2026-10-24T12:00:01+09:00"},{expires_at:"2026-10-24T12:06:00+09:00"}];
   for(const change of cases)expect(selectCrowdAd(x.feed,CROWD_DEMO_CATEGORIES,{...x.snapshot,...change},now).reason_code).toBe("crowd_invalid");
@@ -52,5 +52,18 @@ describe("SIG-06 固定集計による選定",()=>{
   expect(selectCrowdAd(x.feed,CROWD_DEMO_CATEGORIES,x.snapshot,new Date(x.snapshot!.expires_at)).reason_code).toBe("crowd_expired");
   x.feed.expires_at=CROWD_DEMO_NOW;
   expect(selectCrowdAd(x.feed,CROWD_DEMO_CATEGORIES,x.snapshot,now).selected_key).toBeNull();
+ });
+ it("server clock offset keeps aggregate validity and recorded time consistent",()=>{
+  for(const offset of [-120000,120000]){
+   const x=crowdDemo("pasta");x.feed.clock_offset_ms=offset;
+   const d=selectCrowdAd(x.feed,CROWD_DEMO_CATEGORIES,x.snapshot,new Date(now.getTime()-offset));
+   expect(d.selected_key).toBe("PASTA");expect(d.selected_at).toBe(now.toISOString());
+  }
+ });
+ it("zero weights and non-ad content use generic guidance",()=>{
+  const x=crowdDemo("pasta");x.snapshot!.categories=[];
+  expect(selectCrowdAd(x.feed,CROWD_DEMO_CATEGORIES,x.snapshot,now).reason_code).toBe("crowd_no_match");
+  x.feed.items.forEach(i=>i.placement_type="store_promo");
+  expect(selectCrowdAd(x.feed,CROWD_DEMO_CATEGORIES,x.snapshot,now).reason_code).toBe("crowd_no_content");
  });
 });
