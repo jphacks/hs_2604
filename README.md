@@ -108,3 +108,11 @@ Hack Dayでは、認証・来店・かご・推薦・クーポン・疑似購入
 - [Supabaseの認証・DB接続と役割の設定](docs/development/backend.md)
 - [Issue案・作業範囲・完成条件](docs/issues/issues.md)
 - [GitHub運用ルール](CONTRIBUTING.md)
+
+### SIG-06：店内傾向による選定の先行確認
+
+Adsを起動し、`/signage/selection-demo` を開くと、架空の「パスタ多め」「パン多め」と、少人数・集計なし・期限切れ・停止を切り替えて、選定理由・重み・ポリシー版を確認できます。ログは画面内の直近20件とダウンロードJSONに保持します。個人のかごや履歴、共有DBへの通信は使いません。
+
+`kago-os/kago-ads` で `pnpm test:signage:crowd:e2e` を実行すると、本番ビルドと実ブラウザで検証します。Chromeの場所は `CHROME_PATH` で指定できます。ポート3206を使います。
+
+実店内集計・選定履歴のDB保存・通常の端末再生・Insight表示への接続は未実装です。暫定条件と入出力は[Ads仕様書](docs/specs/ads-spec.md)を参照してください。
