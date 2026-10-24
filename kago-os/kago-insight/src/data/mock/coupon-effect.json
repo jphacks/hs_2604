@@ -1,0 +1,43 @@
+{
+  "note": "DEMO-09のサンプルデータ。実測ではない。手計算で検算できるよう、合計が一致する固定値にしてある。",
+  "period_label": "デモ用の固定値（実際の計測期間ではありません）",
+  "offers": [
+    {
+      "offer_id": "OF1",
+      "product_name": "生バジル",
+      "trigger_product_name": "スパゲッティ 500g",
+      "discount_percent": 25,
+      "list_price": 198,
+      "unit_discount": 49,
+      "distributed": 24,
+      "claimed": 12,
+      "purchased": 9
+    },
+    {
+      "offer_id": "OF2",
+      "product_name": "完熟トマトソース",
+      "trigger_product_name": "スパゲッティ 500g",
+      "discount_percent": 10,
+      "list_price": 268,
+      "unit_discount": 26,
+      "distributed": 18,
+      "claimed": 6,
+      "purchased": 3
+    },
+    {
+      "offer_id": "OF3",
+      "product_name": "中辛ビーフカレー",
+      "trigger_product_name": "もっちり食パン 6枚切",
+      "discount_percent": 15,
+      "list_price": 258,
+      "unit_discount": 38,
+      "distributed": 12,
+      "claimed": 0,
+      "purchased": 0
+    }
+  ],
+  "segments": [
+    { "key": "with_history", "label": "購入履歴あり", "distributed": 30, "claimed": 15 },
+    { "key": "without_history", "label": "購入履歴なし", "distributed": 24, "claimed": 3 }
+  ]
+}
