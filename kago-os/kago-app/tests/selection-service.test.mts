@@ -71,6 +71,23 @@ test("a cart change between reading and saving is reported as input_changed, nev
   await assert.rejects(selectAndSave(racing, id(13), rules), hasCode("input_changed"));
   assert(fresh.selectionId);
 });
+test("an empty selection also rejects a cart change before the response", async () => {
+  await fixture.rpc("app_set_cart_item", [id(14), id(2710), id(20), 1, 0, "manual", null]);
+  let changed = false;
+  const racing = await client(3, async (input, init) => {
+    const response = await fetch(input, init);
+    if (new URL(String(input)).pathname.endsWith("/app_selection_candidates") && !changed) {
+      changed = true;
+      await fixture.rpc("app_set_cart_item", [id(14), id(2711), id(20), 2, 1, "manual", null]);
+    }
+    return response;
+  });
+  await assert.rejects(selectAndSave(racing, id(14), rules), hasCode("input_changed"));
+  assert(changed);
+  const current = await selectAndSave(a, id(14), rules);
+  assert.equal(current.cartVersion, 2); assert.equal(current.items.length, 0);
+});
+
 test("another customer's or an invalid visit is refused", async () => {
   const b = await client(4);
   await assert.rejects(selectAndSave(b, id(13), rules), hasCode("visit_unavailable"));

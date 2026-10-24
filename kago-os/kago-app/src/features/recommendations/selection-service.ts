@@ -8,6 +8,12 @@ import type { SavedSelection, Selection, SelectionCandidates } from "./selection
 
 type Client = ReturnType<typeof createHeadlessBackend>;
 
+async function verifyCartVersion(client: Client, visitId: string, cartVersion: number) {
+  const current = await client.from("visits").select("cart_version").eq("id", visitId).maybeSingle();
+  if (current.error) throw current.error;
+  if (current.data?.cart_version !== cartVersion) throw new AccountError("input_changed", 409);
+}
+
 // Same visit + cart version + rule version + chosen slots => same selection id, so reloading the
 // screen re-sends a no-op instead of storing duplicate selections (DB-05 accepts identical resends).
 export function selectionId(selection: Selection) {
@@ -28,7 +34,10 @@ export async function selectAndSave(client: Client, selectedVisit: unknown, rule
   const candidates = data as SelectionCandidates;
   if (candidates.visit.cart_version !== input.scope.cartVersion) throw new AccountError("input_changed", 409);
   const selection = selectRecommendations({ candidates, settings: input.settings, summaries: input.history.summaries }, rules);
-  if (!selection.items.length) return { ...selection, selectionId: null, items: [] };
+  if (!selection.items.length) {
+    await verifyCartVersion(client, selection.visitId, selection.cartVersion);
+    return { ...selection, selectionId: null, items: [] };
+  }
   const id = selectionId(selection);
   const saved = await client.rpc("kago_save_selection", {
     p_visit_id: selection.visitId, p_cart_version: selection.cartVersion, p_rule_version: selection.ruleVersion,
@@ -40,11 +49,9 @@ export async function selectAndSave(client: Client, selectedVisit: unknown, rule
   if (saved.error) throw ["23514", "40001"].includes(saved.error.code ?? "") ? new AccountError("input_changed", 409) : saved.error;
   // An identical earlier selection (same id) is accepted as a resend even if the cart moved on since:
   // re-check the version so a stale result is never returned as current (APP-08 then reloads).
-  const current = await client.from("visits").select("cart_version").eq("id", selection.visitId).maybeSingle();
-  if (current.error) throw current.error;
-  if (current.data?.cart_version !== selection.cartVersion) throw new AccountError("input_changed", 409);
   const rows = await client.from("selection_items").select("id,slot,product_id").eq("selection_id", id);
   if (rows.error) throw rows.error;
+  await verifyCartVersion(client, selection.visitId, selection.cartVersion);
   const bySlot = new Map((rows.data ?? []).map(r => [r.slot as number, r]));
   return { ...selection, selectionId: id, items: selection.items.map(item => {
     const row = bySlot.get(item.slot);
