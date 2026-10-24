@@ -1,8 +1,8 @@
 // Real Next.js API + mocked Supabase HTTP transport + Chromium.
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { once } from "node:events";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { setTimeout as delay } from "node:timers/promises";
 import { resolve } from "node:path";
 import { chromium } from "playwright";
@@ -10,7 +10,7 @@ import { createShoppingFixture, uuid } from "./fixtures/shopping-backend.mjs";
 
 const fixture = await createShoppingFixture();
 const origin = process.env.KAGO_E2E_ORIGIN ?? "http://127.0.0.1:3107";
-const output = resolve("../../internal/app01-evidence");
+const output = resolve(process.env.KAGO_E2E_OUTPUT ?? "/tmp/kago-app01-evidence");
 await mkdir(output, { recursive: true });
 const server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "dev", "--webpack", "--hostname", "127.0.0.1", "--port", new URL(origin).port], {
   env: { ...process.env, NEXT_PUBLIC_SUPABASE_URL: fixture.url, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_fixture" },
@@ -30,6 +30,57 @@ try {
     await delay(1000);
   }
   browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_EXECUTABLE_PATH } : {}) });
+  const qrContext = await browser.newContext({ viewport: { width: 390, height: 844 }, permissions: [] });
+  const qrPage = await qrContext.newPage();
+  await qrPage.goto(`${origin}/App?store=${uuid(1)}`);
+  await qrPage.getByLabel("メールアドレス").fill("user3@example.test");
+  await qrPage.getByLabel("パスワード", { exact: true }).fill("fixture-password");
+  await qrPage.getByRole("button", { name: "ログイン", exact: true }).click();
+  await qrPage.getByText("QRの店舗を確認しました。下のボタンで買い物を開始してください。", { exact: true }).waitFor();
+  assert.equal(await qrPage.getByRole("heading", { name: "架空店舗2 検証店", exact: true }).count(), 0);
+  await qrPage.screenshot({ path: `${output}/qr-store-mobile.png`, fullPage: true });
+  await qrPage.reload();
+  await qrPage.getByText("QRの店舗を確認しました。下のボタンで買い物を開始してください。", { exact: true }).waitFor();
+  await qrPage.getByRole("button", { name: "続きから開く", exact: true }).click();
+  await qrPage.getByText("ログイン中の利用者の買い物", { exact: true }).waitFor();
+  assert.equal(new URL(qrPage.url()).searchParams.has("store"), false);
+  pass("QR target survives login and reload, confirms one store and resumes existing visit");
+  await qrPage.goto(`${origin}/App?store=${uuid(99)}`);
+  await qrPage.getByText("QRの店舗は現在利用できません。別のQRを読み取るか、デモ用の店舗選択をご利用ください。", { exact: true }).waitFor();
+  await qrPage.getByRole("button", { name: "デモ用の店舗選択に戻る", exact: true }).click();
+  await qrPage.getByRole("heading", { name: "架空店舗2 検証店", exact: true }).waitFor();
+  pass("unavailable QR store shows an error and manual demo selection remains usable");
+  execFileSync(process.execPath, ["scripts/generate-store-qr.mjs", origin, uuid(2), `${output}/store-qr.svg`]);
+  await qrPage.evaluate((svg) => {
+    navigator.mediaDevices.getUserMedia = async () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = 800;
+      const ctx = canvas.getContext("2d");
+      const image = new Image();
+      image.src = `data:image/svg+xml;base64,${btoa(svg)}`;
+      await image.decode();
+      const draw = () => { ctx.fillStyle = "white"; ctx.fillRect(0, 0, 800, 800); ctx.drawImage(image, 100, 100, 600, 600); };
+      draw();
+      const timer = setInterval(draw, 100);
+      const stream = canvas.captureStream(10);
+      stream.getVideoTracks()[0].addEventListener("ended", () => clearInterval(timer));
+      return stream;
+    };
+  }, await readFile(`${output}/store-qr.svg`, "utf8"));
+  await qrPage.getByRole("button", { name: "カメラで読み取る", exact: true }).click();
+  await qrPage.getByText("QRの店舗を確認しました。下のボタンで買い物を開始してください。", { exact: true }).waitFor();
+  await qrPage.getByRole("heading", { name: "架空店舗2 検証店", exact: true }).waitFor();
+  assert.equal(new URL(qrPage.url()).searchParams.get("store"), uuid(2));
+  pass("real QR decoder reads generated QR from simulated camera stream");
+  await qrPage.goto(`${origin}/App?store=bad`);
+  await qrPage.getByText("店舗のQRコードが無効です。店頭のQRを読み直すか、デモ用の店舗選択をご利用ください。", { exact: true }).waitFor();
+  await qrPage.evaluate(() => { navigator.mediaDevices.getUserMedia = async () => { throw new DOMException("Denied", "NotAllowedError"); }; });
+  await qrPage.getByRole("button", { name: "カメラで読み取る", exact: true }).click();
+  await qrPage.getByText(/カメラの利用が許可されていません|カメラへのアクセス|カメラが見つかりません|Requested device|Permission denied|カメラを開始できません/).first().waitFor();
+  await qrPage.getByRole("heading", { name: "架空店舗1 検証店", exact: true }).waitFor();
+  await qrPage.screenshot({ path: `${output}/qr-fallback-mobile.png`, fullPage: true });
+  pass("invalid QR and unavailable camera retain manual selection");
+  await qrContext.close();
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await context.newPage();
   const errors = [];
