@@ -7,6 +7,7 @@ import { cartRequest, useCart } from "@/features/cart/cart-provider";
 import { cartMessages, type ProductPage, type StoreProduct } from "@/features/cart/contracts";
 import { BarcodeScanner } from "@/features/scanner/barcode-scanner";
 import { SerendipityOffers } from "@/features/offers/serendipity-offers";
+import { SuggestionCards } from "@/features/recommendations/suggestion-cards";
 import { offerKindLabel } from "@/features/offers/contracts";
 import { useShoppingSession } from "@/features/shopping/session-provider";
 import { productIcon } from "@/lib/product-visuals";
@@ -97,6 +98,7 @@ export default function Home() {
         <a href="#manual-products" className="mt-3 block py-2 text-sm font-bold text-emerald-800 underline">読み取れない・バーコードがない商品は一覧から選ぶ ↓</a>
       </section>
       {!cartOpen && status}
+      <SuggestionCards />
       <SerendipityOffers />
       <section id="manual-products" className="scroll-mt-24" aria-labelledby="products-heading">
         <p className="text-xs font-black tracking-wider text-emerald-700">PRODUCT MENU</p>
