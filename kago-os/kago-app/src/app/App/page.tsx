@@ -4,15 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
-import { BarcodeScanner } from "@/features/scanner/barcode-scanner";
 import { useCart } from "@/features/cart/cart-provider";
-import { usePersonalization } from "@/features/recommendations/personalization-provider";
-import { useStore } from "@/features/store/store-provider";
-import {
-  getPersonalizedReason,
-  getPersonalizedRecommendationCodes,
-  TEST_CUSTOMER,
-} from "@/features/recommendations/customer";
+import { useShoppingSession } from "@/features/shopping/session-provider";
 import {
   MENU_ONLY_PRODUCTS,
   Product,
@@ -46,12 +39,6 @@ const RECOMMENDATION_MAP: Record<string, string[]> = {
   "PLU-3001": ["2900000000032", "2900000000049", "2900000000070"],
 };
 
-const FALLBACK_RECOMMENDATIONS = [
-  ...getPersonalizedRecommendationCodes(),
-  "PLU-2001",
-  "2900000000018",
-];
-
 const GENERAL_RECOMMENDATIONS = [
   "2900000000049",
   "2900000000056",
@@ -75,10 +62,10 @@ function CartIcon() {
 }
 
 export default function Home() {
-  const { cart, lines, itemCount, total, addToCart: addCartItem, changeQuantity, clearCart } = useCart();
-  const { settings } = usePersonalization();
-  const { products: storeProducts } = useStore();
-  const [notice, setNotice] = useState("バーコードを読み取って商品を追加できます");
+  const { cart, lines, itemCount, total, addToCart: addCartItem, changeQuantity, clearCart, canEdit } = useCart();
+  const session = useShoppingSession();
+  const settings = { usePurchaseHistory: false, useCurrentCart: true };
+  const [notice, setNotice] = useState("本人のかごを読み込みました。商品追加・数量変更は準備中です。");
   const [noticeTone, setNoticeTone] = useState<"info" | "success" | "error">("info");
   const [addedProduct, setAddedProduct] = useState<Product | null>(null);
   const [lastAddedCode, setLastAddedCode] = useState<string | null>(null);
@@ -90,10 +77,6 @@ export default function Home() {
     [],
   );
 
-  const storeProductByCode = useMemo<Record<string, Product>>(
-    () => Object.fromEntries(storeProducts.map((product) => [product.code, product])),
-    [storeProducts],
-  );
 
   const visibleProducts = useMemo(() => {
     return MENU_ONLY_PRODUCTS.filter((product) => {
@@ -102,9 +85,7 @@ export default function Home() {
   }, [category]);
 
   const recommendations = useMemo(() => {
-    const personalizedFallback = settings.usePurchaseHistory
-      ? FALLBACK_RECOMMENDATIONS
-      : GENERAL_RECOMMENDATIONS;
+    const personalizedFallback = GENERAL_RECOMMENDATIONS;
     const preferred = lastAddedCode && settings.useCurrentCart
       ? RECOMMENDATION_MAP[lastAddedCode] ?? []
       : personalizedFallback;
@@ -113,7 +94,7 @@ export default function Home() {
       .filter((code) => PRODUCT_BY_CODE[code] && !cart[code])
       .slice(0, 3)
       .map((code) => PRODUCT_BY_CODE[code]);
-  }, [cart, lastAddedCode, settings.useCurrentCart, settings.usePurchaseHistory]);
+  }, [cart, lastAddedCode, settings.useCurrentCart]);
 
   useEffect(() => {
     if (!cartOpen) return;
@@ -135,6 +116,7 @@ export default function Home() {
   }, [addedProduct]);
 
   const addToCart = (product: Product) => {
+    if (!canEdit) return;
     addCartItem(product);
     setLastAddedCode(product.code);
     setNotice(`${product.name}をかごに追加しました`);
@@ -142,30 +124,19 @@ export default function Home() {
     setAddedProduct(product);
   };
 
-  const handleCode = (rawCode: string) => {
-    const code = rawCode.trim();
-    if (!code) return;
-    const product = storeProductByCode[code];
-    if (product) {
-      addToCart(product);
-      return;
-    }
-    setNotice("このバーコードの商品は、まだ登録されていません");
-    setNoticeTone("error");
-  };
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#f4f7f5] pb-28 text-slate-950">
+    <main key={`${session.userId}:${session.visit!.id}`} className="shopping-readonly min-h-screen overflow-x-hidden bg-[#f4f7f5] pb-28 text-slate-950">
       <header className="sticky top-0 z-30 border-b border-emerald-100/80 bg-white/95 backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-xl items-center justify-between px-4 pb-3.5 pt-[max(0.875rem,env(safe-area-inset-top))] sm:px-5">
           <div>
             <p className="text-[11px] font-black tracking-[0.2em] text-emerald-700">KAGO/OS</p>
             <h1><Image src="/brand/light/logo-kago-app.png" alt="KAGO/App" width={2124} height={384} className="h-auto w-44" priority /></h1>
-            <p className="mt-0.5 text-[11px] font-bold text-slate-500">{TEST_CUSTOMER.profile.displayName}さんの買い物</p>
+            <p className="mt-0.5 text-[11px] font-bold text-slate-500">ログイン中の利用者の買い物</p>
           </div>
           <div className="flex items-center gap-2">
             <Link href="/App/account" className="grid size-12 place-items-center rounded-full border border-emerald-100 bg-emerald-50 text-sm font-black text-emerald-800 transition active:scale-95" aria-label="マイページを開く">
-              美
+              人
             </Link>
             <button
               type="button"
@@ -185,6 +156,7 @@ export default function Home() {
       </header>
 
       <div className="mx-auto grid w-full min-w-0 max-w-xl gap-7 px-4 py-5">
+        <p className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950">かごはログイン中の買い物の記録です。商品一覧・おすすめは表示サンプルで、店舗の取扱い・価格への接続は準備中です。</p>
         <section className="min-w-0" aria-labelledby="scan-heading">
           <div className="mb-3 flex items-end justify-between px-1">
             <div>
@@ -193,7 +165,7 @@ export default function Home() {
             </div>
             <span className="hidden text-xs font-semibold text-slate-500 sm:inline">JAN / EAN対応</span>
           </div>
-          <BarcodeScanner onDetected={handleCode} />
+          <p className="rounded-2xl bg-emerald-50 p-5 text-sm text-emerald-900">本人のかごを表示しています。スキャン・商品追加は準備中です。</p>
           <p className={`mt-3 rounded-2xl border px-4 py-3 text-sm font-bold ${noticeTone === "error" ? "border-red-200 bg-red-50 text-red-900" : noticeTone === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-950" : "border-slate-200 bg-white text-slate-700"}`} aria-live="polite">
             <span className={`mr-2 ${noticeTone === "error" ? "text-red-500" : "text-emerald-600"}`}>●</span>{notice}
           </p>
@@ -210,7 +182,7 @@ export default function Home() {
                 {lastAddedCode && settings.useCurrentCart
                   ? "いまのかごにおすすめ"
                   : settings.usePurchaseHistory
-                    ? `${TEST_CUSTOMER.profile.displayName.split(" ").at(-1)}さんへのおすすめ`
+                    ? "おすすめ"
                     : "今日のおすすめ"}
               </h2>
             </div>
@@ -241,10 +213,10 @@ export default function Home() {
                   {lastAddedCode && settings.useCurrentCart
                     ? "一緒に選ばれています"
                     : settings.usePurchaseHistory
-                      ? getPersonalizedReason(product.code)
+                      ? "おすすめ"
                       : "売れ筋の商品です"}
                 </p>
-                <button type="button" onClick={() => addToCart(product)} className="mt-3 rounded-xl bg-slate-950 px-2 py-2 text-xs font-black text-white transition active:scale-95">
+                <button type="button" disabled={!canEdit} onClick={() => addToCart(product)} className="mt-3 rounded-xl bg-slate-950 px-2 py-2 text-xs font-black text-white transition active:scale-95">
                   かごに追加
                 </button>
               </article>
@@ -290,12 +262,12 @@ export default function Home() {
                       <p className="font-black text-emerald-800">{yen.format(product.price)}</p>
                       {cart[product.code] ? (
                         <div className="flex items-center rounded-full border border-emerald-200 bg-emerald-50" aria-label={`${product.name}の数量`}>
-                          <button type="button" aria-label={`${product.name}を1点減らす`} onClick={() => changeQuantity(product.code, -1)} className="grid size-10 place-items-center text-lg font-black text-emerald-900">−</button>
+                          <button type="button" disabled={!canEdit} aria-label={`${product.name}を1点減らす`} onClick={() => changeQuantity(product.code, -1)} className="grid size-10 place-items-center text-lg font-black text-emerald-900">−</button>
                           <span className="w-7 text-center text-sm font-black text-emerald-950">{cart[product.code].quantity}</span>
-                          <button type="button" aria-label={`${product.name}を1点増やす`} onClick={() => addToCart(product)} className="grid size-10 place-items-center text-lg font-black text-emerald-900">＋</button>
+                          <button type="button" disabled={!canEdit} aria-label={`${product.name}を1点増やす`} onClick={() => addToCart(product)} className="grid size-10 place-items-center text-lg font-black text-emerald-900">＋</button>
                         </div>
                       ) : (
-                        <button type="button" onClick={() => addToCart(product)} className="min-h-11 shrink-0 rounded-full bg-emerald-700 px-4 text-sm font-black text-white transition active:scale-95" aria-label={`${product.name}をかごに追加`}>
+                        <button type="button" disabled={!canEdit} onClick={() => addToCart(product)} className="min-h-11 shrink-0 rounded-full bg-emerald-700 px-4 text-sm font-black text-white transition active:scale-95" aria-label={`${product.name}をかごに追加`}>
                           追加
                         </button>
                       )}
@@ -350,9 +322,9 @@ export default function Home() {
                     </div>
                     <div className="min-w-0 flex-1"><h3 className="truncate text-sm font-black">{line.name}</h3><p className="mt-1 font-black text-emerald-800">{yen.format(line.price)}</p></div>
                     <div className="flex items-center rounded-full border border-slate-200 bg-white">
-                      <button type="button" aria-label={`${line.name}を1点減らす`} onClick={() => changeQuantity(line.code, -1)} className="grid size-9 place-items-center text-lg font-bold">−</button>
+                      <button type="button" disabled={!canEdit} aria-label={`${line.name}を1点減らす`} onClick={() => changeQuantity(line.code, -1)} className="grid size-9 place-items-center text-lg font-bold">−</button>
                       <span className="w-6 text-center text-sm font-black">{line.quantity}</span>
-                      <button type="button" aria-label={`${line.name}を1点増やす`} onClick={() => changeQuantity(line.code, 1)} className="grid size-9 place-items-center text-lg font-bold">＋</button>
+                      <button type="button" disabled={!canEdit} aria-label={`${line.name}を1点増やす`} onClick={() => changeQuantity(line.code, 1)} className="grid size-9 place-items-center text-lg font-bold">＋</button>
                     </div>
                   </article>
                 ))}
@@ -361,7 +333,7 @@ export default function Home() {
 
             <div className="border-t border-slate-200 bg-white px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4">
               <div className="flex items-end justify-between"><div><p className="text-xs font-bold text-slate-500">合計（税込）</p><p className="text-sm font-semibold text-slate-500">{itemCount}点</p></div><p className="text-3xl font-black tracking-[-0.04em]">{yen.format(total)}</p></div>
-              {lines.length > 0 && <button type="button" onClick={clearCart} className="mt-4 w-full rounded-2xl bg-slate-100 px-4 py-3 text-sm font-bold text-slate-600">かごを空にする</button>}
+              {lines.length > 0 && <button type="button" disabled={!canEdit} onClick={clearCart} className="mt-4 w-full rounded-2xl bg-slate-100 px-4 py-3 text-sm font-bold text-slate-600">かごを空にする</button>}
             </div>
           </section>
         </div>
