@@ -99,6 +99,7 @@ Hack Dayでは、認証・来店・かご・推薦・クーポン・疑似購入
 ## 開発資料
 
 - [デモ構成・確認範囲](docs/development/demo-video.md)
+- [セット割・タイムセールの試し方（商品コード・期待金額・画面付き）](docs/development/offer-demo-scenarios.md)
 
 - [共通仕様書：役割・ID・イベント・購入経路・担当確認](docs/specs/common-spec.md)
 - [起動・検証手順](docs/development.md)
