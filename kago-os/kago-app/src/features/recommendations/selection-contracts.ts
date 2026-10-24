@@ -26,4 +26,5 @@ export type SelectionItem = {
 };
 export type Selection = { visitId: string; cartVersion: number; ruleVersion: number; items: SelectionItem[] };
 // API response: the saved selection with DB ids (APP-06 shows it, APP-07 logs events against selectionItemId).
-export type SavedSelection = Selection & { selectionId: string | null; items: (SelectionItem & { selectionItemId: string })[] };
+export type SavedSelectionItem = SelectionItem & { selectionItemId: string };
+export type SavedSelection = Omit<Selection, "items"> & { selectionId: string | null; items: SavedSelectionItem[] };
