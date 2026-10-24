@@ -2,6 +2,8 @@
 
 サービスは`kago-os/`、開発資料は`docs/`、GitHub運用ルールはルートの`CONTRIBUTING.md`にまとめます。
 
+JPHACKSに向けたAppの改善候補と着手順は、[App改善の優先順位](development/app-award-priorities.md)を参照してください（2026-10-25時点の調査・提案）。
+
 <a id="structure"></a>
 
 ## フォルダ構成
