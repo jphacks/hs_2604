@@ -21,7 +21,8 @@ let server: ChildProcess | undefined;
 let browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
 const checks: string[] = [];
 async function shown(page: Page, text: string) { await page.getByText(text, { exact: true }).first().waitFor(); }
-async function login(page: Page, email = "maker-one@example.test", password = fixturePassword) {
+async function login(page: Page, email = "maker-one@example.test", password = fixturePassword, role?: "maker_staff" | "store_staff") {
+  if (role) await page.getByLabel(role === "store_staff" ? "店舗担当者" : "メーカー", { exact: true }).check();
   await page.getByLabel("メールアドレス").fill(email);
   await page.getByLabel("パスワード", { exact: true }).fill(password);
   await page.getByRole("button", { name: "ログイン", exact: true }).click();
@@ -39,6 +40,7 @@ try {
   }
   browser = await chromium.launch({ executablePath: process.env.CHROME_PATH ?? "/usr/bin/google-chrome", headless: true });
   let outage = false;
+  let failPublishOnce = false;
   const pageErrors: string[] = [];
   async function context() {
     const ctx = await browser!.newContext({ viewport: { width: 1280, height: 900 } });
@@ -48,8 +50,13 @@ try {
         return;
       }
       const request = route.request();
+      if (failPublishOnce && request.method() === "PATCH" && request.url().includes("/rest/v1/ad_calls") && request.postDataJSON()?.status === "open") {
+        failPublishOnce = false;
+        await route.fulfill({ status: 503, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: '{"message":"unavailable"}' });
+        return;
+      }
       if (request.method() === "OPTIONS") {
-        await route.fulfill({ status: 204, headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "GET,POST,OPTIONS" } });
+        await route.fulfill({ status: 204, headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "GET,POST,PATCH,OPTIONS" } });
         return;
       }
       const response = await fixture.fetcher(request.url(), { method: request.method(), headers: request.headers(), body: request.postData() });
@@ -151,17 +158,125 @@ try {
   await shown(page2, "共有DBの更新後の募集");
   assert.equal(await page2.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
   checks.push("スマホ幅でも横にはみ出さず募集を閲覧できる");
+  const storeCtx = await context();
+  const storePage = await storeCtx.newPage();
+  await storePage.goto(base + "/ads/store/calls");
+  await shown(storePage, "店舗担当者としてログイン");
+  await login(storePage, "store-no-membership@example.test", fixturePassword, "store_staff");
+  await shown(storePage, "この役割での接続は許可されていません。");
+  checks.push("店舗役割があっても所属なしはログイン拒否");
+  await login(storePage, "store@example.test", fixturePassword, "store_staff");
+  await storePage.getByRole("heading", { name: "自店の募集", exact: true }).waitFor();
+  assert.equal(await storePage.getByText("共有DBの更新後の募集", { exact: true }).count(), 0);
+  checks.push("店舗担当者は自店の下書き・公開・終了だけを閲覧");
+  async function fillCall(p: Page, title: string) {
+    await p.getByLabel("募集名", { exact: true }).fill(title);
+    await p.getByText("パン", { exact: true }).click();
+    assert.equal(await p.getByLabel("パン", { exact: true }).isChecked(), true);
+    await p.getByLabel("掲載期間（はじめ）").fill("2099-01-01");
+    await p.getByLabel("掲載期間（おわり）").fill("2099-01-31");
+    await p.getByLabel("案内文", { exact: false }).fill("検証用の架空募集です。");
+  }
+  await storePage.getByRole("link", { name: "新しい募集を作る" }).click();
+  await fillCall(storePage, "ブラウザで作成した募集");
+  for (const label of ["App のクリック数", "App の提案経由の追加数", "App の表示後の購入数", "Signage の再生回数・推定視認"]) {
+    await storePage.getByLabel(label, { exact: true }).uncheck();
+  }
+  await storePage.getByRole("button", { name: "下書き保存", exact: true }).click();
+  await storePage.getByRole("heading", { name: "ブラウザで作成した募集", exact: true }).waitFor();
+  const call = (await fixture.db.query<{ id: string; status: string; disclosure_scope: string[] }>("select id,status,disclosure_scope from ad_calls where title=$1", ["ブラウザで作成した募集"])).rows[0];
+  assert.equal(call.status, "draft");
+  assert.deepEqual(call.disclosure_scope, ["impressions"]);
+  await page2.goto(base + "/ads/portal/call?id=" + call.id);
+  await shown(page2, "募集が見つかりません（下書き、または削除された募集です）");
+  checks.push("下書き保存と成果公開範囲の永続化、メーカーからの非表示");
+  await storePage.goto(base + "/ads/store/calls/edit?id=" + call.id);
+  await storePage.getByLabel("募集名", { exact: true }).fill("ブラウザで編集した募集");
+  await storePage.getByRole("button", { name: "保存して公開", exact: true }).click();
+  await storePage.getByRole("heading", { name: "ブラウザで編集した募集", exact: true }).waitFor();
+  await page2.reload();
+  await page2.getByRole("heading", { name: "ブラウザで編集した募集", exact: true }).waitFor();
+  await shown(page2, "App の実表示数");
+  assert.equal(await page2.getByText("App のクリック数", { exact: true }).count(), 0);
+  checks.push("店舗の編集・公開が別ブラウザのメーカーと公開指標へ反映");
+  await storePage.goto(base + "/ads/store/calls/edit?id=" + call.id);
+  assert.equal(await storePage.getByLabel("掲載期間（はじめ）").isDisabled(), true);
+  assert.equal(await storePage.getByLabel("掲載期間（おわり）").isDisabled(), true);
+  assert.equal(await storePage.getByRole("checkbox", { name: /^App.*スマホ/ }).isDisabled(), true);
+  await storePage.screenshot({ path: new URL("ads02-edit.png", images).pathname, fullPage: true });
+  checks.push("公開後の期間・掲載先の変更を画面でも禁止");
+  const store2Ctx = await context();
+  const store2Page = await store2Ctx.newPage();
+  await store2Page.goto(base + "/ads/store/calls/edit?id=" + call.id);
+  await shown(store2Page, "店舗担当者としてログイン");
+  await login(store2Page, "store-two@example.test", fixturePassword, "store_staff");
+  await shown(store2Page, "募集が見つからないか、他の店舗の募集です");
+  assert.equal(await store2Page.getByRole("button", { name: "保存", exact: true }).count(), 0);
+  checks.push("別店舗の担当者が募集IDを指定しても編集不可");
+  await fixture.db.query("update ad_calls set description=$1 where id=$2", ["別担当者が先に更新", call.id]);
+  await storePage.getByLabel("案内文", { exact: false }).fill("古いフォームからの書換え");
+  await storePage.getByRole("button", { name: "保存", exact: true }).click();
+  await shown(storePage, "募集が更新されています。再読み込みして最新の内容を確認してください。");
+  assert.equal((await fixture.db.query<{ description: string }>("select description from ad_calls where id=$1", [call.id])).rows[0].description, "別担当者が先に更新");
+  checks.push("古いフォームからの保存を拒否して他の担当者の変更を保持");
+  await storePage.goto(base + "/ads/store/calls/new");
+  await fillCall(storePage, "公開を再試行する募集");
+  failPublishOnce = true;
+  await storePage.getByRole("button", { name: "保存して公開", exact: true }).click();
+  await shown(storePage, "認証・DBへ接続できません。時間をおいて再試行してください。");
+  assert.equal((await fixture.db.query("select id from ad_calls where title='公開を再試行する募集'")).rows.length, 1);
+  await storePage.getByRole("button", { name: "保存して公開", exact: true }).click();
+  await storePage.getByRole("heading", { name: "公開を再試行する募集", exact: true }).waitFor();
+  const retry = (await fixture.db.query<{ status: string }>("select status from ad_calls where title='公開を再試行する募集'")).rows;
+  assert.equal(retry.length, 1);
+  assert.equal(retry[0].status, "open");
+  checks.push("保存後に公開が失敗しても再試行で募集を重複作成しない");
+  const card = storePage.getByRole("heading", { name: "ブラウザで編集した募集", exact: true }).locator("..").locator("..");
+  storePage.once("dialog", (dialog) => dialog.accept());
+  await card.getByRole("button", { name: "募集を終了", exact: true }).click();
+  await card.getByText("募集終了", { exact: true }).waitFor();
+  assert.equal(await card.getByRole("button", { name: "募集を終了" }).count(), 0);
+  await page2.reload();
+  await page2.getByText(/新しい申請は受け付けていません/).waitFor();
+  assert.equal(await page2.getByRole("link", { name: "この募集に申請する" }).count(), 0);
+  await storePage.screenshot({ path: new URL("ads02-calls.png", images).pathname, fullPage: true });
+  checks.push("募集終了がメーカーへ反映され、再公開・新規申請の導線なし");
+  assert.equal((await fixture.db.query<{ count: number }>("select count(*)::int as count from ad_placements")).rows[0].count, 0);
+  checks.push("募集公開だけでは広告の配信対象を作成しない");
+  const multiCtx = await context();
+  const multiPage = await multiCtx.newPage();
+  await multiPage.goto(base + "/ads/store/calls/new");
+  await shown(multiPage, "店舗担当者としてログイン");
+  await login(multiPage, "store-multi@example.test", fixturePassword, "store_staff");
+  await multiPage.getByLabel("募集名", { exact: true }).fill("切替前の未保存入力");
+  await multiPage.getByLabel("操作する店舗").selectOption(id(2));
+  await multiPage.getByLabel("募集名", { exact: true }).waitFor();
+  assert.equal(await multiPage.getByLabel("募集名", { exact: true }).inputValue(), "");
+  await fillCall(multiPage, "2号店に作成する募集");
+  await multiPage.getByRole("button", { name: "下書き保存", exact: true }).click();
+  await multiPage.getByRole("heading", { name: "2号店に作成する募集", exact: true }).waitFor();
+  assert.equal((await fixture.db.query<{ store_id: string }>("select store_id from ad_calls where title='2号店に作成する募集'")).rows[0].store_id, id(2));
+  checks.push("所属店舗の切替で入力を分離し、選択した店舗に保存");
+  await multiPage.setViewportSize({ width: 390, height: 844 });
+  await multiPage.goto(base + "/ads/store/calls/new");
+  await multiPage.getByLabel("募集名", { exact: true }).waitFor();
+  assert.equal(await multiPage.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), true);
+  checks.push("スマホ幅でも募集フォームが横にはみ出さない");
+  await storePage.getByRole("button", { name: "ログアウト", exact: true }).click();
+  await shown(storePage, "店舗担当者としてログイン");
+  assert.equal(await storePage.getByRole("heading", { name: "ブラウザで編集した募集" }).count(), 0);
+  checks.push("店舗のログアウト後に募集情報を残さない");
   assert.deepEqual(pageErrors, []);
   checks.push("ブラウザの未処理エラーなし");
   console.log(checks.map((s, i) => (i + 1) + ". " + s).join("\n"));
-  console.log("Portal browser checks passed: " + checks.length + " (Auth/HTTP simulated; formal SQL/RLS in PGlite)");
+  console.log("Ads browser checks passed: " + checks.length + " (Auth/HTTP simulated; formal SQL/RLS in PGlite)");
 } catch (error) {
-  const page = browser?.contexts()[0]?.pages()[0];
+  const page = browser?.contexts().at(-1)?.pages().at(-1);
   if (page) {
     console.log("Failure screen:", await page.locator("body").innerText());
     await page.screenshot({ path: "/tmp/ads01-debug.png", fullPage: true });
   }
-  console.log("Fixture request paths:", fixture.requests);
+  console.log("Last fixture request paths:", fixture.requests.slice(-20));
   throw error;
 } finally {
   await browser?.close();

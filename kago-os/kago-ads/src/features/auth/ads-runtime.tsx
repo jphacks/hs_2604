@@ -5,20 +5,25 @@ import { createContext, useContext, useEffect, useRef, useState, type FormEvent,
 import { BackendError, signInBackend, signOutBackend, toBackendError } from "@kago/backend";
 import { Button, ButtonLink, Card, ErrorList, Field, inputClass, Loading, PageTitle } from "@/components/parts";
 import { adsDataSource, createAdsBackend } from "@/lib/backend/config";
-import { createSupabasePortalRepository, requireMaker, type MakerIdentity, type PortalClient, type PortalRepository } from "@/lib/backend/portal";
+import { createSupabasePortalRepository, type PortalClient, type PortalRepository } from "@/lib/backend/portal";
 import { getRepository } from "@/lib/data";
 import { useSession } from "@/lib/session";
 import type { Session } from "@/lib/domain/types";
+import { getAdsIdentity, type AdsIdentity, type AdsRole } from "@/lib/backend/ads-identity";
+import { createSupabaseStoreCallsRepository, type StoreCallsRepository } from "@/lib/backend/store-calls";
+import { storeLabel } from "@/lib/domain/rules";
 
 type State = { status: "loading" } | { status: "guest"; error?: string }
-  | { status: "ready"; identity: MakerIdentity };
+  | { status: "ready"; identity: AdsIdentity };
 type Runtime = {
   source: "mock" | "supabase"; state: State; client: PortalClient | null;
-  login(email: string, password: string): Promise<void>; logout(): Promise<void>;
+  login(email: string, password: string, role?: AdsRole): Promise<void>; logout(): Promise<void>;
+  storeId: string | null; selectStore(id: string): void;
 };
 const Context = createContext<Runtime | null>(null);
 
 export function AdsRuntime({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
   const [connection] = useState(() => {
     try { return { client: adsDataSource() === "mock" ? null : createAdsBackend(), error: undefined }; }
     catch (error) { return { client: null, error: toBackendError(error).message }; }
@@ -27,6 +32,8 @@ export function AdsRuntime({ children }: { children: ReactNode }) {
   const [state, setState] = useState<State>(() => connection.error
     ? { status: "guest", error: connection.error } : { status: "loading" });
   const version = useRef(0);
+  const preferredRole = useRef<AdsRole | undefined>(pathname.startsWith("/ads/store") ? "store_staff" : undefined);
+  const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null);
   // 不正なmode指定も設定エラーとして扱い、仮データには戻らない。
   let source: "mock" | "supabase" = "supabase";
   try { source = adsDataSource(); } catch { /* 設定エラーは初期状態に反映済み */ }
@@ -43,7 +50,7 @@ export function AdsRuntime({ children }: { children: ReactNode }) {
         const current = ++version.current;
         setState({ status: "loading" });
         try {
-          const identity = await requireMaker(backend);
+          const identity = await getAdsIdentity(backend, preferredRole.current);
           if (active && current === version.current) setState({ status: "ready", identity });
         } catch (error) {
           if (!active || current !== version.current) return;
@@ -55,6 +62,8 @@ export function AdsRuntime({ children }: { children: ReactNode }) {
         ++version.current;
         if (event === "SIGNED_OUT") {
           clearTimeout(timer);
+          preferredRole.current = undefined;
+          setSelectedStoreId(null);
           setState({ status: "guest" });
         } else {
           // SDKの認証ロック内でgetUserやDB要求を待たない。
@@ -71,12 +80,13 @@ export function AdsRuntime({ children }: { children: ReactNode }) {
     return () => { active = false; clearTimeout(timer); cleanup?.(); };
   }, [client]);
 
-  async function login(email: string, password: string) {
+  async function login(email: string, password: string, role: AdsRole = "maker_staff") {
     if (!client) throw new BackendError("configuration_missing");
     setState({ status: "loading" });
     try {
-      await signInBackend(client, email, password, "maker_staff");
-      const identity = await requireMaker(client);
+      preferredRole.current = role;
+      await signInBackend(client, email, password, role);
+      const identity = await getAdsIdentity(client, role);
       ++version.current;
       setState({ status: "ready", identity });
     } catch (error) {
@@ -86,13 +96,20 @@ export function AdsRuntime({ children }: { children: ReactNode }) {
     }
   }
   async function logout() {
+    preferredRole.current = undefined;
+    setSelectedStoreId(null);
     ++version.current;
     setState({ status: "guest" });
     if (!client) return;
     try { await signOutBackend(client); }
     catch (error) { setState({ status: "guest", error: toBackendError(error).message }); }
   }
-  return <Context.Provider value={{ source, state, client, login, logout }}>{children}</Context.Provider>;
+  const storeId = state.status === "ready" && state.identity.role === "store_staff"
+    ? (selectedStoreId && state.identity.storeIds.includes(selectedStoreId) ? selectedStoreId : state.identity.stores[0]?.id ?? null) : null;
+  function selectStore(id: string) {
+    if (state.status === "ready" && state.identity.role === "store_staff" && state.identity.storeIds.includes(id)) setSelectedStoreId(id);
+  }
+  return <Context.Provider value={{ source, state, client, login, logout, storeId, selectStore }}>{children}</Context.Provider>;
 }
 
 export function useAdsRuntime() {
@@ -105,7 +122,7 @@ export function usePortalSession(): Session {
   const demo = useSession();
   const { source, state } = useAdsRuntime();
   if (source === "mock") return demo;
-  return state.status === "ready" ? { role: "maker_staff", makerId: state.identity.makerIds[0] } : { role: "guest" };
+  return state.status === "ready" && state.identity.role === "maker_staff" ? { role: "maker_staff", makerId: state.identity.makerIds[0] } : { role: "guest" };
 }
 
 export function usePortalRepository(): () => PortalRepository {
@@ -117,61 +134,100 @@ export function usePortalRepository(): () => PortalRepository {
   };
 }
 
+export function useStoreSession(): Session {
+  const demo = useSession();
+  const { source, state, storeId } = useAdsRuntime();
+  if (source === "mock") return demo;
+  return state.status === "ready" && state.identity.role === "store_staff" && storeId
+    ? { role: "store_staff", storeId } : { role: "guest" };
+}
+
+export function useStoreCallsRepository(): () => StoreCallsRepository {
+  const { source, state, client } = useAdsRuntime();
+  return () => {
+    if (source === "mock") return getRepository();
+    if (!client || state.status !== "ready" || state.identity.role !== "store_staff") throw new BackendError("forbidden");
+    return createSupabaseStoreCallsRepository(client);
+  };
+}
+
 function Login() {
   const { state, client, login } = useAdsRuntime();
+  const pathname = usePathname();
+  const [role, setRole] = useState<AdsRole>(pathname.startsWith("/ads/store") ? "store_staff" : "maker_staff");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
-    try { await login(email, password); }
+    try { await login(email, password, role); }
     finally { setPassword(""); setBusy(false); }
   }
   return <div className="mx-auto max-w-md">
-    <PageTitle title="メーカーとしてログイン" lead="店舗の募集を探すには、メーカー担当者のアカウントでログインしてください。" />
+    <PageTitle title={role === "store_staff" ? "店舗担当者としてログイン" : "メーカーとしてログイン"} lead="メーカーは募集を探せます。店舗担当者は自店の募集を作成・公開できます。" />
     <Card>
       {state.status === "guest" && state.error && <ErrorList errors={[state.error]} />}
       <form className="mt-4 space-y-4" onSubmit={submit}>
+        <fieldset className="flex gap-4 text-sm"><legend className="mb-2 font-semibold">利用する役割</legend>
+          <label className="flex gap-2"><input type="radio" name="ads-role" checked={role === "maker_staff"} onChange={() => setRole("maker_staff")} />メーカー</label>
+          <label className="flex gap-2"><input type="radio" name="ads-role" checked={role === "store_staff"} onChange={() => setRole("store_staff")} />店舗担当者</label>
+        </fieldset>
         <Field label="メールアドレス"><input className={inputClass} type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} /></Field>
         <Field label="パスワード"><input className={inputClass} type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} /></Field>
         <Button type="submit" disabled={!client || busy}>{busy ? "ログイン中…" : "ログイン"}</Button>
       </form>
-      <p className="mt-4 text-xs text-muted">この接続ではメーカー向けの募集閲覧を利用できます。アカウントと所属は担当者が設定します。</p>
+      <p className="mt-4 text-xs text-muted">アカウントの役割と所属に応じて利用できます。アカウントと所属は担当者が設定します。</p>
     </Card>
   </div>;
 }
 
 export function AdsAccess({ children }: { children: ReactNode }) {
-  const { source, state } = useAdsRuntime();
+  const { source, state, storeId } = useAdsRuntime();
   const pathname = usePathname();
   if (source === "mock") return children;
   if (state.status === "loading") return <Loading />;
   if (state.status !== "ready") return <Login />;
+  const store = state.identity.role === "store_staff";
   if (pathname === "/ads") return <>
-    <PageTitle title="KAGO/Ads" lead="店舗の募集を比較し、掲載条件を確認できます。" />
-    <Card><h2 className="font-bold">広告を出す店舗を探す</h2><p className="my-3 text-sm text-muted">募集一覧は共有DBから取得します。申請の保存・素材登録は現在接続準備中です。</p><ButtonLink href="/ads/portal">募集を探す</ButtonLink></Card>
+    <PageTitle title="KAGO/Ads" lead={store ? "自店の広告募集を作成・公開・終了できます。" : "店舗の募集を比較し、掲載条件を確認できます。"} />
+    <Card><h2 className="font-bold">{store ? "広告を募集する" : "広告を出す店舗を探す"}</h2>
+      <p className="my-3 text-sm text-muted">募集は共有DBへ保存されます。募集の公開は、広告の掲載承認とは異なります。</p>
+      <ButtonLink href={store ? "/ads/store/calls" : "/ads/portal"}>{store ? "自店の募集を見る" : "募集を探す"}</ButtonLink></Card>
   </>;
   if (pathname === "/ads/portal" || pathname.startsWith("/ads/portal/")) {
-    // userIdを含め、同じ所属の別ユーザーへ切り替えた場合も前のデータを残さない。
+    if (store) return <Card><p>募集ポータルはメーカー向けです。自店の募集は「自店の募集」で確認できます。</p><ButtonLink href="/ads/store/calls">自店の募集を見る</ButtonLink></Card>;
     return <div key={state.identity.userId}>{children}</div>;
+  }
+  if (["/ads/store/calls", "/ads/store/calls/new", "/ads/store/calls/edit"].includes(pathname)) {
+    if (!store) return <Card><p>この画面は店舗担当者向けです。店舗担当者のアカウントでログインし直してください。</p><ButtonLink href="/ads/portal">募集一覧へ戻る</ButtonLink></Card>;
+    return <div key={state.identity.userId + ":" + storeId}>{children}</div>;
   }
   return <Card>
     <h1 className="text-xl font-bold">この操作はDB接続の準備中です</h1>
-    <p className="mt-3 text-sm text-muted">申請内容の保存と素材登録はADS-03、店舗の募集作成はADS-02で接続します。この画面では保存は行いません。</p>
-    <Link className="mt-4 inline-block text-brand underline" href="/ads/portal">募集一覧へ戻る</Link>
+    <p className="mt-3 text-sm text-muted">申請内容の保存と素材登録はADS-03で接続します。この画面では保存は行いません。</p>
+    <Link className="mt-4 inline-block text-brand underline" href={store ? "/ads/store/calls" : "/ads/portal"}>募集一覧へ戻る</Link>
   </Card>;
 }
 
 export function ConnectedAdsHeader() {
-  const { state, logout } = useAdsRuntime();
+  const { state, logout, storeId, selectStore } = useAdsRuntime();
+  const identity = state.status === "ready" ? state.identity : null;
+  const store = identity?.role === "store_staff" ? identity : null;
   return <header className="border-b border-line bg-surface">
     <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-4 px-4 py-3">
       <Link href="/ads" className="font-bold"><span className="text-brand">KAGO</span>/Ads</Link>
-      <Link href="/ads/portal" className="text-sm text-brand">募集を探す</Link>
-      <Link href="/ads/portal/stores" className="text-sm text-brand">店舗一覧</Link>
-      <span className="ml-auto text-xs text-muted">{state.status === "ready" ? "メーカーとしてログイン中" : "メーカー向けポータル"}</span>
-      {state.status === "ready" && <Button variant="secondary" onClick={() => { void logout(); }}>ログアウト</Button>}
+      {store ? <Link href="/ads/store/calls" className="text-sm text-brand">自店の募集</Link> : <>
+        <Link href="/ads/portal" className="text-sm text-brand">募集を探す</Link>
+        <Link href="/ads/portal/stores" className="text-sm text-brand">店舗一覧</Link>
+      </>}
+      <span className="ml-auto text-xs text-muted">{identity ? (store ? "店舗担当者としてログイン中" : "メーカーとしてログイン中") : "募集ポータル"}</span>
+      {store && <label className="flex items-center gap-2 text-sm">操作する店舗
+        <select className="max-w-64 rounded-md border border-line p-2" value={storeId ?? ""} onChange={(e) => selectStore(e.target.value)}>
+          {store.stores.map((s) => <option key={s.id} value={s.id}>{storeLabel(s)}</option>)}
+        </select>
+      </label>}
+      {identity && <Button variant="secondary" onClick={() => { void logout(); }}>ログアウト</Button>}
     </div>
   </header>;
 }
@@ -181,6 +237,6 @@ export function AdsFooter() {
   return <footer className="border-t border-line px-6 py-4 text-center text-xs text-muted">
     {source === "mock"
       ? "仮データで動いています。店舗・メーカー・商品はデモ用の架空のものです。"
-      : "募集一覧・店舗情報は共有DBを参照します。申請・募集作成の保存は接続準備中です。"}
+      : "募集の閲覧・作成・公開・終了は共有DBへ接続しています。申請の保存は接続準備中です。"}
   </footer>;
 }

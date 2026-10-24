@@ -2,33 +2,37 @@
 // ADS-02：店舗の担当者が自店の募集（ad_calls）を一覧し、公開・終了を切り替える
 import Link from "next/link";
 import { useState } from "react";
-import { getRepository } from "@/lib/data";
+import { useStoreCallsRepository, useStoreSession, useAdsRuntime } from "@/features/auth/ads-runtime";
 import { callPhase, periodLabel } from "@/lib/domain/rules";
 import type { AdCall, AdCallStatus } from "@/lib/domain/types";
-import { useSession } from "@/lib/session";
 import { ChannelTags, PhaseBadge } from "@/components/badges";
 import { Button, ButtonLink, Card, Empty, ErrorList, Loading, NeedRole, PageTitle } from "@/components/parts";
 import { errorMessages, useLoad } from "@/lib/use-load";
 
 export function RecruitmentList() {
-  const session = useSession();
+  const session = useStoreSession();
+  const getRepository = useStoreCallsRepository();
+  const { source } = useAdsRuntime();
   const { state, reload } = useLoad(
     () => (session.role === "store_staff" ? getRepository().listMyAdCalls(session) : Promise.resolve([])),
     [JSON.stringify(session)],
   );
   const [errors, setErrors] = useState<string[]>([]);
+  const [changing, setChanging] = useState(false);
 
   if (session.role !== "store_staff") return <NeedRole role="店舗の担当者" />;
 
   const change = async (c: AdCall, status: AdCallStatus) => {
     if (status === "closed" && !window.confirm(`「${c.title}」を終了します。終了後は新しい申請を受け付けず、再公開もできません。承認済みの広告は配信期間まで続きます。`)) return;
+    if (changing) return;
+    setChanging(true);
     try {
       setErrors([]);
-      await getRepository().setAdCallStatus(session, c.id, status);
+      await getRepository().setAdCallStatus(session, c.id, status, c.updated_at);
       reload();
     } catch (e) {
       setErrors(errorMessages(e));
-    }
+    } finally { setChanging(false); }
   };
 
   return (
@@ -63,13 +67,13 @@ export function RecruitmentList() {
                       編集
                     </ButtonLink>
                   )}
-                  {c.status === "draft" && <Button onClick={() => change(c, "open")}>公開する</Button>}
+                  {c.status === "draft" && <Button disabled={changing} onClick={() => change(c, "open")}>公開する</Button>}
                   {c.status === "open" && (
                     <>
-                      <Link href={`/ads/portal/call?id=${c.id}`} className="self-center px-2 text-sm text-brand underline">
+                      {source === "mock" && <Link href={`/ads/portal/call?id=${c.id}`} className="self-center px-2 text-sm text-brand underline">
                         ポータルで見る
-                      </Link>
-                      <Button variant="danger" onClick={() => change(c, "closed")}>
+                      </Link>}
+                      <Button variant="danger" disabled={changing} onClick={() => change(c, "closed")}>
                         募集を終了
                       </Button>
                     </>

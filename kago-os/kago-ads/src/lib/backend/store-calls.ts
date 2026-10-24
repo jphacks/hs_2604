@@ -46,6 +46,7 @@ export function createSupabaseStoreCallsRepository(client: PortalClient): StoreC
   }
   async function current(session: Session, id: string) {
     const storeId = await storeOf(session);
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return undefined;
     const { data, error } = await client.from("ad_calls").select(columns).eq("store_id", storeId).eq("id", id).maybeSingle();
     if (error) throw storeCallError(error);
     return data ? mapAdCall(data as AdCallRow) : undefined;
