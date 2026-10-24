@@ -1,7 +1,7 @@
 import { BackendError, getBackendIdentity, toBackendError, type createHeadlessBackend } from "@kago/backend";
 
 type Client = ReturnType<typeof createHeadlessBackend>;
-export type ShoppingStore = { id: string; slug: string; name: string; branch_name: string };
+export type ShoppingStore = { id: string; slug: string; name: string; branch_name: string | null };
 export type ShoppingVisit = { id: string; store_id: string; cart_version: number; started_at: string };
 export type ShoppingLine = { productId: string; code: string; name: string; category: string; price: number; quantity: number };
 export type ShoppingContext = {
@@ -26,7 +26,7 @@ export async function loadShoppingContext(client: Client, selectedVisit: unknown
   try {
     const [storesResult, visitsResult] = await Promise.all([
       client.from("stores").select("id,slug,name,branch_name").order("name"),
-      client.from("visits").select("id,store_id,cart_version,started_at").eq("user_id", userId).eq("status", "active"),
+      client.from("visits").select("id,store_id,cart_version,started_at").eq("user_id", userId).eq("status", "active").order("started_at", { ascending: false }),
     ]);
     if (storesResult.error) throw storesResult.error;
     if (visitsResult.error) throw visitsResult.error;
@@ -61,7 +61,8 @@ export async function startShoppingVisit(client: Client, input: { storeId: strin
   await getBackendIdentity(client, "customer");
   if (!isUuid(input.storeId) || (input.previousVisitId !== null && !isUuid(input.previousVisitId))) throw new BackendError("forbidden");
   try {
-    // DB-03/06 contract: atomic resume/start, auth.uid(), active-visit uniqueness.
+    // APP-01's invoker-rights function uses the DB-02/03 schema. DB-06 must
+    // permit its table operations; do not replace this with admin credentials.
     const result = await client.rpc("app_start_visit", {
       p_store_id: input.storeId,
       p_start_new: input.startNew,
