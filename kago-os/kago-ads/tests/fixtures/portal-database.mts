@@ -10,6 +10,9 @@ export const users = [
   { n: 105, email: "customer@example.test", role: "customer" },
   { n: 106, email: "device-one@example.test", role: "signage" },
   { n: 107, email: "device-two@example.test", role: "signage" },
+  { n: 108, email: "store-no-membership@example.test", role: "store_staff" },
+  { n: 109, email: "store-two@example.test", role: "store_staff" },
+  { n: 110, email: "store-multi@example.test", role: "store_staff" },
 ];
 export type FixtureUser = typeof users[number];
 export function authUser(user: FixtureUser) {
@@ -27,6 +30,7 @@ export function token(user: FixtureUser) {
 }
 const columns: Record<string, string[]> = {
   maker_members: ["maker_id", "user_id"],
+  store_members: ["store_id", "user_id"],
   stores: ["id", "slug", "name", "branch_name", "timezone"],
   products: ["id", "category"],
   ad_calls: ["id", "store_id", "title", "description", "categories", "channels", "starts_at", "ends_at", "status", "disclosure_scope", "created_at", "updated_at"],
@@ -37,6 +41,13 @@ export async function createPortalDatabase() {
   const db = new PGlite();
   await db.exec(`
     create role anon; create role authenticated; create role service_role bypassrls;
+    -- Supabase Storage bootstrap; bucket policies come from the formal migration.
+    create schema storage;
+    create table storage.buckets(id text primary key,name text,public boolean default false,file_size_limit bigint,allowed_mime_types text[]);
+    create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text references storage.buckets(id),name text not null,metadata jsonb default '{}',unique(bucket_id,name));
+    alter table storage.objects enable row level security;
+    grant usage on schema storage to anon,authenticated,service_role;
+    grant select,insert,update,delete on storage.objects to authenticated,service_role;
     create schema auth; create table auth.users(id uuid primary key, email text);
     grant usage on schema auth to anon,authenticated,service_role;
     create function auth.jwt() returns jsonb language sql stable as $$
@@ -54,7 +65,7 @@ export async function createPortalDatabase() {
     insert into makers(id,slug,display_name,is_fictional) values
       ('${id(11)}','maker-one','架空メーカー1',true),('${id(12)}','maker-two','架空メーカー2',true);
     insert into maker_members(maker_id,user_id) values ('${id(11)}','${id(101)}'),('${id(12)}','${id(102)}');
-    insert into store_members(store_id,user_id) values ('${id(1)}','${id(104)}');
+    insert into store_members(store_id,user_id) values ('${id(1)}','${id(104)}'),('${id(2)}','${id(109)}'),('${id(1)}','${id(110)}'),('${id(2)}','${id(110)}');
     insert into products(id,code,name,category) values
       ('${id(21)}','2900000000001','架空のパン','パン'),('${id(22)}','2900000000002','架空のパスタ','食品');
     insert into store_products(store_id,product_id,price) values
@@ -74,13 +85,15 @@ export async function createPortalDatabase() {
       ('${id(62)}','${id(31)}','${id(1)}','${id(12)}','${id(52)}','${id(54)}',array['app'],'[2099-01-01,2099-02-01)');
   `);
   let queue: Promise<unknown> = Promise.resolve();
-  function asUser<T>(user: FixtureUser, query: () => Promise<T>): Promise<T> {
+  function asUser<T>(user: FixtureUser, query: () => Promise<T>, persist = false): Promise<T> {
     const pending = queue.then(async () => {
       await db.exec("begin; set local role authenticated");
       try {
         await db.query("select set_config('request.jwt.claims',$1,true)", [JSON.stringify({ sub: id(user.n), app_metadata: { kago: { roles: [user.role] } } })]);
-        return await query();
-      } finally { await db.exec("rollback"); }
+        const value = await query();
+        await db.exec(persist ? "commit" : "rollback");
+        return value;
+      } catch (error) { await db.exec("rollback"); throw error; }
     });
     queue = pending.catch(() => undefined);
     return pending;
@@ -104,12 +117,12 @@ export async function createPortalDatabase() {
     if (url.pathname.endsWith("/logout")) return json({});
     if (!user || expired.has(id(user.n))) return json({ code: "session_not_found" }, 401);
     if (url.pathname.endsWith("/user")) return json(authUser(user));
-    if (method !== "GET" || !url.pathname.startsWith("/rest/v1/")) return json({ code: "42501" }, 403);
+    if (!["GET", "POST", "PATCH"].includes(method) || !url.pathname.startsWith("/rest/v1/")) return json({ code: "42501" }, 403);
     const table = url.pathname.split("/").pop()!;
     if (!columns[table]) return json({ code: "42P01" }, 404);
     const allowed = (name: string) => { if (!columns[table].includes(name)) throw new Error("Unexpected query column"); return name; };
     const select = (url.searchParams.get("select") ?? "").split(",").map(allowed).join(",");
-    const params: string[] = [];
+    const params: unknown[] = [];
     const where: string[] = [];
     for (const [key, value] of url.searchParams) {
       if (["select", "order", "limit", "offset"].includes(key)) continue;
@@ -130,9 +143,19 @@ export async function createPortalDatabase() {
       return allowed(col) + (dir === "desc" ? " desc" : " asc");
     }).join(",");
     try {
-      const rows = await asUser(user, async () => (await db.query(
-        "select " + select + " from " + table + (where.length ? " where " + where.join(" and ") : "") + (order ? " order by " + order : ""), params)).rows);
-      return json(rows);
+      let sql = "select " + select + " from " + table + (where.length ? " where " + where.join(" and ") : "") + (order ? " order by " + order : "");
+      if (method !== "GET") {
+        if (table !== "ad_calls") return json({ code: "42501" }, 403);
+        const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+        const keys = Object.keys(body).map(allowed);
+        const placeholders = keys.map((key) => { params.push(body[key]); return "$" + params.length; });
+        sql = method === "POST"
+          ? "insert into ad_calls (" + keys.join(",") + ") values (" + placeholders.join(",") + ") returning " + select
+          : "update ad_calls set " + keys.map((key, i) => key + "=" + placeholders[i]).join(",")
+            + (where.length ? " where " + where.join(" and ") : "") + " returning " + select;
+      }
+      const rows = await asUser(user, async () => (await db.query(sql, params)).rows, method !== "GET");
+      return json(headers.get("accept")?.includes("vnd.pgrst.object") ? rows[0] ?? null : rows, method === "POST" ? 201 : 200);
     } catch (error) { return json({ code: (error as { code: string }).code, message: "fixture database rejected query" }, 400); }
   };
   return { db, asUser, fetcher, expired, requests, close: () => db.close() };
