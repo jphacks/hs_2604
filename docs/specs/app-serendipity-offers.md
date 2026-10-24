@@ -73,4 +73,4 @@ Node.js 22で`pnpm test:offers`（SQL統合9件・選定5件）と`pnpm test:off
 
 画面記録（架空データ・390px幅）：[お得の表示](../images/app13-offers-mobile.png)、[クーポン詳細](../images/app13-coupon-dialog-mobile.png)、[割引後のかご](../images/app13-cart-discount-mobile.png)。
 
-共有Supabaseへのmigration適用、公開Vercelでの確認、購入確定画面（APP-09）からの確認は未実施。
+APP-09で、割引後総額・明細割引が購入確認／完了画面と一致すること、受け取り済みセールの終了後購入、セットの片方を削除した後の割引解除をローカル検証した。[疑似購入の接続契約と画面記録](app-checkout-contract.md)を参照。共有Supabase・公開Vercelでの確認は別途必要。

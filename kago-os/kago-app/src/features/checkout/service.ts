@@ -44,7 +44,14 @@ export async function loadCheckout(client: Client, selectedVisit: unknown): Prom
   if (!visit) throw new CheckoutError("forbidden",403);
   if (visit.status === "completed") return {userId,state:"complete",receipt:await receipt(client,userId,visit.id)};
   if (visit.status !== "active") return {userId,state:"no_visit"};
-  const cart = await readCart(client,visit.id);
+  let cart;
+  try {cart=await readCart(client,visit.id);}
+  catch(error) {
+    const detail=error as {code?:string;details?:string};
+    // Another tab may have completed the visit between checking it and reading its cart.
+    if(detail.code==="P0001"&&detail.details==="visit_ended") return {userId,state:"complete",receipt:await receipt(client,userId,visit.id)};
+    throw error;
+  }
   const subtotal = cart.cart.reduce((sum,line)=>sum+line.price*line.quantity,0), discountTotal=cart.discountTotal??0;
   return {userId,state:"review",quote:{userId,visitId:visit.id,storeId:visit.store_id,storeName:await storeName(client,visit.store_id),
     cartVersion:cart.visit.cart_version,lines:cart.cart,subtotal,discountTotal,total:subtotal-discountTotal,

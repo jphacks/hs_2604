@@ -5,8 +5,9 @@ import { createCartDatabase, id } from "./cart-database.mts";
 import { seedAccountHistory } from "./account-history.mts";
 import { seedOffers } from "./offers.mts";
 
-export async function createCartBackend({ accountHistory = false, offers = false } = {}) {
+export async function createCartBackend({ accountHistory = false, offers = false, demoUsers = false } = {}) {
   const database = await createCartDatabase();
+  if(demoUsers) await database.db.query("insert into auth.users(id,email) values ($1,'yui.suzuki@example.test')",[id(6)]);
   if (accountHistory) await seedAccountHistory(database);
   if (offers) await seedOffers(database);
   const revoked = new Set<string>();
@@ -20,7 +21,8 @@ export async function createCartBackend({ accountHistory = false, offers = false
       const chunks: Buffer[]=[];for await(const chunk of req)chunks.push(chunk);
       const body=chunks.length?JSON.parse(Buffer.concat(chunks).toString()):{};
       if(url.pathname.endsWith("/token")) {
-        const n=/^user([345])@example\.test$/.exec(body.email ?? "")?.[1];
+        const demo:Record<string,string>={"misaki.sato@example.test":"3","ken.tanaka@example.test":"4","yui.suzuki@example.test":"6"};
+        const n=/^user([345])@example\.test$/.exec(body.email ?? "")?.[1]??(demoUsers?demo[body.email]:undefined);
         if(!n || body.password!=="fixture-password")return send({code:"invalid_credentials",msg:"Invalid test credentials"},400);
         const token=[{alg:"HS256",typ:"JWT"},{sub:id(Number(n)),jti:randomUUID(),exp:Math.floor(Date.now()/1000)+3600}].map(v=>Buffer.from(JSON.stringify(v)).toString("base64url")).join(".")+".fixture";
         return send({access_token:token,refresh_token:randomUUID(),expires_in:3600,token_type:"bearer",user:user(Number(n))});

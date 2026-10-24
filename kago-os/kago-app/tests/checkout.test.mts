@@ -102,6 +102,15 @@ test("a receipt-read failure after DB commit is recoverable by reading or replay
   const again=await confirmCheckout(c,op);assert(again.state==="complete");assert.equal(again.replayed,true);assert.equal(await orders(visit),1);
 });
 
+test("a concurrent checkout between visit lookup and cart read resolves to the completed receipt",async()=>{
+  const visit=await fresh();await set(visit,id(20),1,0);const op=intent(await quote(visit));let raced=false;
+  const c=await client(3,async(input,init)=>{
+    if(!raced&&new URL(String(input)).pathname.endsWith("/app_get_cart")){raced=true;await confirmCheckout(a,op);}
+    return fetch(input,init);
+  });
+  const result=await loadCheckout(c,visit);assert(raced);assert(result.state==="complete");assert.equal(await orders(visit),1);
+});
+
 test("empty/unavailable carts, another customer's visit, altered retry keys and invalid intents cannot buy",async()=>{
   const visit=await fresh();let q=await quote(visit);assert.equal(q.canCheckout,false);await assert.rejects(confirmCheckout(a,intent(q)),rejected("checkout_unavailable"));
   await set(visit,id(20),1,0);q=await quote(visit);const op=intent(q);
