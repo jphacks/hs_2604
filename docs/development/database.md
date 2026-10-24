@@ -276,3 +276,47 @@ Supabaseからは`client.rpc("kago_checkout", {...})`で呼ぶ。利用者IDは�
 - 実PostgreSQLの別接続で、同じ購入要求IDを3件同時に送ると注文1件（1件が作成、2件が再送扱い）になった。同じ来店へ別IDを2件同時に送ると、注文1件と23505になった。
 - PostgreSQL 16ではON DELETE RESTRICTの違反が23503、17では23001になるため、`db02`〜`db04`の期待値をサーバーのバージョンで切り替えた。
 - 実Supabaseでの適用、Appからの呼出し（APP-09）は未検証。
+
+## DB-08：広告の承認・却下・停止と有効な版の切替
+
+DB-07の後に`20261024090000_ad_approval.sql`を適用する。店舗担当が本人のセッションから呼ぶ所有者権限の関数3つと、操作履歴の表`ad_operation_logs`を追加する。
+
+```sh
+# kago-os/kago-core/から、所有者権限の破棄可能な検証DBに対して実行
+psql -X -v ON_ERROR_STOP=1 -f supabase/tests/db08.sql
+```
+
+成功時は`DB-08: all assertions passed; rolling back fixtures`を返す。
+
+### 呼出し契約（INS-01）
+
+| 関数 | 引数 | 戻り値 |
+| --- | --- | --- |
+| `kago_approve_application` | `p_application_id`、`p_expected_revision`（画面に表示した申請の回）、`p_starts_at`・`p_ends_at`（省略時は希望期間）、`p_channels`（省略時は申請の媒体。絞込みのみ可） | `placement_id, revision, replayed` |
+| `kago_reject_application` | `p_application_id`、`p_expected_revision`、`p_reason`（必須・200字以内） | `revision, replayed` |
+| `kago_suspend_placement` | `p_placement_id`、`p_reason`（必須・200字以内） | `placement_id, replayed` |
+
+Supabaseからは`client.rpc("kago_approve_application", {...})`などで呼ぶ。操作者は`auth.uid()`で、申請・配信対象の店舗の`store_members`に所属する`store_staff`だけが実行できる。Insightの仮データ層`approveApplication(applicationId, {starts_at, ends_at})`・`rejectApplication(applicationId, reason)`・`suspendPlacement(placementId, reason)`は、申請の回（`revision`）を加えてそのまま対応する。
+
+| 状況 | 結果 |
+| --- | --- |
+| 承認 | 申請を`approved`にし、同じ申請の旧`active`配信対象を`superseded`にして、新しい回の配信対象を`active`で作る。審査履歴・操作履歴（`supersede`→`approve`）も同時に保存する |
+| 却下 | 申請を`rejected`にし、理由と審査者を残す。承認済みの前の回の配信は続く |
+| 停止 | 配信対象を`suspended`にし、理由・停止者・時刻を残す。再開は再申請と承認で行う |
+| 同じ操作の再送（同じ回・期間・媒体、または同じ理由） | 同じ結果を返す（`replayed = true`）。履歴は増えない |
+| 審査済みの回に別の判断・内容 | 23505 |
+| 画面表示後にメーカーが再申請した | 40001・detail `revision_changed`。再読込して新しい回を審査する |
+| 期間が希望期間外、媒体が申請外、商品が取扱停止、停止済み・置換済みの配信の停止 | 23514 |
+| 他店の担当・メーカー・所属のない担当・未ログイン | 42501 |
+| 理由なし・201字以上・引数欠落 | 22023 |
+
+同じ申請への操作は申請行のロックで直列化する（停止も申請→配信対象の順にロックし、承認と同時でもデッドロックしない）。途中で失敗した場合は申請・審査履歴・配信対象・操作履歴のどれも変わらない。
+
+`ad_operation_logs`は追記のみで、自店の担当と申請したメーカーが読める。どの利用者も直接書き込めない。
+
+### DB-08の検証記録（2026-10-24）
+
+- PGlite 0.5.11と実PostgreSQL 16.15で全migrationを適用し、`db02.sql`〜`db08.sql`を各2回成功した。
+- `db08.sql`：他店担当・メーカー・所属のない担当・未ログインを拒否した。範囲外の期間・媒体では申請が未審査のまま残った。承認と再送、第2版の承認による第1版の置換、第3版の承認途中の失敗（操作履歴の書込みで失敗させ、申請・配信・履歴が変わらないこと）を確認した。却下でも前の回の配信が続き、停止と再送、履歴の改ざん拒否も確認した。全過程で申請ごとの`active`は1件以下。
+- 実PostgreSQLの別接続で、2人の担当が同じ回を同時に承認すると配信対象1件（作成1・再送1）、操作履歴1件だった。新しい回の承認と旧配信の停止を同時に行うと、承認が先に確定して旧配信は`superseded`、停止は23514になった。どちらも`active`は1件で、デッドロックはなかった。
+- 実Supabaseへの適用、Insight画面からの呼出しは未検証。
