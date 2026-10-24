@@ -49,9 +49,12 @@ export async function createCartDatabase() {
       app_list_offers: "select app_list_offers($1::uuid) as value",
       app_claim_offer: "select app_claim_offer($1::uuid,$2::uuid,$3::uuid,$4::integer) as value",
       app_record_offer_event: "select app_record_offer_event($1::uuid,$2::uuid,$3::uuid,$4::text)::text as value",
+      app_selection_candidates: "select app_selection_candidates($1::uuid) as value",
+      kago_save_selection: "select to_jsonb(kago_save_selection($1::uuid,$2::integer,$3::integer,$4::jsonb,$5::uuid)) as value",
     };
     if (!functions[name]) throw new Error("Unexpected RPC");
-    const values = name === "app_lookup_product" && args.length === 4 ? [...args, null] : args;
+    const values = name === "app_lookup_product" && args.length === 4 ? [...args, null]
+      : name === "kago_save_selection" ? args.map((a, i) => i === 3 ? JSON.stringify(a) : a) : args;
     return as(user, async () => (await db.query<{value: unknown}>(functions[name], values)).rows[0].value, role);
   }
   return { db, as, rpc };
