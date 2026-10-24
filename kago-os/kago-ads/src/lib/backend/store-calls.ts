@@ -1,8 +1,8 @@
 import { BackendError, getBackendIdentity } from "@kago/backend";
-import { ValidationError, type AdCallInput, type AdsRepository } from "../data/repository";
-import { validateAdCall } from "../domain/rules";
-import { CHANNELS, DISCLOSURE_METRICS, type AdCall, type AdCallStatus, type Session } from "../domain/types";
-import { mapAdCall, portalError, type AdCallRow, type PortalClient } from "./portal";
+import { ValidationError, type AdCallInput, type AdsRepository } from "../data/repository.ts";
+import { validateAdCall } from "../domain/rules.ts";
+import { CHANNELS, DISCLOSURE_METRICS, type AdCall, type AdCallStatus, type Session } from "../domain/types.ts";
+import { mapAdCall, portalError, type AdCallRow, type PortalClient } from "./portal.ts";
 
 export type StoreIdentity = { userId: string; storeIds: string[] };
 export type StoreCallsRepository = Pick<AdsRepository, "listCategories" | "getAdCall" | "listMyAdCalls"> & {

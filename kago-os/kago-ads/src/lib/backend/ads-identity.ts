@@ -1,7 +1,7 @@
 import { BackendError, getBackendIdentity } from "@kago/backend";
-import { mapStore, portalError, requireMaker, type MakerIdentity, type PortalClient, type StoreRow } from "./portal";
-import { requireStore, type StoreIdentity } from "./store-calls";
-import type { Store } from "../domain/types";
+import { mapStore, portalError, requireMaker, type MakerIdentity, type PortalClient, type StoreRow } from "./portal.ts";
+import { requireStore, type StoreIdentity } from "./store-calls.ts";
+import type { Store } from "../domain/types.ts";
 
 export type AdsRole = "maker_staff" | "store_staff";
 export type AdsIdentity = (MakerIdentity & { role: "maker_staff" })
