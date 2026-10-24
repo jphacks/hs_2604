@@ -44,6 +44,8 @@ export async function createCartBackend({ accountHistory = false, offers = false
           app_list_offers:["p_visit_id"],
           app_claim_offer:["p_visit_id","p_request_id","p_offer_id","p_expected_cart_version"],
           app_record_offer_event:["p_visit_id","p_event_id","p_offer_id","p_event_type"],
+          app_selection_candidates:["p_visit_id"],
+          kago_save_selection:["p_visit_id","p_cart_version","p_rule_version","p_items","p_selection_id"],
         };
         if(!params[name])throw Error("Unknown RPC");
         return send(await database.rpc(name,params[name].map(p=>body[p]??null),n,n===5?"maker_staff":"customer"));
@@ -70,6 +72,7 @@ export async function createCartBackend({ accountHistory = false, offers = false
             and ($4::timestamptz is null or (o.ordered_at,o.id)<($4::timestamptz,$5::uuid))
             order by o.ordered_at desc,o.id desc limit $6`,[url.searchParams.get("user_id")?.slice(3),url.searchParams.get("store_id")?.slice(3),url.searchParams.get("ordered_at")?.slice(3),match?.[1]??null,match?.[3]??null,Number(url.searchParams.get("limit")??11)])).rows;
         }
+        if(name==="selection_items")return (await database.db.query("select id,slot,product_id from selection_items where selection_id=$1 order by slot",[url.searchParams.get("selection_id")?.slice(3)])).rows;
         if(name==="cart_items")return (await database.db.query("select product_id,quantity from cart_items where visit_id=$1",[url.searchParams.get("visit_id")?.slice(3)])).rows;
         if(name==="products")return (await database.db.query("select id,code,name,category from products")).rows;
         if(name==="store_products")return (await database.db.query("select product_id,price from store_products where store_id=$1",[url.searchParams.get("store_id")?.slice(3)])).rows;

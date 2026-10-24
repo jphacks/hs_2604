@@ -1,6 +1,6 @@
 # KAGO/OS GitHub運用ルール【決定版】
 
-更新日：2026-10-21
+更新日：2026-10-24
 
 対象：KAGO/OSの開発メンバー・AIエージェント
 
@@ -204,7 +204,192 @@ git switch main
 git pull --ff-only origin main
 ```
 
-## 8. AIエージェントの作業原則
+## 8. Vercelのデプロイ制限中の運用
+
+Hack Day中の頻繁なPush・PR作成により、VercelのDeployment Rate Limitに到達し、Preview Deploymentを一時的に作成できない場合があります。GitHub上で以下のように表示される場合があります。
+
+```text
+Vercel — Deployment rate limited — retry in 24 hours.
+This branch has not been deployed.
+```
+
+これは必ずしもアプリのビルドやコードに問題があることを意味しません。Vercelのデプロイ制限中は、Preview Deploymentを動作確認の必須条件とせず、各担当者・レビュワーがローカル環境で確認します。ただし、Vercel以外のテスト・型検査・lint・ビルドの失敗を無視してよいという意味ではありません。
+
+### デプロイ制限中の基本方針
+
+- 実装中の動作確認は原則ローカルで行う。
+- Vercel Previewを作るためだけの不要なPush・空コミットは行わない。
+- VercelのRate Limitのみが失敗している場合は、PR本文にその旨を記録する。
+- 関連するローカルテスト・型検査・lint・ビルドを実行する。
+- UI変更は実際にローカル画面を開いて確認する。
+- 確認した担当者は、確認方法と結果をPRへ記載する。
+- Vercel以外のCIやテストが失敗している場合は通常どおり修正する。
+- Vercelが復旧した後、デモ・公開に使用するmainのDeploymentを改めて確認する。
+
+### 初回のローカル環境準備
+
+Appのローカル確認にはNode.js 22系（22.13以上23未満）とpnpm 11.19.0を使用します。リポジトリを取得した後、Appディレクトリへ移動します。
+
+```bash
+git clone https://github.com/jphacks/hs_2604.git
+cd hs_2604/kago-os/kago-app
+pnpm install --frozen-lockfile
+```
+
+すでにclone済みの場合、再度cloneする必要はありません。
+
+認証・共有DBを使用するAppを確認する場合は、初回のみ以下を実行します。
+
+```bash
+cp .env.example .env.local
+```
+
+`.env.local`へ、チームで使用している共有Supabaseの以下の値を設定します。
+
+```text
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...
+```
+
+接続値はGit、Issue、PR、チャット等の公開場所へ記載しません。秘密キー・`service_role`キーは通常のApp起動には使用しません。詳細は[docs/development/backend.md](docs/development/backend.md)を参照してください。
+
+### 自分の作業ブランチをローカルで確認する
+
+まず最新のリモート情報を取得します。
+
+```bash
+cd hs_2604
+git fetch origin
+git status --short --branch
+```
+
+自分の作業ブランチへ移動します。
+
+```bash
+git switch <ブランチ名>
+git pull --ff-only origin <ブランチ名>
+```
+
+その後Appを起動します。
+
+```bash
+cd kago-os/kago-app
+pnpm install --frozen-lockfile
+pnpm dev
+```
+
+ブラウザで`http://localhost:3000/App`を開きます。LPのみ確認する場合は`http://localhost:3000/`です。
+
+### 他のメンバーのPRをローカルで確認する
+
+確認したいPRのブランチを取得します。
+
+```bash
+git fetch origin
+```
+
+すでにローカルにブランチがある場合：
+
+```bash
+git switch <ブランチ名>
+git pull --ff-only origin <ブランチ名>
+```
+
+ローカルにまだない場合：
+
+```bash
+git switch -c <ブランチ名> --track origin/<ブランチ名>
+```
+
+その後、以下で起動し、対象機能を操作して確認します。
+
+```bash
+cd kago-os/kago-app
+pnpm install --frozen-lockfile
+pnpm dev
+```
+
+レビュー後は、自分の作業へ戻る前に未コミット差分がないことを確認してください。他の担当者の変更を無断で修正・破棄しません。
+
+```bash
+git status --short
+```
+
+### 最低限実行する確認
+
+Appを変更した場合は、変更内容に応じた機能テストに加えて、原則として以下を確認します。
+
+```bash
+pnpm lint
+pnpm exec next typegen
+pnpm exec tsc --noEmit
+pnpm build
+```
+
+機能ごとのテストが用意されている場合は、それも実行します。例：
+
+```bash
+# かご
+pnpm test:cart
+
+# 購入履歴
+pnpm test:account
+
+# セレンディピティ販促
+pnpm test:offers
+
+# セレンディピティ販促のブラウザ確認
+pnpm test:offers:e2e
+
+# 推薦
+pnpm test:selection
+```
+
+すべてを毎回無条件に実行する必要はありません。変更した機能と影響範囲に応じて選択します。ただし、実行していないテストを「成功」と記載してはいけません。
+
+### UI変更の確認
+
+UIを変更したPRでは、テスト成功だけで完了とせず、ローカルのブラウザでも実際の画面を確認します。最低限、以下を確認します。
+
+- 対象画面を開ける。
+- 変更した操作を実際に行える。
+- エラーが画面に残っていない。
+- スマートフォン向け画面の場合は狭い画面幅でも崩れていない。
+- DBを変更する機能の場合は、画面だけでなく保存・再読込後の状態も確認する。
+
+必要に応じてスクリーンショットをPRへ添付します。
+
+### Vercelが失敗しているPRの記載例
+
+VercelのRate Limitだけが原因でPreviewを作成できない場合は、PRの「確認方法・結果」に以下のように記載します。
+
+```markdown
+## 確認方法・結果
+
+- ローカルで対象機能を操作し、期待どおり動作することを確認
+- `pnpm lint`：成功
+- `pnpm exec tsc --noEmit`：成功
+- `pnpm build`：成功
+- 関連する機能テスト：成功
+- Vercel Preview：未確認
+  - `Deployment rate limited — retry in 24 hours` のためDeploymentを作成できない
+  - コード・ビルドの失敗としては扱わず、Vercel復旧後に公開環境を確認する
+```
+
+### マージ時の扱い
+
+VercelのRate Limitだけが失敗している場合は、以下をすべて満たしたうえでレビュー・マージ判断を行います。
+
+- Vercel以外の必要なチェックに問題がない。
+- ローカルビルドが成功している。
+- 変更した機能を担当者がローカルで確認している。
+- 確認方法と結果がPRに記録されている。
+- 別の人間のメンバーによるApproveを取得している。
+- Vercelが未確認であることをPRに明記している。
+
+Rate Limit以外の理由でVercelが失敗している場合は、この例外を適用しません。また、最終的にデモ・発表で使用するmainについては、Vercelの制限解除後に公開環境で改めて動作確認します。
+
+## 9. AIエージェントの作業原則
 
 - 作業前にIssue、Assignee、対象ブランチ、未コミット差分を確認する。
 - Issueの範囲の実装・検証・コミット・Push・PR作成を進め、レビュー待ちを人間へ伝える。
@@ -212,7 +397,7 @@ git pull --ff-only origin main
 - APIキー、`.env`の値、個人情報、非公開の内部資料を公開リポジトリやIssue・PRへ掲載しない。内部資料はOneDrive側で管理する。
 - 確認していない項目や人間の承認を、完了したことにしない。結果と未確認事項を分けて報告する。
 
-## 9. GitHub設定で補助すること
+## 10. GitHub設定で補助すること
 
 以下はチームで設定を確認・整備する項目です。本書を保存しただけではGitHubの設定は変わりません。
 
@@ -223,7 +408,7 @@ git pull --ff-only origin main
 
 設定はリポジトリの権限・プランで利用できる範囲を確認します。設定による強制ができない項目も、本書のチームルールを守ります。
 
-## 10. 提案と既存ルールの比較・採用理由
+## 11. 提案と既存ルールの比較・採用理由
 
 **今回提示された案を基本として採用し、既存ルールのKAGO/OS固有の記録方法を統合しました。**
 
@@ -238,7 +423,7 @@ git pull --ff-only origin main
 | AIによる作業 | 担当者の確認と別メンバーの承認を維持。AIの自己申告を承認とみなさない |
 | ラベル・Project・検証 | 未導入の仕組みを前提にせず、存在する設定と変更内容に応じて運用 |
 
-## 11. 最終チェック
+## 12. 最終チェック
 
 - [ ] 作業前：Issue・Assignee・完了条件・フェーズを確認した。
 - [ ] 作業前：既存差分を保持し、最新mainからIssue番号付きブランチを作った。

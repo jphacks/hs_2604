@@ -6,7 +6,7 @@ import { cartMessages, type CartLine, type CartSnapshot, type PendingCart, type 
 
 type CartContextValue = {
   lines: CartLine[]; itemCount: number; subtotal: number; discountTotal: number; total: number;
-  claimedOfferIds: string[]; canEdit: boolean; busy: boolean;
+  claimedOfferIds: string[]; loaded: boolean; canEdit: boolean; busy: boolean;
   version: number; message: string; error: boolean; pending: boolean;
   addProduct: (product: StoreProduct) => void; scan: (code: string) => void;
   scanFailed: (reason: string) => void;
@@ -146,7 +146,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const subtotal = lines.reduce((n, l) => n + l.quantity * l.price, 0);
   const discountTotal = snapshot?.discountTotal ?? 0;
   return <CartContext.Provider value={{ lines, itemCount: lines.reduce((n, l) => n + l.quantity, 0),
-    subtotal, discountTotal, total: subtotal - discountTotal, claimedOfferIds: snapshot?.claimedOfferIds ?? [],
+    subtotal, discountTotal, total: subtotal - discountTotal, claimedOfferIds: snapshot?.claimedOfferIds ?? [], loaded: !!snapshot,
     version: snapshot?.visit.cart_version ?? 0,
     canEdit: !!snapshot && !busy && !pending, busy, pending, message, error,
     addProduct: product => lookup({ productId: product.productId }), scan: code => lookup({ code }),

@@ -52,6 +52,16 @@ update auth.users u set raw_app_meta_data = coalesce(u.raw_app_meta_data, '{}'::
   where u.id = a.user_id and u.raw_app_meta_data -> 'kago' is null;
 
 -- Stores, products, prices --------------------------------------------------------------------
+do $$
+declare taken text;
+begin
+  select string_agg(s.slug || ' (' || s.name || ')', ', ') into taken from public.stores s
+    where (s.slug = 'hiroshima-demo-store' and s.id <> '0da7a001-0000-4000-8000-000000000001')
+       or (s.slug = 'hiroshima-station-demo-store' and s.id <> '0da7a001-0000-4000-8000-000000000002');
+  if taken is not null then
+    raise exception 'DATA-01: another store already uses the slug %; rename it first', taken;
+  end if;
+end$$;
 insert into public.stores(id, slug, name, branch_name, created_at) values
  ('0da7a001-0000-4000-8000-000000000001', 'hiroshima-demo-store', '広島デモ店', null, '2026-10-21T10:00:00+09'),
  ('0da7a001-0000-4000-8000-000000000002', 'hiroshima-station-demo-store', '広島デモ店', '駅前店', '2026-10-21T10:00:00+09')
@@ -82,8 +92,11 @@ insert into data01_products values
  (20, 'PLU-2001',      'お店のコロッケ 1個',      '惣菜',      98),
  (21, 'PLU-2002',      '若鶏の唐揚げ 100g',       '惣菜',     218),
  (22, 'PLU-3001',      '焼きたて塩パン 1個',      'パン',     130);
+-- A product already registered under the same code (e.g. by App or Ads before this seed) is reused
+-- as is, so its barcode, prices and creatives keep working. Otherwise the fixed id is used.
 create or replace function pg_temp.data01_product(p_code text) returns uuid language sql stable as $$
-  select ('0da7a002-0000-4000-8000-' || lpad(n::text, 12, '0'))::uuid from pg_temp.data01_products where code = p_code;
+  select coalesce((select id from public.products where code = p_code),
+    (select ('0da7a002-0000-4000-8000-' || lpad(n::text, 12, '0'))::uuid from pg_temp.data01_products where code = p_code));
 $$;
 create or replace function pg_temp.data01_user(p_key text) returns uuid language sql stable as $$
   select user_id from pg_temp.data01_accounts where key = p_key;
@@ -360,7 +373,7 @@ end$$;
 
 select 'DATA-01 seeded' as result,
   (select count(*) from public.stores where id::text like '0da7a001-%') as stores,
-  (select count(*) from public.products where id::text like '0da7a002-%') as products,
+  (select count(*) from public.products p join pg_temp.data01_products d on d.code = p.code) as products,
   (select count(*) from public.ad_calls where id::text like '0da7a005-%') as ad_calls,
   (select count(*) from public.ad_applications where id::text like '0da7a008-%') as applications,
   (select count(*) from public.orders where id::text like '0da7a00d-%') as seeded_orders;

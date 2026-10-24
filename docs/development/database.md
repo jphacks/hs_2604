@@ -426,6 +426,26 @@ psql -X -v ON_ERROR_STOP=1 -f supabase/tests/db09.sql
 
 残件：購入時の同時価格変更に対する追加修正[PR #77](https://github.com/jphacks/hs_2604/pull/77)、[画像保存と権限](ad-images.md)、各画面からの実操作・非0件集計の確認。未マージの修正や画像migrationは共有DBへ適用していません。
 
+### 夕方の追加操作（2026-10-24・hackday）
+
+管理者のSQL Editorで次を実行しました。各SQLはmainのファイルからコメントを除いて1行にまとめたもので、元のファイルと関数定義・権限が一致することをローカルのPGliteで確認し、入力内容が元と同じ文字数・チェックサムであることを確かめてから実行しています。
+
+| 操作 | 内容 | 確認結果 |
+| --- | --- | --- |
+| 既存店舗のslug変更 | `bab3b79d…`（KAGO デモストア）を`hiroshima-demo-store`から`kago-demo-store`へ。DATA-01のS1と衝突していたため | 1行更新。所属1・取扱1・来店2・端末1はIDで紐付くため影響なし |
+| [#99](https://github.com/jphacks/hs_2604/pull/99)の適用 | `20261024150000_promotion_save.sql` | 未ログインのRPCが`42501`（PGRST202ではない） |
+| [#86](https://github.com/jphacks/hs_2604/pull/86)の適用 | `20261024130000_product_sales.sql` | 同上 |
+| [#105](https://github.com/jphacks/hs_2604/pull/105)の適用 | `20261024160000_app_selection_candidates.sql` | 同上 |
+| API再読込・履歴登録 | `notify pgrst, 'reload schema'`。上の3件を`schema_migrations`へ、実行した1行のSQLを1文として登録 | 保存内容のmd5がローカルの計算値と一致 |
+| ADS01店舗担当 | `staff.ads01-hiroshima@example.test`に`store_staff`を設定し、`ad501000-…0001`（`ads01-hiroshima`）だけへ所属 | 役割・所属1件を読取で確認 |
+| DATA-01投入 | [#107](https://github.com/jphacks/hs_2604/pull/107)マージ後の`data01_demo.sql`。9アカウントは担当者が事前に作成 | `DATA-01 seeded`：店舗2・商品22・募集6・申請2・注文11。確定後に9アカウントの役割・所属・端末を読取で確認 |
+
+DATA-01は当初、9アカウントが未作成のため最初の確認で止まっていました。アカウント作成後も、店舗slugと商品コード`2900000000100`の衝突で取り消される状態だったため、slugは上の変更で、商品コードは#107（既存の同じコードの商品を再利用）で解消しました。スパゲッティ 500gは既存の商品IDのままで、固定ID（`0da7a002-…`）ではありません。
+
+これで`20261024020000`〜`20261024160000`の全migrationが適用・登録済みです（`110000`はapp_cartとcheckout_price_lockの2ファイルを1件の履歴で登録）。
+
+未確認：各アカウントでの実ログインと画面表示、ログイン状態でのRPC呼出し、広告画像（CR1第1・2版）のアップロード。投入前からログインしていたアカウントは、役割を反映するため再ログインが必要です。
+
 ## INS-08向け商品別販売集計（#84）
 
 `kago_product_sales(p_start,p_end,p_store_id,p_product_ids?,p_bucket?)`を追加します。自店の店舗担当だけに、注文・明細を正本とした商品別の販売数・金額をJSTの日別／時間別、由来別で返します。販売がない区間は行なしです。最初の注文日時を記録開始時刻とみなさず、比較可能な記録範囲が不明な場合は画面で比較不可とします。契約・呼出例・適用上の注意は[商品別販売集計ガイド](product-sales.md)を参照してください。
