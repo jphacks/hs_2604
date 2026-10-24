@@ -49,6 +49,11 @@ export type SignageReasonCode = "store_pick" | "approved_order" | "no_content" |
 export type FeedItem = {
   /** 再生の単位。メーカー広告は配信対象の ID、店舗販促は版の ID */
   key: string;
+  /**
+   * 版が変わっても同じもの（メーカー広告は申請、店舗販促は販促）。端末には停止中のものが見えないので（DB-06）、
+   * 一覧から消えたときに同じまとまりの新しい版があれば「更新」、なければ「停止」と判断する
+   */
+  group_key: string;
   placement_type: "sponsored" | "store_promo";
   ad_placement_id: string | null;
   promotion_version_id: string | null;
@@ -153,6 +158,7 @@ export function buildFeed(src: FeedSource, realNow: Date, clockOffsetMs = 0): Si
     }
     ads.push({
       key: p.id,
+      group_key: `application:${p.application_id}`,
       placement_type: "sponsored",
       ad_placement_id: p.id,
       promotion_version_id: null,
@@ -185,6 +191,7 @@ export function buildFeed(src: FeedSource, realNow: Date, clockOffsetMs = 0): Si
     }
     promos.push({
       key: sp.version_id,
+      group_key: `promotion:${sp.id}`,
       placement_type: "store_promo",
       ad_placement_id: null,
       promotion_version_id: sp.version_id,

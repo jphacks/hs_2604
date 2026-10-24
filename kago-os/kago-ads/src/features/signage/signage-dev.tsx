@@ -3,16 +3,39 @@
 // SIG-01〜03 の確認方法（期間外・停止・切断・再送）を、この画面と端末の画面（?debug=1）で試す
 import Link from "next/link";
 import { useEffect, useEffectEvent, useState } from "react";
+import { adsDataSource } from "@/lib/backend/config";
 import { getRepository } from "@/lib/data";
 import { addDays, dayEnd, dayStart, storeLabel, today } from "@/lib/domain/rules";
 import { PLAY_END_REASON_LABEL, type Product, type SignagePlay, type StorePromotion } from "@/lib/domain/types";
 import { hourOf } from "@/lib/signage/feed";
 import { isCountedPlay, playSeconds, playTarget, summarizePlays } from "@/lib/signage/plays";
 import { useSession } from "@/lib/session";
-import { Badge, Button, Card, ErrorList, Field, inputClass, Loading, NeedRole, PageTitle } from "@/components/parts";
+import { Badge, Button, Card, Empty, ErrorList, Field, inputClass, Loading, NeedRole, PageTitle } from "@/components/parts";
 import { errorMessages, useLoad } from "@/lib/use-load";
 
+/** この確認画面は仮データ版だけで使う（DB 版の販促の設定・集計は KAGO/Insight で行う） */
 export function SignageDev() {
+  let mock = false;
+  try {
+    mock = adsDataSource() === "mock";
+  } catch {
+    // 設定の誤りは DB 版として扱う
+  }
+  if (!mock) {
+    return (
+      <>
+        <PageTitle title="Signage の確認" />
+        <Empty>
+          この確認画面は仮データ版（NEXT_PUBLIC_ADS_DATA_SOURCE=mock）だけで使えます。DB 版では、店舗販促の設定・停止は KAGO/Insight、
+          広告の停止は Insight の審査、再生の集計は Insight の成果画面（DB-09 の集計）で確認します。
+        </Empty>
+      </>
+    );
+  }
+  return <MockSignageDev />;
+}
+
+function MockSignageDev() {
   const session = useSession();
   const { state, reload } = useLoad(async () => {
     if (session.role !== "store_staff") return null;
