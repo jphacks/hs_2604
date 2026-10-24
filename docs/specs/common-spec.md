@@ -11,7 +11,7 @@
 
 この仕様書は、各サービスの担当者が実装前に同じ前提を持つための取り決めです。テーブルの最終的な列名・型・制約はDB-01で確定し、この仕様書と食い違う場合はこの仕様書を先に更新してから実装します。
 
-参照元は[企画書](proposal.md)、[Issue一覧](../issues/issues.md)、[開発ガイド](../development.md)、既存の[商品データ](../../kago-os/kago-app/src/data/demo/products.json)・[架空利用者と履歴](../../kago-os/kago-app/src/data/demo/customer.json)・[履歴集計処理](../../kago-os/kago-app/src/features/recommendations/customer.ts)です。既存コードはブラウザ内の事前実装であり、本書のDB接続・広告・計測が実装済みという意味ではありません。
+参照元は[企画書](proposal.md)、[Issue一覧](../issues/issues.md)、[開発ガイド](../development.md)、既存の[商品データ](../../kago-os/kago-app/src/data/demo/products.json)・[計量品を含む商品定義](../../kago-os/kago-app/src/lib/products.ts)・[架空利用者と履歴](../../kago-os/kago-app/src/data/demo/customer.json)・[履歴集計処理](../../kago-os/kago-app/src/features/recommendations/customer.ts)です。既存コードはブラウザ内の事前実装であり、本書のDB接続・広告・計測が実装済みという意味ではありません。
 
 ## 目次
 
