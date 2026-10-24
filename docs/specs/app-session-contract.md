@@ -48,7 +48,7 @@ COM-02の共通Supabase認証を利用し、`/App`をログイン→店舗選択
 
 ## DB-02・DB-03を使う来店開始関数
 
-`kago-os/kago-core/supabase/migrations/20261024041000_app_start_visit.sql`で実装します。DB-03の直後に適用します。App側で複数回のINSERT／UPDATEへ分解しません。関数は`SECURITY INVOKER`で動き、DB-06のテーブル権限・RLSがない場合は拒否されます。関数と権限の組み合わせはDB担当のレビューが必要です。
+`kago-os/kago-core/supabase/migrations/20261024041000_app_start_visit.sql`で実装し、DB-03の直後に適用します。App側で複数回のINSERT／UPDATEへ分解しません。初期migrationでは`SECURITY INVOKER`ですが、DB-06の`20261024070000_access_policies.sql`で、本人・役割の検査を保った`SECURITY DEFINER`の書込み経路に変更されます。消費者には関数の実行だけを許可し、来店への直接INSERT／UPDATEは拒否します。Appから管理キーで接続することはありません。
 
 ```text
 app_start_visit(
@@ -108,9 +108,9 @@ E2Eはローカル限定の検証用Supabase HTTP応答とNext.jsの実API、Chr
 
 **DB担当の実装待ちのため、E2Eの成功を実DB・RLSの検証成功とは扱いません。** 上記の実DB確認が終わるまでAPP-01のIssueは完了・自動クローズにしません。
 
-`test:shopping:database`はPGliteへCOM-02→DB-02→DB-03→来店開始関数→DB-04→DB-05の実SQLを適用して検証します。DB-06相当の許可を一部ケースのトランザクション内だけで模擬し、ロールバックで取り消します。元の一般アクセス拒否が保たれることも別に確認します。Authの署名検証・DB-06の正式ポリシー・複数接続の同時実行の検証ではありません。
+`test:shopping:database`はPGliteへCOM-02→DB-02→DB-03→来店開始関数→DB-04→DB-05→DB-06の実SQLを適用して検証します。検証だけのGRANTやポリシーは追加せず、正式なDB-06の権限で、関数経由の来店開始と直接書込み拒否、本人だけのかご復元を確認します。DB-02〜DB-06付属の検証SQLも実行します。Authの署名検証・共有Supabaseへの適用確認・複数接続の同時実行の検証ではありません。
 
-DB-06適用後の残件は[2利用者の実接続確認手順](../development/app-session-check.md)に従い、`pnpm check:shopping`と実ブラウザで検証します。現在の作業場には実接続用環境ファイルがなく、実行先の設定待ちです。
+共有Supabaseでの残件は[2利用者の実接続確認手順](../development/app-session-check.md)に従い、`pnpm check:shopping`と実ブラウザで検証します。作業場にGit管理外の`.env.local`・`.env.shopping-check.local`の入力用ひな形を配置済みですが、接続先・検証用アカウント等の実値は未設定です。
 
 ### 2026-10-24の検証記録
 

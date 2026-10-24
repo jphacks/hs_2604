@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { after, afterEach, beforeEach, test } from "node:test";
+import { after, afterEach, before, beforeEach, test } from "node:test";
 import { PGlite } from "@electric-sql/pglite";
-import { createHeadlessBackend } from "@kago/backend";
+import { BackendError, createHeadlessBackend } from "@kago/backend";
 import { loadShoppingContext, startShoppingVisit } from "../src/features/shopping/service.ts";
 
-// Real SQL through DB-05 in a disposable PostgreSQL engine. Auth claims are simulated;
-// test-only policies below are rolled back and are NOT the DB-06 implementation.
+// Official SQL and RLS through DB-06 in a disposable PostgreSQL engine.
+// Auth claims are simulated; no grants or policies are added by this test.
 const db = new PGlite();
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const claims = (user = 3, role = "customer") => ({ sub: id(user), app_metadata: { kago: { roles: [role] } } });
@@ -25,10 +25,15 @@ await db.exec(`
     select (auth.jwt()->>'sub')::uuid
   $$;
 `);
-for (const file of ["20261024020000_connection_check.sql", "20261024030000_store_product_settings.sql", "20261024040000_visits_cart_orders.sql", "20261024041000_app_start_visit.sql", "20261024050000_ads_promotions.sql", "20261024060000_selections_events_signage.sql"]) {
+for (const file of ["20261024020000_connection_check.sql", "20261024030000_store_product_settings.sql", "20261024040000_visits_cart_orders.sql", "20261024041000_app_start_visit.sql", "20261024050000_ads_promotions.sql", "20261024060000_selections_events_signage.sql", "20261024070000_access_policies.sql"]) {
   await db.exec(await readFile(new URL(`../../kago-core/supabase/migrations/${file}`, import.meta.url), "utf8"));
 }
 after(() => db.close());
+before(async () => {
+  for (const file of ["db02.sql", "db03.sql", "db04.sql", "db05.sql", "db06.sql"]) {
+    await db.exec(await readFile(new URL(`../../kago-core/supabase/tests/${file}`, import.meta.url), "utf8"));
+  }
+});
 beforeEach(async () => {
   await db.exec("begin");
   await db.query("insert into auth.users(id,email) values ($1,'one@example.test'),($2,'two@example.test')", [id(3), id(4)]);
@@ -47,36 +52,75 @@ async function start(store = id(1), fresh = false, previous: string | null = nul
   const result = await db.query<{ id: string }>("select app_start_visit($1::uuid,$2::boolean,$3::uuid) as id", [store, fresh, previous]);
   return result.rows[0].id;
 }
-async function allowTestAccess() {
-  await db.exec(`
-    grant select on stores,products,store_products,visits,cart_items to authenticated;
-    grant insert on visits to authenticated;
-    grant update(status,ended_at,last_activity_at) on visits to authenticated;
-    create policy test_stores on stores for select to authenticated using (true);
-    create policy test_products on products for select to authenticated using (true);
-    create policy test_prices on store_products for select to authenticated using (true);
-    create policy test_visits on visits for all to authenticated
-      using (user_id=auth.uid()) with check (user_id=auth.uid());
-    create policy test_cart on cart_items for select to authenticated using (
-      exists(select 1 from visits where visits.id=cart_items.visit_id and visits.user_id=auth.uid())
-    );
-  `);
+
+// A single PGlite connection cannot carry two role contexts concurrently. Serialize
+// HTTP-adapter requests so Promise.all cannot accidentally execute as the owner.
+let requestQueue = Promise.resolve();
+async function customerRequest<T>(user: number, operation: () => Promise<T>): Promise<T> {
+  const previous = requestQueue;
+  let finish!: () => void;
+  requestQueue = new Promise<void>(resolve => { finish = resolve; });
+  await previous;
+  try {
+    await asUser(user);
+    await db.exec("savepoint transport_request");
+    try {
+      const result = await operation();
+      await db.exec("release savepoint transport_request");
+      return result;
+    } catch (error) {
+      await db.exec("rollback to transport_request; release savepoint transport_request");
+      throw error;
+    } finally { await owner(); }
+  } finally { finish(); }
 }
 
-test("all migrations apply; the function is invoker-rights and DB-06 denial is preserved", async () => {
+function databaseClient(userNumber = 3) {
+  const actor = claims(userNumber);
+  const user = { id:id(userNumber), aud:"authenticated", created_at:"2026-10-24T00:00:00Z",app_metadata:actor.app_metadata,user_metadata:{} };
+  const token = [{alg:"HS256",typ:"JWT"},{sub:id(userNumber),exp:Math.floor(Date.now()/1000)+3600}].map(p=>Buffer.from(JSON.stringify(p)).toString("base64url")).join(".")+".test";
+  return createHeadlessBackend({url:"https://test.supabase.co",publishableKey:"sb_publishable_test"},async(input,init)=>{
+    const url=new URL(String(input));
+    if(url.pathname.endsWith("/token"))return Response.json({access_token:token,refresh_token:"test-refresh",expires_in:3600,token_type:"bearer",user});
+    if(url.pathname.endsWith("/user"))return Response.json(user);
+    if(url.pathname.endsWith("/logout"))return new Response(null,{status:204});
+    try {
+      return await customerRequest(userNumber, async () => {
+        const table=url.pathname.split("/").at(-1);
+        if(table==="app_start_visit"){
+          const body=JSON.parse(String(init?.body));
+          return Response.json(await start(body.p_store_id,body.p_start_new,body.p_previous_visit_id));
+        }
+        if(table==="stores")return Response.json((await db.query("select id,slug,name,branch_name from stores order by name")).rows);
+        if(table==="visits")return Response.json((await db.query("select id,store_id,cart_version,started_at from visits where ($1::uuid is null or user_id=$1) and ($2::uuid is null or id=$2) and ($3::text is null or status=$3) order by started_at desc",[url.searchParams.get("user_id")?.slice(3)??null,url.searchParams.get("id")?.slice(3)??null,url.searchParams.get("status")?.slice(3)??null])).rows);
+        if(table==="cart_items")return Response.json((await db.query("select product_id,quantity from cart_items where visit_id=$1",[url.searchParams.get("visit_id")!.slice(3)])).rows);
+        if(table==="products")return Response.json((await db.query("select id,code,name,category from products")).rows);
+        if(table==="store_products")return Response.json((await db.query("select product_id,price from store_products where store_id=$1",[url.searchParams.get("store_id")!.slice(3)])).rows);
+        throw new Error("Unexpected endpoint");
+      });
+    } catch(error) {
+      return Response.json({code:(error as {code?:string}).code??"XX000",message:"DB request rejected"},{status:400});
+    }
+  });
+}
+test("official DB-06 permits visit RPC while denying direct lifecycle/cart writes", async () => {
   const functions = await db.query<{ prosecdef: boolean }>("select prosecdef from pg_proc where oid='public.app_start_visit(uuid,boolean,uuid)'::regprocedure");
-  assert.equal(functions.rows[0].prosecdef, false);
+  assert.equal(functions.rows[0].prosecdef, true);
   await asUser();
-  await db.exec("savepoint denied");
-  await assert.rejects(start(), code("42501"));
-  await db.exec("rollback to denied");
-  await owner();
-  const rows = await db.query("select * from visits");
-  assert.equal(rows.rows.length, 0);
+  const visit = await start();
+  assert.ok(visit);
+  for (const statement of [
+    "insert into visits(user_id,store_id) values (auth.uid(),'"+id(1)+"')",
+    "update visits set status='abandoned',ended_at=clock_timestamp() where id='"+visit+"'",
+    "insert into cart_items(visit_id,product_id,quantity) values ('"+visit+"','"+id(5)+"',1)",
+  ]) {
+    await db.exec("savepoint denied");
+    await assert.rejects(db.exec(statement),code("42501"));
+    await db.exec("rollback to denied");
+  }
 });
 
 test("start, resume and duplicate requests preserve one active visit and its cart", async () => {
-  await allowTestAccess();
   await asUser();
   const first = await start();
   assert.equal(await start(), first);
@@ -90,7 +134,6 @@ test("start, resume and duplicate requests preserve one active visit and its car
 });
 
 test("explicit restart archives the prior visit, keeps its cart, and cannot restart twice", async () => {
-  await allowTestAccess();
   await asUser();
   const first = await start();
   await owner();
@@ -107,7 +150,6 @@ test("explicit restart archives the prior visit, keeps its cart, and cannot rest
 });
 
 test("users and stores remain separate; foreign previous visits are refused", async () => {
-  await allowTestAccess();
   await asUser(3);
   const a = await start();
   const otherStore = await start(id(2));
@@ -122,8 +164,7 @@ test("users and stores remain separate; foreign previous visits are refused", as
   assert.equal(await start(), b);
 });
 
-test("wrong roles and anonymous execution are refused even with test table grants", async () => {
-  await allowTestAccess();
+test("official DB-06 refuses wrong-role and anonymous visit execution", async () => {
   await asUser(3,"maker_staff");
   await db.exec("savepoint wrong_role");
   await assert.rejects(start(), code("42501"));
@@ -132,7 +173,6 @@ test("wrong roles and anonymous execution are refused even with test table grant
 });
 
 test("an ended visit starts a fresh visit on the next entry; malformed modes fail", async () => {
-  await allowTestAccess();
   await asUser();
   const first = await start();
   await owner();
@@ -149,7 +189,6 @@ test("an ended visit starts a fresh visit on the next entry; malformed modes fai
 });
 
 test("existing ambiguous active visits are rejected without modifying either cart", async () => {
-  await allowTestAccess();
   await db.query("insert into visits(user_id,store_id) values ($1,$2),($1,$2)",[id(3),id(1)]);
   await asUser();
   await db.exec("savepoint ambiguous");
@@ -159,7 +198,6 @@ test("existing ambiguous active visits are rejected without modifying either car
 });
 
 test("failure after ending a prior visit rolls back its status and cart", async () => {
-  await allowTestAccess();
   await asUser();
   const first = await start();
   await owner();
@@ -176,7 +214,6 @@ test("failure after ending a prior visit rolls back its status and cart", async 
 });
 
 test("DB-05 selection records stay with the old visit after explicit re-entry", async () => {
-  await allowTestAccess();
   await asUser();
   const first = await start();
   await owner();
@@ -193,29 +230,7 @@ test("DB-05 selection records stay with the old visit after explicit re-entry", 
 });
 
 test("App's real transport reads DB-02 nullable branch/price and DB-03 cart via RPC", async () => {
-  await allowTestAccess();
-  const actor = claims();
-  const user = { id:id(3), aud:"authenticated", created_at:"2026-10-24T00:00:00Z",app_metadata:actor.app_metadata,user_metadata:{} };
-  const token = [{alg:"HS256",typ:"JWT"},{sub:id(3),exp:Math.floor(Date.now()/1000)+3600}].map(p=>Buffer.from(JSON.stringify(p)).toString("base64url")).join(".")+".test";
-  const client = createHeadlessBackend({url:"https://test.supabase.co",publishableKey:"sb_publishable_test"},async(input,init)=>{
-    const url=new URL(String(input));
-    if(url.pathname.endsWith("/token"))return Response.json({access_token:token,refresh_token:"test-refresh",expires_in:3600,token_type:"bearer",user});
-    if(url.pathname.endsWith("/user"))return Response.json(user);
-    await asUser();
-    try {
-      const table=url.pathname.split("/").at(-1);
-      if(table==="app_start_visit"){
-        const body=JSON.parse(String(init?.body));
-        return Response.json(await start(body.p_store_id,body.p_start_new,body.p_previous_visit_id));
-      }
-      if(table==="stores")return Response.json((await db.query("select id,slug,name,branch_name from stores order by name")).rows);
-      if(table==="visits")return Response.json((await db.query("select id,store_id,cart_version,started_at from visits where user_id=$1 and status='active' order by started_at desc",[url.searchParams.get("user_id")!.slice(3)])).rows);
-      if(table==="cart_items")return Response.json((await db.query("select product_id,quantity from cart_items where visit_id=$1",[url.searchParams.get("visit_id")!.slice(3)])).rows);
-      if(table==="products")return Response.json((await db.query("select id,code,name,category from products")).rows);
-      if(table==="store_products")return Response.json((await db.query("select product_id,price from store_products where store_id=$1",[url.searchParams.get("store_id")!.slice(3)])).rows);
-      throw new Error("Unexpected endpoint");
-    } finally { await owner(); }
-  });
+  const client = databaseClient();
   await client.auth.signInWithPassword({email:"one@example.test",password:"test-only"});
   const opened=await startShoppingVisit(client,{storeId:id(1),startNew:false,previousVisitId:null});
   assert.equal(opened.stores[0].branch_name,null);
@@ -230,4 +245,28 @@ test("App's real transport reads DB-02 nullable branch/price and DB-03 cart via 
   await owner();
   await db.query("insert into cart_items(visit_id,product_id,quantity) values ($1,$2,1)",[otherStore.visit!.id,id(5)]);
   assert.equal((await loadShoppingContext(client,otherStore.visit!.id)).cart[0].price,298);
+});
+
+test("two App clients restore only their own carts with official DB-06 RLS", async () => {
+  const clients = [databaseClient(3),databaseClient(4)];
+  for (const client of clients) await client.auth.signInWithPassword({email:"fictional@example.test",password:"test-only"});
+  const visits = await Promise.all(clients.map(client=>startShoppingVisit(client,{storeId:id(1),startNew:false,previousVisitId:null})));
+  assert.notEqual(visits[0].visit!.id,visits[1].visit!.id);
+  for(let i=0;i<clients.length;i++) await db.query("insert into cart_items(visit_id,product_id,quantity) values ($1,$2,$3)",[visits[i].visit!.id,id(5),i+2]);
+  for(let i=0;i<clients.length;i++) {
+    const own=await loadShoppingContext(clients[i],visits[i].visit!.id);
+    assert.equal(own.userId,id(i+3));
+    assert.equal(own.cart[0].quantity,i+2);
+    assert.deepEqual(await loadShoppingContext(clients[i],visits[i].visit!.id),own);
+    const foreign=await loadShoppingContext(clients[i],visits[1-i].visit!.id);
+    assert.equal(foreign.visit,null);
+    assert.deepEqual(foreign.cart,[]);
+    for(const table of ["visits","cart_items"]) {
+      const result=await clients[i].from(table).select(table==="visits"?"id":"visit_id").eq(table==="visits"?"id":"visit_id",visits[1-i].visit!.id);
+      assert.equal(result.error,null);
+      assert.deepEqual(result.data,[]);
+    }
+  }
+  await clients[0].auth.signOut({scope:"local"});
+  await assert.rejects(loadShoppingContext(clients[0],visits[0].visit!.id),error=>error instanceof BackendError&&error.code==="unauthenticated");
 });

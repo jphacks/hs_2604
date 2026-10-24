@@ -61,7 +61,7 @@ Supabaseの既定権限がある環境でも、5表のPUBLIC・anon・authentica
 
 ## DB-03：来店・かご・注文・明細
 
-APP-01からの開始・再開には、DB-03適用後に`20261024041000_app_start_visit.sql`も適用します。本人・店舗をDB側で確認し、再開と明示的な新規来店を一体の処理で保存する関数です。`SECURITY INVOKER`のためDB-02・DB-03のアクセス拒否は迂回せず、DB-06の権限適用まで一般利用者からの実行は拒否されます。[Appとの接続仕様](../specs/app-session-contract.md)を参照してください。共有Supabaseへの適用は本変更では実施していません。
+APP-01からの開始・再開には、DB-03適用後に`20261024041000_app_start_visit.sql`も適用します。本人・店舗をDB側で確認し、再開と明示的な新規来店を一体の処理で保存する関数です。初期適用時は`SECURITY INVOKER`で、DB-06適用まで一般利用者からの実行は拒否されます。DB-06では本人・役割の検査を保って`SECURITY DEFINER`へ切り替え、一般利用者には来店の直接書込みを許可せず関数だけを実行できるようにします。[Appとの接続仕様](../specs/app-session-contract.md)を参照してください。共有Supabaseへの適用は本変更では実施していません。
 
 DB-02の後に`20261024040000_visits_cart_orders.sql`を適用する。`visits`・`cart_items`・`orders`・`order_items`を作成する。DB-02が未適用の環境では実行しない。DB-03単独の検証も、空のSupabase検証プロジェクトへCOM-02→DB-02→DB-03の順に適用してから行う。
 
@@ -216,7 +216,7 @@ psql -X -v ON_ERROR_STOP=1 -f supabase/tests/db06.sql
 | `kago_save_selection(visit_id, cart_version, rule_version, items, selection_id)` | customer | 本人の来店に1〜3枠の選定を保存。DB-05のトリガーが版・店舗・種別・配信可否を再検査。同じ`selection_id`の再送は無操作 |
 | かご更新（APP-02）・購入確定（DB-07）・承認／停止（DB-08）・実験割当（APP-10） | 各Issueで作成 | DB-06では直接書込みを付与しない。作成時はSECURITY DEFINER・`auth.uid()`・所属確認・`search_path`空で実装し、`authenticated`へEXECUTEだけを付与する |
 
-APP-01の`kago-app/tests/visit-database.test.mts`は関数がSECURITY INVOKERであることを確認しているため、DB-06のmigrationを取り込む際にその確認を更新する（APP-01担当へ連絡）。
+APP-01の`kago-app/tests/visit-database.test.mts`もDB-06込みへ更新し、関数がSECURITY DEFINERであること、来店への直接INSERT／UPDATEを拒否すること、2利用者のかご復元が正式RLSで分離されることを確認する。テスト専用のGRANT／ポリシーは追加しない。
 
 ### 既知の制限
 
