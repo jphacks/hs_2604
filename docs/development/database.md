@@ -429,3 +429,41 @@ psql -X -v ON_ERROR_STOP=1 -f supabase/tests/db09.sql
 ## INS-08向け商品別販売集計（#84）
 
 `kago_product_sales(p_start,p_end,p_store_id,p_product_ids?,p_bucket?)`を追加します。自店の店舗担当だけに、注文・明細を正本とした商品別の販売数・金額をJSTの日別／時間別、由来別で返します。販売がない区間は行なしです。最初の注文日時を記録開始時刻とみなさず、比較可能な記録範囲が不明な場合は画面で比較不可とします。契約・呼出例・適用上の注意は[商品別販売集計ガイド](product-sales.md)を参照してください。
+
+## 店舗販促の保存（版の切替を1回で行う）
+
+`20261024140000_promotion_save.sql`で`kago_save_promotion`を追加します。DB-04・DB-06・DB-08の後に適用します。Insightの販促設定から、店舗担当が本人のセッションで呼びます。旧`active`版の`inactive`化と新しい版の`active`での作成を1トランザクションで行い、途中で失敗すると何も変わりません。従来の「UPDATE→INSERT」の2文では、INSERTが失敗すると有効な版がない販促が残りました。停止は従来どおり`active`→`inactive`のUPDATE 1文です。
+
+```sh
+# kago-os/kago-core/から、所有者権限の破棄可能な検証DBに対して実行
+psql -X -v ON_ERROR_STOP=1 -f supabase/tests/promotion_save.sql
+```
+
+| 引数 | 契約 |
+| --- | --- |
+| `p_store_id` | 呼出者が所属する店舗 |
+| `p_product_id` | 自店で取扱中の商品。`p_promotion_id`を渡す場合はその販促の商品と一致 |
+| `p_channels`・`p_time_windows`・`p_priority`・`p_starts_at`・`p_ends_at` | DB-04の`promotion_versions`の検査どおり。`p_time_windows`は空配列で終日 |
+| `p_reason_text` | 必須・前後の空白を除いて200字以内。除いた値を保存 |
+| `p_promotion_id` | 省略時は同じ店舗・商品の販促（配信中を優先、なければ最新）を使い、なければ作る |
+| `p_expected_version` | 画面に表示した最新の版（未作成なら0）。省略時は版を検査しない |
+
+戻り値は`promotion_id, promotion_version_id, version, replayed`です。
+
+| 状況 | 結果 |
+| --- | --- |
+| 保存 | 旧`active`版を`inactive`にし、`max+1`の版を`active`で作る。過去の版は残る |
+| 配信中の最新版と同じ内容（再送、または変更なしの保存） | 最新版を返す（`replayed = true`）。版は増えない。`p_expected_version`は最新版またはその1つ前を許容する |
+| 停止後に同じ内容を保存 | 新しい版として再開する |
+| 画面表示後に別の端末が保存した | 40001・detail `revision_changed`。再読込する |
+| 商品が取扱停止・未取扱、媒体・時間帯・優先度・期間が不正 | 23514 |
+| 他店の担当・他店の販促・メーカー・所属のない担当・未ログイン | 42501 |
+| 理由なし・201字以上・引数欠落・販促と商品の不一致 | 22023 |
+
+同じ店舗・商品の保存はトランザクション単位のadvisory lockと販促行のロックで直列化し、初回保存が同時でも販促は1件だけ作られます。
+
+### 検証記録（2026-10-24・hackday）
+
+- PGlite 0.5.11で全migrationを適用し、`db02.sql`〜`db09.sql`と`promotion_save.sql`を各2回成功した。App側の`test:demo-data`・`test:cart`も成功した。
+- `promotion_save.sql`：他店担当・メーカー・所属のない担当・未ログインの拒否、初回作成と再送、第2版の保存と第1版の保持、古い画面からの保存の拒否、時間帯・媒体・優先度・期間・理由・取扱停止・未取扱での失敗後も第2版が`active`のまま残ること、停止後の再保存を確認した。全過程で販促ごとの`active`は1件以下。
+- 実PostgreSQLの別接続での同時保存、実Supabaseへの適用、Insight画面からの呼出しは未検証。
