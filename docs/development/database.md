@@ -420,6 +420,8 @@ psql -X -v ON_ERROR_STOP=1 -f supabase/tests/db09.sql
 
 既存の検証用店舗担当・Signageアカウントを検証店舗へ紐付けた後、新しい本人セッションで、自店1件・自端末1件の読取を確認しました。4役割でDB-09の`kago_app_metrics_view`・`kago_signage_metrics_view`・`kago_selection_counts`へ接続でき、内部の`kago_app_cohorts_internal`は拒否されます。未ログインの集計参照も拒否されました。メーカーとSignageから個人の来店・注文は取得されませんでした。集計元は0件のため、実データの集計値・複数メーカーの公開範囲を実環境で確認した意味ではありません。
 
-手動適用の記録は管理者のローカルmanifestにありますが、`supabase_migrations.schema_migrations`との履歴同期は未実施です。CLIでの新規適用前に、適用したファイル・内容・対象DBを照合して履歴を整えます。履歴が空だからといって、既存テーブルを作るSQLをまとめて再実行しないでください。
+手動適用したCOM-02〜DB-09の10ファイルについて、管理者のmanifestに記録したハッシュとmainのファイルを照合し、`supabase_migrations.schema_migrations`へ適用済みとして登録しました。業務SQLの再実行はしていません。10件のversion・nameと290件のSQL文を保存し、履歴表のコメントに元ファイルのハッシュと参照コミットを残しています。履歴表でもRLSを有効にし、anon/authenticatedからスキーマへアクセスできないことを確認しました。
+
+履歴のversionは`20261024020000`〜`20261024100000`です。[公式CLI v2.54.11の履歴定義](https://github.com/supabase/cli/blob/v2.54.11/pkg/migration/history.go)と同じ列形式を使い、ローカルPostgreSQLでも登録・読取を確認しました。公式CLIによるローカル照合はTLS接続で停止し、実SupabaseへのCLIログイン・接続も未実施です。次回は適用履歴を確認し、未適用かつマージ済みのSQLだけを適用します。履歴が見えない場合も、既存テーブルを作るSQLをまとめて再実行しないでください。
 
 残件：購入時の同時価格変更に対する追加修正[PR #77](https://github.com/jphacks/hs_2604/pull/77)、[画像保存と権限](ad-images.md)、各画面からの実操作・非0件集計の確認。未マージの修正や画像migrationは共有DBへ適用していません。
