@@ -64,7 +64,7 @@ export function ShoppingSessionProvider({ children }: { children: ReactNode }) {
         data = await request(undefined, controller.signal);
       }
       if (current !== serial.current || controller.signal.aborted) return;
-      if (body?.action === "start_visit") channel.current?.postMessage("visit_changed");
+      if (body?.action === "start_visit" || body?.action === "demo_select") channel.current?.postMessage("visit_changed");
       if (body?.action === "start_visit") {
         setQrStore(null);
         setQrError("");
@@ -119,14 +119,21 @@ export function ShoppingSessionProvider({ children }: { children: ReactNode }) {
   };
   const logout = () => { void transition({ action: "logout" }); };
 
-  if (state.kind === "connected" && state.context.visit && !choosingStore) {
+  if (state.kind === "connected" && state.context.visit && (state.context.demo || !choosingStore)) {
     const context = state.context;
     const store = context.stores.find(s => s.id === context.visit!.store_id)!;
     return <ShoppingSession.Provider value={{ ...context, revalidate: () => { void transition(); } }}>
       <div className="border-b border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950">
         <div className="mx-auto flex max-w-xl flex-wrap items-center justify-between gap-2">
           <span className="font-bold">{store.name} {store.branch_name}</span>
-          <div className="flex gap-4"><button type="button" onClick={() => setChoosingStore(true)} className="min-h-10 underline">店舗・来店を選ぶ</button><button type="button" onClick={logout} className="min-h-10 underline">ログアウト</button></div>
+          {context.demo ? <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-white px-3 py-2 text-xs font-bold">デモ用アカウントで表示中</span>
+            <label className="flex items-center gap-2 text-xs font-bold">利用者
+              <select aria-label="デモ利用者を切り替える" value={context.demo.user} onChange={event => { void transition({ action: "demo_select", user: event.target.value }); }} className="min-h-11 rounded-xl border border-emerald-200 bg-white px-3 text-sm">
+                {context.demo.users.map(user => <option key={user.id} value={user.id}>{user.id} {user.label}</option>)}
+              </select>
+            </label>
+          </div> : <div className="flex gap-4"><button type="button" onClick={() => setChoosingStore(true)} className="min-h-10 underline">店舗・来店を選ぶ</button><button type="button" onClick={logout} className="min-h-10 underline">ログアウト</button></div>}
         </div>
       </div>
       {children}
