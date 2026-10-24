@@ -19,6 +19,7 @@ cd kago-os/kago-insight && pnpm dev      # Insight: http://localhost:3002
 | --- | --- |
 | ログイン・店舗／来店選択 | `pnpm test:shopping`、`pnpm test:shopping:e2e`、`pnpm test:session:e2e` |
 | スキャン・かご | `pnpm test:cart`、`pnpm test:cart:e2e` |
+| 商品から選ぶ（ジャンル） | `pnpm test:menu`、`pnpm test:menu:e2e` |
 | 購入履歴・利用設定 | `pnpm test:account`、`pnpm test:account:e2e` |
 | おすすめ（選定・カード） | `pnpm test:selection`、`pnpm test:selection:e2e`、`pnpm test:suggestions:e2e` |
 | お得情報・クーポン配布 | `pnpm test:offers`、`pnpm test:offers:e2e` |
@@ -34,6 +35,7 @@ cd kago-os/kago-insight && pnpm dev      # Insight: http://localhost:3002
 | ログイン・来店 | ログイン →店舗を選ぶ（デモ自動ログインならヘッダーでU1〜U3を切替） | 店舗名とかごが表示される。1分ごとの再確認で画面が白くならない |
 | スキャン | 商品コード`2900000000100`を入力（カメラ、または`/App/demo-barcodes`のバーコード） | 「かごを保存しました。」と出て、かごに入る |
 | かご | かごを開き、数量変更・削除 | 合計が変わり、再読み込み後も残る |
+| 商品から選ぶ | 野菜・肉・魚をタップ | 選んだジャンルの商品が3列で出て「追加」でかごに入る。野菜・肉・魚以外の商品は出ない（コード入力では追加できる） |
 | おすすめ | かごに商品を入れる | 縦スライドのおすすめカードが自動で切り替わる。タップで詳細、かごへ追加できる |
 | お得情報 | スキャン欄の下・右下を見る | タイムセール・セット割、右下にゲリラクーポンのステッカー |
 | クーポン | ステッカーをタップ →「割引付きでかごに追加」／「今回は見送る」 | 割引付きでかごに入る／その来店では再表示されない |

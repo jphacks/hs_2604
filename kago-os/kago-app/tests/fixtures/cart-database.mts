@@ -22,7 +22,8 @@ export async function createCartDatabase() {
   for (const file of (await readdir(migrations)).filter(f => f.endsWith(".sql") && !f.endsWith("_ad_image_storage.sql")).sort()) await db.exec(await readFile(new URL(file, migrations), "utf8"));
   await db.query("insert into auth.users(id,email) values ($1,'user3@example.test'),($2,'user4@example.test'),($3,'user5@example.test')", [id(3), id(4), id(5)]);
   await db.query("insert into stores(id,slug,name) values ($1,'one','検証1号店'),($2,'two','検証2号店')", [id(1), id(2)]);
-  await db.query("insert into products(id,code,name,category) values ($1,'4900000000016','検証ミルク','乳製品'),($2,'PLU-APPLE','検証りんご','青果'),($3,'4900000000023','停止中の商品','食品')", [id(20),id(21),id(22)]);
+  // Generic test products are in the 野菜 genre so the App menu (#144, default genre) lists them.
+  await db.query("insert into products(id,code,name,category) values ($1,'4900000000016','検証ミルク','野菜'),($2,'PLU-APPLE','検証りんご','野菜'),($3,'4900000000023','停止中の商品','食品')", [id(20),id(21),id(22)]);
   await db.query("insert into store_products(store_id,product_id,price,is_active) values ($1,$3,248,true),($2,$3,298,true),($1,$4,158,true),($1,$5,99,false)", [id(1),id(2),id(20),id(21),id(22)]);
   await db.query("insert into visits(id,user_id,store_id) values ($1,$4,$6),($2,$4,$7),($3,$5,$6)", [id(13),id(14),id(15),id(3),id(4),id(1),id(2)]);
   // PGlite has one SQL connection: serialize sessions, never let roles leak between calls.

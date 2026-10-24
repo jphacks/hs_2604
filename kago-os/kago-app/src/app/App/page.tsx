@@ -11,6 +11,7 @@ import { SuggestionCards } from "@/features/recommendations/suggestion-cards";
 import { offerKindLabel } from "@/features/offers/contracts";
 import { useShoppingSession } from "@/features/shopping/session-provider";
 import { productIcon } from "@/lib/product-visuals";
+import { PRODUCT_GENRES, productGenre, type ProductGenreId } from "@/lib/product-genres";
 
 const yen = new Intl.NumberFormat("ja-JP", { style: "currency", currency: "JPY" });
 const button = "min-h-11 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white disabled:opacity-40";
@@ -22,23 +23,29 @@ export default function Home() {
   const [barcode, setBarcode] = useState("");
   const [query, setQuery] = useState("");
   const [products, setProducts] = useState<StoreProduct[]>([]);
-  const [hasMore, setHasMore] = useState(false);
+  const [genre, setGenre] = useState<ProductGenreId>("vegetable");
+  const [searched, setSearched] = useState("");
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [catalogError, setCatalogError] = useState("");
   const catalogRequest = useRef<AbortController | null>(null);
-  const search = useRef({ query: "", offset: 0 });
+  const search = useRef({ query: "" });
   const closeButton = useRef<HTMLButtonElement>(null);
 
-  const loadProducts = async (q: string, offset = 0) => {
+  // The menu shows genres (#144), so the whole store list is read once (50 per page, at most 20 pages).
+  const loadProducts = async (q: string) => {
     catalogRequest.current?.abort();
     const controller = new AbortController(); catalogRequest.current = controller;
-    search.current = { query: q, offset };
-    setCatalogLoading(true); setCatalogError("");
-    if (offset === 0) setProducts([]);
+    search.current = { query: q };
+    setCatalogLoading(true); setCatalogError(""); setProducts([]);
     try {
-      const data: ProductPage = await cartRequest(`/api/cart?products=1&q=${encodeURIComponent(q)}&offset=${offset}`, undefined, controller.signal);
-      if (controller.signal.aborted) return;
-      setProducts(previous => offset ? [...previous, ...data.products] : data.products); setHasMore(data.hasMore);
+      const all: StoreProduct[] = [];
+      for (let page = 0; page < 20; page++) {
+        const data: ProductPage = await cartRequest(`/api/cart?products=1&q=${encodeURIComponent(q)}&offset=${all.length}`, undefined, controller.signal);
+        if (controller.signal.aborted) return;
+        all.push(...data.products);
+        if (!data.hasMore) break;
+      }
+      setProducts(all); setSearched(q);
     } catch (failure) {
       if (controller.signal.aborted) return;
       const code = (failure as { code?: string })?.code;
@@ -52,6 +59,8 @@ export default function Home() {
     // Identity and visit changes unmount the shopping page.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  // Only vegetables / meat / fish are listed (#144); search also stays within these genres.
+  const shown = products.filter(product => searched ? productGenre(product) !== null : productGenre(product) === genre);
   useEffect(() => {
     if (!cartOpen) return;
     const previous = document.activeElement as HTMLElement | null;
@@ -103,23 +112,30 @@ export default function Home() {
       <section id="manual-products" className="scroll-mt-24" aria-labelledby="products-heading">
         <p className="text-xs font-black tracking-wider text-emerald-700">PRODUCT MENU</p>
         <h2 id="products-heading" className="text-2xl font-black">商品から選ぶ</h2>
-        <p className="mt-1 text-sm text-slate-600">選択中の店舗で取り扱っている商品と価格です。</p>
+        <p className="mt-1 text-sm text-slate-600">ジャンルを選ぶと、選択中の店舗で取り扱っている商品と価格が表示されます。</p>
         <form onSubmit={event => { event.preventDefault(); void loadProducts(query); }} className="my-4 flex gap-2">
           <input aria-label="商品名・商品コードで検索" value={query} onChange={e => setQuery(e.target.value)} maxLength={100} placeholder="商品名・商品コードで検索" className="min-h-11 min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 text-sm" />
           <button className={button} disabled={catalogLoading}>検索</button>
         </form>
-        {catalogError && <div role="alert" className="mb-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900"><p>{catalogError}</p><button type="button" onClick={() => { void loadProducts(search.current.query, search.current.offset); }} className={`${button} mt-3`}>商品一覧を再試行</button></div>}
-        <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2">
-          {products.map(product => <article key={product.productId} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="grid h-20 place-items-center rounded-xl bg-emerald-50 text-4xl" aria-hidden="true">{productIcon(product)}</div>
-            <p className="mt-3 text-xs text-slate-500">{product.category}</p><h3 className="mt-1 min-h-10 text-sm font-bold">{product.name}</h3>
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-2"><p className="font-black text-emerald-800">{yen.format(product.price)}</p>
-              <button type="button" className={button} disabled={!cart.canEdit} onClick={() => cart.addProduct(product)} aria-label={`${product.name}をかごに追加`}>追加</button></div>
+        {!searched && <div role="group" aria-label="ジャンル" className="mb-4 grid grid-cols-3 gap-2">
+          {PRODUCT_GENRES.map(g => <button key={g.id} type="button" aria-pressed={genre === g.id} onClick={() => setGenre(g.id)}
+            className={`grid min-h-20 place-items-center rounded-2xl border-2 p-2 font-black ${genre === g.id ? "border-emerald-700 bg-emerald-700 text-white" : "border-slate-200 bg-white text-slate-800"}`}>
+            <span aria-hidden="true" className="text-3xl">{g.icon}</span><span>{g.label}</span>
+          </button>)}
+        </div>}
+        {searched && <div className="mb-3 flex items-center justify-between gap-2 text-sm"><p className="font-bold">「{searched}」の検索結果</p>
+          <button type="button" className="min-h-11 px-2 font-bold text-emerald-800 underline" onClick={() => { setQuery(""); void loadProducts(""); }}>ジャンルに戻る</button></div>}
+        {catalogError && <div role="alert" className="mb-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900"><p>{catalogError}</p><button type="button" onClick={() => { void loadProducts(search.current.query); }} className={`${button} mt-3`}>商品一覧を再試行</button></div>}
+        <div className="grid grid-cols-3 gap-2">
+          {shown.map(product => <article key={product.productId} className="flex min-w-0 flex-col rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+            <div className="grid h-14 place-items-center rounded-xl bg-emerald-50 text-3xl" aria-hidden="true">{productIcon(product)}</div>
+            <h3 className="mt-2 min-h-10 break-words text-xs font-bold leading-snug">{product.name}</h3>
+            <p className="mt-1 text-sm font-black text-emerald-800">{yen.format(product.price)}</p>
+            <button type="button" className="mt-2 min-h-11 w-full rounded-xl bg-emerald-700 text-sm font-bold text-white disabled:opacity-40" disabled={!cart.canEdit} onClick={() => cart.addProduct(product)} aria-label={`${product.name}をかごに追加`}>追加</button>
           </article>)}
         </div>
         {catalogLoading && <p role="status" className="py-5 text-sm">商品を読み込んでいます…</p>}
-        {!catalogLoading && !catalogError && products.length === 0 && <p className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-600">該当する商品がありません</p>}
-        {hasMore && !catalogError && <button type="button" className={`${button} mt-4 w-full`} disabled={catalogLoading} onClick={() => { void loadProducts(search.current.query, products.length); }}>さらに表示</button>}
+        {!catalogLoading && !catalogError && shown.length === 0 && <p className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-600">{searched ? "該当する商品がありません" : "このジャンルの商品はまだありません"}</p>}
       </section>
     </div>
     {cart.itemCount > 0 && <div className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
