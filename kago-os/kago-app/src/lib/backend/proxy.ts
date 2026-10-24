@@ -1,8 +1,14 @@
 import { createServerBackend } from "@kago/backend";
 import { NextResponse, type NextRequest } from "next/server";
+import { readDemoConfig } from "@/features/demo/config";
 import { getBackendConfig } from "./config";
 
 export async function updateBackendSession(request: NextRequest) {
+  if (readDemoConfig(process.env)) {
+    const response = NextResponse.next({ request });
+    response.headers.set("Cache-Control", "private, no-store");
+    return response;
+  }
   let config;
   try { config = getBackendConfig(); } catch {
     // The existing local demo stays usable without a connected backend.
