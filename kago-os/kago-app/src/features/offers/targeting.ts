@@ -8,14 +8,16 @@ import type { AssociationRule, AssociationRuleSet } from "../recommendations/ass
 import type { ProductPurchaseSummary } from "../recommendations/customer";
 import type { StoreOffer } from "./contracts";
 import { shortProductName } from "../../lib/product-name.ts";
+import { isRegularPurchase } from "../recommendations/purchase-cycle.ts";
+
+// The regular-purchase definition is shared with the replenishment slot and the reminder card (#152).
+export { isRegularPurchase, REGULAR_INTERVAL_FACTOR, REGULAR_MIN_PURCHASES } from "../recommendations/purchase-cycle.ts";
 
 export const INITIAL_ASSOCIATION = 1.5;      // curated (initialRules) pair without enough public data
 export const STORE_TRIGGER_ASSOCIATION = 1.2; // the store tied the coupon to t, without a data/curated rule
 export const NOVELTY = {
   regular_purchase: 0, purchased_before: 0.6, same_category: 1.3, never_purchased: 1, history_disabled: 1, history_empty: 1,
 } as const;
-export const REGULAR_MIN_PURCHASES = 3;
-export const REGULAR_INTERVAL_FACTOR = 1.5;
 export const MAX_COUPONS_PER_VISIT = 3;
 const SCORE_DIGITS = 1e6; // scores are compared after rounding, so float noise never decides a tie
 
@@ -57,12 +59,6 @@ export type CouponDecision = {
 };
 
 const round = (value: number) => Math.round(value * SCORE_DIGITS) / SCORE_DIGITS;
-
-/** Regular purchase: bought ≥3 times and the last purchase is still within 1.5 × the average interval. */
-export function isRegularPurchase(summary: ProductPurchaseSummary) {
-  return summary.purchaseCount >= REGULAR_MIN_PURCHASES && summary.averageIntervalDays !== null
-    && summary.daysSinceLastPurchase <= summary.averageIntervalDays * REGULAR_INTERVAL_FACTOR;
-}
 
 export function novelty(history: CouponHistory, product: Pick<StoreOffer["product"], "productId" | "category">): NoveltyReason {
   if (history.status === "disabled") return "history_disabled";

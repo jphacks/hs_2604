@@ -79,7 +79,7 @@ test("history ON: replenishment for a due product; history OFF never uses histor
   const r = run(candidates({ popular: [{ productId: TISSUE.productId, orders: 3 }] }), on, due);
   assert.deepEqual(shape(r), [[1, "organic", MILK.code, "replenishment"], [2, "organic", TISSUE.code, "popular"]],
     "eggs (2 of 14 days) and a one-off yogurt are not due");
-  assert.equal(r.items.find(i => i.reasonCode === "replenishment")!.reasonText, "いつもの購入周期から、そろそろです");
+  assert.equal(r.items.find(i => i.reasonCode === "replenishment")!.reasonText, "約7日ごとに購入・前回から9日です");
   const hidden = run(candidates({ popular: [{ productId: TISSUE.productId, orders: 3 }] }), { usePurchaseHistory: false, useCurrentCart: true }, due);
   assert(!hidden.items.some(i => i.reasonCode === "replenishment"));
 });

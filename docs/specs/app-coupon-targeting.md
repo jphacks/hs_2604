@@ -71,6 +71,8 @@ APP-03の`buildPurchaseSummaries()`（来店開始時刻より前の注文、最
 
 `averageIntervalDays`が`null`（購入1回）の場合は定期購入としない。
 
+この判定は`src/features/recommendations/purchase-cycle.ts`の`isRegularPurchase()`にあり、APP-05の補充推薦と「そろそろ買う頃です」カード（#152）も同じ定義を使う。定期購入品にはクーポンを配らず、代わりにカードで買い忘れを知らせる。
+
 #### 履歴利用OFF
 
 APP-03の`loadRecommendationInput()`の設計を維持する。`history.status === "disabled"`のときは購入履歴を読まず、選定にも渡さない。全候補のNoveltyを1.0とし、「過去の購入履歴から」「以前購入した」など履歴に基づく理由文を作らない。
