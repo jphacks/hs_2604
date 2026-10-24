@@ -202,9 +202,13 @@ function ApplicationDetail({
   const [error, setError] = useState<{ code: ActionErrorCode; text: string } | null>(null);
 
   const decided = application.status !== "submitted";
-  const pastRejections = application.history.filter(
+  const rejections = application.history.filter(
     (h) => h.status === "rejected" && h.review_comment,
   );
+  // いま見ている版の却下と、それより前の版の却下は意味が違う。
+  // 前者は「この申請をこう却下した」、後者は「メーカーが直してくるはずの指摘」。
+  const currentRejection = rejections.find((h) => h.revision === application.revision);
+  const pastRejections = rejections.filter((h) => h.revision !== application.revision);
 
   const toggleChannel = (channel: Channel) => {
     setChannels((current) =>
@@ -313,9 +317,22 @@ function ApplicationDetail({
         </div>
       ) : null}
 
+      {currentRejection ? (
+        <div className="mt-4 rounded border border-[var(--line)] bg-[var(--surface)] p-3 text-sm">
+          <p className="font-bold">この申請の却下理由</p>
+          <p className="mt-1 text-xs text-[var(--muted)]">
+            {currentRejection.reviewed_at ? formatDateTime(currentRejection.reviewed_at) : ""}
+          </p>
+          <p className="mt-1">{currentRejection.review_comment}</p>
+          <p className="mt-2 text-xs text-[var(--muted)]">
+            メーカーが内容を直して再申請すると、第{application.revision + 1}版として審査待ちに戻ります。
+          </p>
+        </div>
+      ) : null}
+
       {pastRejections.length > 0 ? (
         <div className="mt-4 rounded border border-amber-300 bg-amber-50 p-3 text-sm">
-          <p className="font-bold text-amber-900">これまでの却下理由</p>
+          <p className="font-bold text-amber-900">前の版の却下理由</p>
           <ul className="mt-2 grid gap-2">
             {pastRejections.map((h) => (
               <li key={h.revision} className="text-amber-900">
@@ -326,9 +343,11 @@ function ApplicationDetail({
               </li>
             ))}
           </ul>
-          <p className="mt-2 text-xs text-amber-800">
-            前回の指摘が直っているか確認してください。
-          </p>
+          {!decided ? (
+            <p className="mt-2 text-xs text-amber-800">
+              前回の指摘が直っているか確認してください。
+            </p>
+          ) : null}
         </div>
       ) : null}
 

@@ -72,15 +72,18 @@ export function CouponEffectScreen() {
             <div key={stage.label} className="grid grid-cols-[6rem_1fr] items-center gap-3">
               <span className="text-sm font-bold">{stage.label}</span>
               <div className="flex items-center gap-3">
-                <div
-                  className="h-5 rounded-r"
-                  style={{
-                    width: `${(stage.value / distributed) * 100}%`,
-                    background: stage.step,
-                  }}
-                  title={`${stage.label} ${stage.value}件`}
-                />
-                <span className="text-sm font-bold tabular-nums">
+                {/* 棒は必ずトラックの中に収める。外に置くとラベルが画面外へ押し出される */}
+                <div className="h-5 min-w-0 flex-1">
+                  <div
+                    className="h-5 rounded-r"
+                    style={{
+                      width: `${(stage.value / distributed) * 100}%`,
+                      background: stage.step,
+                    }}
+                    title={`${stage.label} ${stage.value}件`}
+                  />
+                </div>
+                <span className="w-14 shrink-0 text-right text-sm font-bold tabular-nums">
                   {stage.value.toLocaleString("ja-JP")}
                 </span>
               </div>
@@ -145,7 +148,7 @@ export function CouponEffectScreen() {
                 {offer.product_name}
               </span>
               <div className="flex items-center gap-3">
-                <div className="h-5 flex-1 rounded-r bg-[var(--viz-track)]">
+                <div className="h-5 min-w-0 flex-1 rounded-r bg-[var(--viz-track)]">
                   {salesPerYen === null ? null : (
                     <div
                       className="h-5 rounded-r bg-[var(--viz-bar)]"
@@ -175,15 +178,17 @@ export function CouponEffectScreen() {
             <div key={segment.key} className="grid grid-cols-[9rem_1fr] items-center gap-3">
               <span className="text-sm font-bold">{segment.label}</span>
               <div className="flex items-center gap-3">
-                <div
-                  className="h-5 rounded-r bg-[var(--viz-bar)]"
-                  style={{ width: `${(segment.distributed / maxSegment) * 100}%` }}
-                  title={`${segment.label} 配布 ${segment.distributed}件・受け取り ${segment.claimed}件`}
-                />
-                <span className="w-16 shrink-0 text-sm font-bold tabular-nums">
+                <div className="h-5 min-w-0 flex-1">
+                  <div
+                    className="h-5 rounded-r bg-[var(--viz-bar)]"
+                    style={{ width: `${(segment.distributed / maxSegment) * 100}%` }}
+                    title={`${segment.label} 配布 ${segment.distributed}件・受け取り ${segment.claimed}件`}
+                  />
+                </div>
+                <span className="w-16 shrink-0 text-right text-sm font-bold tabular-nums">
                   {formatRate(rate(segment.claimed, segment.distributed))}
                 </span>
-                <span className="shrink-0 text-xs text-[var(--muted)] tabular-nums">
+                <span className="w-28 shrink-0 text-right text-xs text-[var(--muted)] tabular-nums">
                   {segment.claimed} / {segment.distributed} 件
                 </span>
               </div>
