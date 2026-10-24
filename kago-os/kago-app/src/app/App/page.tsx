@@ -6,6 +6,8 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { cartRequest, useCart } from "@/features/cart/cart-provider";
 import { cartMessages, type ProductPage, type StoreProduct } from "@/features/cart/contracts";
 import { BarcodeScanner } from "@/features/scanner/barcode-scanner";
+import { SerendipityOffers } from "@/features/offers/serendipity-offers";
+import { offerKindLabel } from "@/features/offers/contracts";
 import { useShoppingSession } from "@/features/shopping/session-provider";
 import { productIcon } from "@/lib/product-visuals";
 
@@ -95,6 +97,7 @@ export default function Home() {
         <a href="#manual-products" className="mt-3 block py-2 text-sm font-bold text-emerald-800 underline">読み取れない・バーコードがない商品は一覧から選ぶ ↓</a>
       </section>
       {!cartOpen && status}
+      <SerendipityOffers />
       <section id="manual-products" className="scroll-mt-24" aria-labelledby="products-heading">
         <p className="text-xs font-black tracking-wider text-emerald-700">PRODUCT MENU</p>
         <h2 id="products-heading" className="text-2xl font-black">商品から選ぶ</h2>
@@ -128,14 +131,14 @@ export default function Home() {
           {status}
           {cart.lines.length === 0 ? <p className="py-14 text-center font-bold">かごは空です</p> : <ul className="divide-y divide-slate-100">
             {cart.lines.map(line => <li key={line.productId} className="py-4">
-              <div className="flex justify-between gap-3"><div><h3 className="font-bold">{line.name}</h3><p className="mt-1 text-sm text-slate-500">{yen.format(line.price)} / 点</p>{!line.available && <p className="mt-1 text-sm font-bold text-red-700">取扱停止中・削除してください</p>}</div><p className="font-bold">{yen.format(line.price * line.quantity)}</p></div>
+              <div className="flex justify-between gap-3"><div><h3 className="font-bold">{line.name}</h3><p className="mt-1 text-sm text-slate-500">{yen.format(line.price)} / 点</p>{!line.available && <p className="mt-1 text-sm font-bold text-red-700">取扱停止中・削除してください</p>}{!!line.discount && line.offerKind && <p className="mt-1 text-sm font-bold text-pink-700">{offerKindLabel[line.offerKind]} −{yen.format(line.discount)}</p>}</div><div className="text-right">{!!line.discount && <p className="text-xs text-slate-400 line-through">{yen.format(line.price * line.quantity)}</p>}<p className="font-bold">{yen.format(line.price * line.quantity - (line.discount ?? 0))}</p></div></div>
               <div className="mt-3 flex items-center justify-between gap-3"><button type="button" disabled={!cart.canEdit} onClick={() => cart.setQuantity(line.productId, 0)} className="min-h-11 px-2 text-sm text-red-700 underline disabled:opacity-40" aria-label={`${line.name}を削除`}>削除</button>
                 <div className="flex items-center rounded-full border border-emerald-200 bg-emerald-50"><button type="button" disabled={!cart.canEdit || (!line.available && line.quantity > 1)} onClick={() => cart.setQuantity(line.productId, line.quantity - 1)} aria-label={`${line.name}を1点減らす`} className="size-11 text-xl disabled:opacity-40">−</button><span className="w-9 text-center font-bold" aria-label={`${line.name}の数量`}>{line.quantity}</span><button type="button" disabled={!cart.canEdit || !line.available || line.quantity >= 999} onClick={() => cart.setQuantity(line.productId, line.quantity + 1)} aria-label={`${line.name}を1点増やす`} className="size-11 text-xl disabled:opacity-40">＋</button></div>
               </div>
             </li>)}
           </ul>}
         </div>
-        <div className="border-t border-slate-200 p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]"><div className="flex justify-between text-lg font-black"><span>合計 {cart.itemCount}点</span><span>{yen.format(cart.total)}</span></div><button type="button" disabled={cart.busy} onClick={cart.reload} className="mt-3 min-h-11 w-full text-sm text-emerald-800 underline">かごを最新にする</button><p className="mt-1 text-center text-xs text-slate-500">購入手続きは準備中です</p></div>
+        <div className="border-t border-slate-200 p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">{cart.discountTotal > 0 && <div className="mb-2 grid gap-1 text-sm"><p className="flex justify-between"><span>小計</span><span>{yen.format(cart.subtotal)}</span></p><p className="flex justify-between font-bold text-pink-700"><span>クーポン・セール割引</span><span>−{yen.format(cart.discountTotal)}</span></p></div>}<div className="flex justify-between text-lg font-black"><span>合計 {cart.itemCount}点</span><span>{yen.format(cart.total)}</span></div><button type="button" disabled={cart.busy} onClick={cart.reload} className="mt-3 min-h-11 w-full text-sm text-emerald-800 underline">かごを最新にする</button><p className="mt-1 text-center text-xs text-slate-500">購入手続きは準備中です</p></div>
       </section>
     </div>}
   </main>;

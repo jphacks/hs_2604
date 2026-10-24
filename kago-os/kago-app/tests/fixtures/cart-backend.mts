@@ -3,10 +3,12 @@ import { createServer } from "node:http";
 import { randomUUID } from "node:crypto";
 import { createCartDatabase, id } from "./cart-database.mts";
 import { seedAccountHistory } from "./account-history.mts";
+import { seedOffers } from "./offers.mts";
 
-export async function createCartBackend({ accountHistory = false } = {}) {
+export async function createCartBackend({ accountHistory = false, offers = false } = {}) {
   const database = await createCartDatabase();
   if (accountHistory) await seedAccountHistory(database);
+  if (offers) await seedOffers(database);
   const revoked = new Set<string>();
   const calls: { name: string; body: Record<string, unknown>; method?: string; query?: string }[] = [];
   const user = (n: number) => ({ id:id(n), aud:"authenticated", role:"authenticated", email:`user${n}@example.test`,
@@ -39,6 +41,9 @@ export async function createCartBackend({ accountHistory = false } = {}) {
           app_list_products:["p_visit_id","p_query","p_offset"],
           app_lookup_product:["p_visit_id","p_request_id","p_code","p_product_id","p_failure_reason"],
           app_set_cart_item:["p_visit_id","p_request_id","p_product_id","p_quantity","p_expected_cart_version","p_source","p_selection_item_id"],
+          app_list_offers:["p_visit_id"],
+          app_claim_offer:["p_visit_id","p_request_id","p_offer_id","p_expected_cart_version"],
+          app_record_offer_event:["p_visit_id","p_event_id","p_offer_id","p_event_type"],
         };
         if(!params[name])throw Error("Unknown RPC");
         return send(await database.rpc(name,params[name].map(p=>body[p]??null),n,n===5?"maker_staff":"customer"));

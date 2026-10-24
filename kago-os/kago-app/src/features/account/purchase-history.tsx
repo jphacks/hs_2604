@@ -53,6 +53,7 @@ export function PurchaseHistorySection() {
         <ul className="divide-y divide-slate-100 px-4">
           {order.items.map(item => <li key={item.productId} className="flex justify-between gap-3 py-3"><div className="min-w-0"><p className="break-words text-sm font-semibold">{item.name}</p><p className="mt-1 text-xs text-slate-500">{yen.format(item.unitPrice)} × {item.quantity}点</p></div><p className="shrink-0 text-sm font-bold">{yen.format(item.unitPrice * item.quantity)}</p></li>)}
         </ul>
+        {order.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0) > order.total && <p className="flex justify-between border-t border-slate-100 px-4 pt-3 text-sm font-bold text-pink-700"><span>クーポン・セール割引</span><span>−{yen.format(order.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0) - order.total)}</span></p>}
         <p className="flex justify-between border-t border-slate-100 px-4 py-3 text-sm font-black"><span>購入合計</span><span>{yen.format(order.total)}</span></p>
       </article>)}
     </div>
