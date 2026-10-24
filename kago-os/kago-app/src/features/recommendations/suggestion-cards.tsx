@@ -8,6 +8,7 @@ import { useImpression } from "@/features/events/use-impression";
 import { MENU_PRODUCT_IMAGES, productIcon } from "@/lib/product-visuals";
 import type { ReasonCode, SavedSelection, SavedSelectionItem } from "./selection-contracts";
 import { useRecommendations } from "./use-recommendations";
+import { newSuggestionItemIds } from "./new-suggestions";
 
 type Item = SavedSelectionItem;
 const yen = new Intl.NumberFormat("ja-JP", { style: "currency", currency: "JPY" });
@@ -47,6 +48,15 @@ function ProductArt({ item, size }: { item: Item; size: "card" | "detail" }) {
 export function SuggestionCards() {
   const { state, retry, updating } = useRecommendations();
   const [paused, setPaused] = useState(false);
+  const [novelty, setNovelty] = useState<{ selection: SavedSelection | null; itemIds: string[] }>({ selection: null, itemIds: [] });
+  let newItemIds = novelty.itemIds;
+  // Keep the last accepted content through loading/errors. Derive the badge before committing a new card.
+  if (state.status === "ready" && novelty.selection !== state.data) {
+    const sameSelection = state.data.selectionId !== null && novelty.selection?.visitId === state.data.visitId
+      && novelty.selection.selectionId === state.data.selectionId;
+    newItemIds = sameSelection ? novelty.itemIds : newSuggestionItemIds(novelty.selection, state.data);
+    setNovelty({ selection: state.data, itemIds: newItemIds });
+  }
   return <section aria-labelledby="suggestions-heading" aria-busy={state.status === "loading"} className="min-w-0">
     <div className="mb-3 flex items-end justify-between gap-2">
       <div><p className="text-xs font-black tracking-wider text-emerald-700">FOR YOU</p>
@@ -63,12 +73,12 @@ export function SuggestionCards() {
     {state.status === "ready" && state.data.items.length === 0 && <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-5 text-center text-sm text-slate-600">
       いまのかごに合うおすすめはありません。商品をかごに追加すると、関連するおすすめが表示されます。
     </p>}
-    {state.status === "ready" && state.data.items.length > 0 && <SuggestionCarousel key={state.data.selectionId} selection={state.data} paused={paused} onPauseChange={setPaused} />}
+    {state.status === "ready" && state.data.items.length > 0 && <SuggestionCarousel key={state.data.selectionId} selection={state.data} newItemIds={newItemIds} paused={paused} onPauseChange={setPaused} />}
   </section>;
 }
 
 // A fresh selection owns its slide/detail state. Replacing it also closes an obsolete detail dialog.
-function SuggestionCarousel({ selection, paused, onPauseChange }: { selection: SavedSelection; paused: boolean; onPauseChange: (paused: boolean) => void }) {
+function SuggestionCarousel({ selection, newItemIds, paused, onPauseChange }: { selection: SavedSelection; newItemIds: string[]; paused: boolean; onPauseChange: (paused: boolean) => void }) {
   const cart = useCart();
   const track = useAppEvents();
   const container = useRef<HTMLDivElement>(null);
@@ -121,10 +131,11 @@ function SuggestionCarousel({ selection, paused, onPauseChange }: { selection: S
               <article data-selection-item-id={item.selectionItemId} aria-label={`${label}：${item.product.name}`} className={`flex h-full gap-3 rounded-2xl border p-3 shadow-sm ${tone[item.placementType].card}`}>
                 <div className="w-28 shrink-0"><ProductArt item={item} size="card" /></div>
                 <div className="flex min-w-0 flex-1 flex-col">
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <div className="flex items-start justify-between gap-1">
                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${tone[item.placementType].badge}`}>{label}</span>
-                    {item.sponsor && <span className="text-[11px] font-bold text-slate-600">提供：{item.sponsor.makerName}</span>}
+                    {newItemIds.includes(item.selectionItemId) && <span aria-label="新しく更新されたおすすめ" className="shrink-0 rounded-full bg-pink-600 px-2 py-0.5 text-[11px] font-black text-white shadow-sm">NEW！！</span>}
                   </div>
+                  {item.sponsor && <span className="truncate text-[11px] font-bold text-slate-600">提供：{item.sponsor.makerName}</span>}
                   <h3 className="mt-1 line-clamp-2 break-words text-sm font-bold leading-5" title={item.product.name}>{item.product.name}</h3>
                   <p className="text-sm font-black text-emerald-800">{yen.format(item.product.price)}</p>
                   <p className="mt-0.5 line-clamp-2 text-[11px] leading-4 text-slate-600">{item.reasonText}</p>
