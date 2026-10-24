@@ -1,0 +1,295 @@
+# KAGO/Ads データ項目表
+
+| 項目 | 内容 |
+| --- | --- |
+| 担当 | KAGO/Ads（ADS-01〜ADS-05） |
+| 作成日 | 2026-10-24 |
+| 版 | v0.1（案） |
+| 目的 | Ads の画面（募集の作成・募集ポータル・広告素材の登録と申請・成果）が使うデータの変数名と意味を1枚にまとめる |
+| 前提 | 名前・状態・ID は[共通仕様書](common-spec.md)（v0.2）に合わせる。食い違う場合は共通仕様書を正とし、変えたい点は共通仕様書 13 章で提案する |
+
+Ads の仕様はこのファイルだけに書き、追加・変更もこのファイルで行います。テーブルの最終的な列名・型・制約は DB-01 で確定します。
+
+## 凡例
+
+| 記号 | 意味 |
+| --- | --- |
+| 確定 | 共通仕様書で決まっている、または Ads 側で決めてよい項目 |
+| 要確認 | 他の担当（Core・Insight・App）と合わせる項目。この表は提案値 |
+| 提案 | 共通仕様書にない項目。共通仕様書へ追加を提案する |
+| 未決 | まだ決まっていない |
+
+## 画面と使うデータ
+
+| 画面 | Issue | 使う人 | 主に読むもの | 書くもの |
+| --- | --- | --- | --- | --- |
+| 募集の作成・公開・終了 | ADS-02 | 店舗の募集担当 | `ad_calls`（自店）、`products`（カテゴリ） | `ad_calls` |
+| 募集ポータル・募集詳細・店舗一覧 | ADS-01 | メーカー | `ad_calls`（公開分）、`stores`、`signage_devices` | なし |
+| 広告素材の登録・版の追加 | ADS-03 | メーカー | `creatives`・`creative_versions`（自社）、`products` | `creatives`・`creative_versions`、画像（COM-03） |
+| 申請・再申請・結果の確認 | ADS-03 | メーカー | `ad_applications`（自社）、`ad_placements`（自社の申請分の状態） | `ad_applications` |
+| 自社広告の成果 | ADS-04 | メーカー | DB-09 のメーカー公開用ビュー（`disclosure_scope` の範囲） | なし |
+| 広告素材・商品の対応表 | ADS-05 | （素材担当） | `products` | 素材ファイル（`shared/ad-assets`） |
+
+審査（承認・却下・停止）は KAGO/Insight（INS-01）と DB-08 が行い、Ads は結果を読むだけです。
+
+---
+
+## 1. 列挙値
+
+### Channel｜媒体（確定）
+
+| 値 | 意味 |
+| --- | --- |
+| `app` | 利用者のスマホ画面 |
+| `signage` | 店内のディスプレイ |
+
+### PlacementType｜提案の種別（確定・共通仕様書 D-03）
+
+Ads が扱うのは `sponsored`（メーカー広告）だけです。`organic`・`store_promo` は App・Insight が扱います。Signage の案内表示は種別ではなく、再生記録の `mode = fallback` です。
+
+### AdCallStatus｜募集の状態（確定・共通仕様書 6）
+
+| 値 | 意味 | 画面での表示 |
+| --- | --- | --- |
+| `draft` | 下書き。自店の募集担当だけが見られる | 下書き |
+| `open` | 公開中。期間内なら申請できる | 期間前は「公開中（開始前）」、期間内は「募集中」、期間後は「期間終了」 |
+| `closed` | 終了。新しい申請を受け付けない。再公開しない | 募集終了 |
+
+募集を公開しても広告の配信承認にはなりません。募集を終了しても、承認済みの広告は配信期間まで続きます。
+
+### ApplicationStatus｜申請の状態（確定・共通仕様書 6）
+
+| 値 | 意味 | 画面での表示 |
+| --- | --- | --- |
+| `submitted` | 審査中。再申請もこの状態に戻る | 審査中 |
+| `approved` | 承認済み。配信対象（`ad_placements`）ができる | 承認 |
+| `rejected` | 却下。メーカーは新しい版で再申請できる | 却下 |
+
+停止は申請ではなく配信対象の状態です。
+
+### PlacementStatus｜配信対象の状態（確定・共通仕様書 6）
+
+| 値 | 意味 |
+| --- | --- |
+| `active` | 承認済みで有効。期間内なら配信される |
+| `suspended` | 店舗が停止した |
+| `expired` | 期間が終わった（保存せず、期間から判定してもよい：要確認） |
+| `superseded` | 同じ申請の新しい版が承認され、置き換わった |
+
+### DisclosureMetric｜メーカーに公開する指標（確定・共通仕様書 5）
+
+| 値 | 画面での表示 |
+| --- | --- |
+| `impressions` | App の実表示数 |
+| `clicks` | App のクリック数 |
+| `cart_adds` | App の提案経由の追加数 |
+| `purchases` | App の表示後の購入数 |
+| `signage_views` | Signage の再生回数・推定視認 |
+
+### DataOrigin｜データの由来（確定・共通仕様書 4.2）
+
+`operated`／`seeded`／`synthetic`。Ads が作る行は、画面での操作なら `operated`、DATA-01 の投入なら `seeded`。
+
+---
+
+## 2. ad_calls｜広告募集（ADS-02 が書く）
+
+| 変数名 | 型 | 意味 | 区分 |
+| --- | --- | --- | --- |
+| `id` | uuid | 募集の識別子 | 確定 |
+| `store_id` | uuid | 募集を出した店舗。画面からは送らず、ログイン中の店舗で決める | 確定 |
+| `title` | text | 募集名 | 確定 |
+| `categories` | text[] | 対象カテゴリ（1つ以上）。`products.category` の値 | 確定 |
+| `channels` | text[] | 募集する掲載先（1つ以上） | 確定 |
+| `starts_at` / `ends_at` | timestamptz | 掲載期間 | 確定。終わりの扱いは要確認（下記） |
+| `status` | AdCallStatus | 募集の状態。作成時は `draft` | 確定 |
+| `disclosure_scope` | text[] | メーカーに公開する指標の組。空なら成果を公開しない | 確定 |
+| `description` | text | 案内文（売り場の様子・求める広告）。issues.md の ADS-02 にあり、共通仕様書の列にない | 提案 |
+| `created_at` / `updated_at` | timestamptz | 作成・更新日時 | 確定 |
+
+**期間の終わり（要確認）**：画面では日付で入力し、今の試作は `starts_at = その日の 00:00:00+09:00`、`ends_at = 最終日の 23:59:59+09:00` で保存しています。共通仕様書 9.1.1 は期間を `[開始, 終了)`（終わりを含まない）としているので、それに合わせるなら `ends_at = 最終日の翌日 00:00:00+09:00` にします。DB-01 と合わせて決めます。
+
+## 3. creatives｜広告素材、creative_versions｜素材の版（ADS-03 が書く）
+
+### creatives
+
+| 変数名 | 型 | 意味 | 区分 |
+| --- | --- | --- | --- |
+| `id` | uuid | 素材の識別子 | 確定 |
+| `maker_id` | uuid | 所有するメーカー。画面からは送らない | 確定 |
+| `product_id` | uuid | 対象商品（**1つ**） | 確定 |
+| `created_at` | timestamptz | 登録日時 | 確定 |
+
+### creative_versions
+
+| 変数名 | 型 | 意味 | 区分 |
+| --- | --- | --- | --- |
+| `id` | uuid | 版の識別子。申請・配信対象・再生記録はこれを参照する | 確定 |
+| `creative_id` | uuid | どの素材の版か | 確定 |
+| `version` | int | 素材ごとに 1 から始まる連番。古い版は書き換えない | 確定 |
+| `headline` | text | 広告の見出し（一覧・審査画面に出す一言） | 確定 |
+| `assets` | jsonb | 媒体ごとの素材（下の MediaAsset）。`{"app": …, "signage": …}`。共通仕様書は `image_path` が1つ | 提案 |
+| `note` | text | 何を変えた版か（審査する店舗にも見える） | 提案 |
+| `created_at` | timestamptz | 作成日時 | 確定 |
+
+### MediaAsset｜1つの素材ファイル（提案）
+
+| 変数名 | 型 | 意味 |
+| --- | --- | --- |
+| `kind` | text | `image`／`video`（動画は Signage だけ） |
+| `path` | text | 保存先のパス（COM-03）。画面では署名付き URL に変えて表示する |
+| `width` / `height` | int | ピクセル。Signage は 1920×1080、App は 800×800 |
+| `bytes` | int | ファイルの大きさ |
+| `duration_sec` | numeric | 動画の長さ（動画のみ） |
+| `file_name` | text | 元のファイル名（表示用） |
+
+## 4. ad_applications｜掲載申請（ADS-03 が書く。審査は INS-01）
+
+| 変数名 | 型 | 意味 | 区分 |
+| --- | --- | --- | --- |
+| `id` | uuid | 申請の識別子。再申請しても変わらない | 確定 |
+| `ad_call_id` | uuid | どの募集への申請か | 確定 |
+| `store_id` | uuid | 申請先の店舗（募集と同じ）。権限（DB-06）を簡単にするため | 提案 |
+| `maker_id` | uuid | 申請したメーカー。画面からは送らない | 確定 |
+| `creative_id` | uuid | どの素材か。同じ募集に同じ素材は1件まで | 提案 |
+| `creative_version_id` | uuid | 最新の回で申請した版 | 確定 |
+| `channels` | text[] | 最新の回で申請した掲載先（募集の `channels` の一部） | 確定 |
+| `requested_start` / `requested_end` | timestamptz | 希望期間（募集の期間の中）。共通仕様書は範囲型 `requested_period` | 要確認（DB-01） |
+| `status` | ApplicationStatus | 現在の状態 | 確定 |
+| `review_comment` | text | 却下の理由（最新の回） | 確定 |
+| `created_at` / `updated_at` | timestamptz | 作成・更新日時 | 確定 |
+
+### application_revisions｜申請の各回（提案）
+
+再申請は同じ申請を `submitted` に戻します（共通仕様書 6）。そのとき前の回の内容と結果が消えないよう、各回を残します。Insight は前回の却下理由をひとつ前の回から読めます。
+
+| 変数名 | 型 | 意味 |
+| --- | --- | --- |
+| `application_id` | uuid | どの申請か |
+| `rev` | int | 1 から始まる回数 |
+| `creative_version_id` | uuid | その回の版 |
+| `channels` | text[] | その回の掲載先 |
+| `requested_start` / `requested_end` | timestamptz | その回の希望期間 |
+| `message` | text | メーカーから店舗へのメッセージ（任意） |
+| `submitted_at` | timestamptz | 申請日時 |
+| `status` | ApplicationStatus | その回の結果 |
+| `review_comment` | text | その回の却下理由 |
+| `reviewed_at` | timestamptz | 審査日時 |
+
+再申請できるのは `status` が `rejected`（却下後の修正）か `approved`（承認後の素材差し替え）のときです。`submitted` の間はできません。承認後に差し替える場合、新しい版が承認されるまで旧版の配信対象は `active` のままです。
+
+## 5. ad_placements｜配信対象（Ads は状態を読むだけ。作るのは DB-08）
+
+| 変数名 | 型 | 意味 | 区分 |
+| --- | --- | --- | --- |
+| `id` | uuid | 配信対象の識別子 | 確定 |
+| `application_id` | uuid | どの申請の承認か | 確定 |
+| `store_id` | uuid | 配信する店舗 | 確定 |
+| `creative_version_id` | uuid | 承認した版（配信内容を固定する） | 確定 |
+| `channels` | text[] | 配信する掲載先。**承認時に店舗が申請の掲載先の一部に絞れる** | 要確認（DB-08・INS-01） |
+| `starts_at` / `ends_at` | timestamptz | 配信期間（承認時に店舗が決める。初期値は申請の希望期間） | 確定 |
+| `status` | PlacementStatus | 状態 | 確定 |
+| `approved_by` / `approved_at` | uuid / timestamptz | 承認した担当者・日時 | 確定 |
+| `suspend_reason` | text | 停止の理由 | 提案 |
+
+## 6. 参照だけするデータ
+
+| データ | 使う項目 | 使う画面 |
+| --- | --- | --- |
+| `stores` | `id`・`slug`・`name`・`branch_name`、提案：`description`（店舗の紹介文）・`address`（住所の目安） | ADS-01 の店舗一覧・募集詳細 |
+| `signage_devices` | `store_id`・`location` | ADS-01 の募集詳細（サイネージの設置場所） |
+| `makers` | `id`・`display_name`・`is_fictional` | 「広告｜提供：〇〇」の表示 |
+| `products` | `id`・`code`・`name`・`category` | 対象商品・カテゴリ |
+| `store_products` | `price` | 素材のプレビュー（価格は素材に入れず画面で重ねる） |
+
+## 7. 画面で組み立てる派生項目
+
+| 名前 | 意味 | 求め方 |
+| --- | --- | --- |
+| `call_phase` | 募集の段階 | `status` と `starts_at`・`ends_at`・現在時刻から：下書き／公開中（開始前）／募集中／期間終了／募集終了 |
+| `can_apply` | 新しく申請できるか | 段階が「公開中（開始前）」か「募集中」 |
+| `delivery_state`（媒体ごと） | 配信の状態 | `ad_placements` のうち、その媒体を含み `superseded` でないもの：`active` で期間前＝配信待ち、期間中＝配信中、期間後＝配信期間終了、`suspended`＝停止中、なし＝配信なし |
+| `store_label` | 店舗の表示名 | `name` と `branch_name` をつなぐ |
+| `maker_name` | 広告主名 | `maker_id` から `makers.display_name` |
+
+## 8. 入力チェック
+
+| 画面 | 条件 | 出す文言の例 |
+| --- | --- | --- |
+| 募集（ADS-02） | 募集名・カテゴリ1つ以上・期間（はじめ≦おわり）・掲載先1つ以上・案内文 | 「掲載先（App・Signage）を1つ以上選んでください」 |
+| 素材（ADS-03） | 対象商品・見出し・App か Signage の素材1つ以上。素材は下の仕様に合うこと | 「800×800 にしてください（今は 100×100）」 |
+| 申請（ADS-03） | 募集が申請できる段階・掲載先は募集の一部で版に素材がある・希望期間は募集の期間の中・同じ募集に同じ素材は1件 | 「この募集は Signage を募集していません」 |
+
+## 9. 誰が何をできるか（DB-06 で行単位の権限にする）
+
+| 役割 | できること | できないこと |
+| --- | --- | --- |
+| 店舗の募集担当 | 自店の募集の作成・編集・公開・終了、下書きを見る | 他店の募集の変更、申請の審査 |
+| メーカー | 公開中の募集・店舗を見る、自社の素材・版の登録、自社の申請・再申請、自社申請の配信対象の状態を見る | 他社の素材・申請を見る・変える、承認済みにする |
+| 店舗の審査担当（Insight） | 自店宛の申請を読む・審査する | 他店の申請の審査 |
+
+店舗担当者を「募集担当」と「審査担当」に分けるかは `store_members.role` の値として要確認です（共通仕様書は値を決めていない）。
+
+## 10. 素材の仕様（共通仕様書 Q-10 への提案）
+
+| 項目 | Signage | App |
+| --- | --- | --- |
+| サイズ | 1920×1080（16:9） | 800×800（1:1） |
+| 画像 | PNG・JPEG・WebP、1枚 2MB 以下 | 同左 |
+| 動画 | MP4（H.264）、15 秒以内、20MB 以下 | 使わない |
+| 素材に入れないもの | 価格・「広告」表記・提供元（画面側で重ねる。価格は店舗別価格） | 同左 |
+
+画面側が重ねる領域（素材のピクセル、x・y・幅・高さ）：
+
+| 媒体 | 「広告｜提供：〇〇」 | 価格 |
+| --- | --- | --- |
+| Signage | 40, 40, 640, 72 | 1360, 800, 520, 240 |
+| App | 24, 24, 400, 52 | 496, 664, 280, 112 |
+
+上限の数値（2MB・20MB）は COM-03 と合わせて確定します。デモ用の素材は ADS-05 で用意しています（瀬戸内トマト食品・トマトパスタソース `2900000000162`、第1版は静止画、第2版は Signage を10秒動画）。
+
+## 11. Insight・DB-08 と合わせること
+
+| 項目 | Ads からの提案 | 区分 |
+| --- | --- | --- |
+| 承認 | 承認関数に `channels` 引数を足し、申請の掲載先の一部に絞って承認できるようにする。申請の状態は1つのまま | 要確認 |
+| 却下の理由 | 必須・200字以内。申請の `review_comment` と、その回の `application_revisions.review_comment` に入れる | 要確認 |
+| 停止の理由 | 必須・200字以内。`ad_placements.suspend_reason` に入れる | 要確認 |
+| 新しい版の承認 | 同じ申請の `active` な配信対象をすべて `superseded` にし、新しい配信対象を作る | 要確認 |
+
+Insight のデータ項目表の未決事項のうち、Ads が答えるもの：
+
+| Insight の未決 | Ads の回答 |
+| --- | --- |
+| #2 再申請は新しい行か同じ行の更新か | 同じ申請（同じ `id`）を `submitted` に戻し、各回を `application_revisions` に残す。前回の却下理由はひとつ前の回から読む |
+| #3 却下理由は必須か、何文字か | 必須、200字以内（停止も同じ） |
+| #4 対象商品は複数持てるか | 1つ（`creatives.product_id`） |
+
+## 12. 共通仕様書 11 章の架空例との対応
+
+| 共通仕様書 | Ads での扱い |
+| --- | --- |
+| No.1 S1 が募集 C1 を作成・公開（App・Signage、公開範囲はすべての指標） | ADS-02 で作成。`disclosure_scope` に5項目 |
+| No.2 M1 が P-SAUCE の素材 CR1 第1版を登録して申請 A1 | ADS-03 で素材・版を登録し申請（`submitted`） |
+| No.4 M1 が第2版を作り A1 を再申請 | 版を追加し、同じ A1 を `submitted` に戻す。第1回の結果は `application_revisions` に残る |
+| 11.5 M1 は PL1 の集計（公開範囲内）と「少数」の注記、A1 の状態とコメントを見られる | ADS-04 で `disclosure_scope` の指標だけ。表示来店数5未満は件数を出して注記 |
+
+No.3 の却下理由の例「価格表示を入れてください」は、価格を素材に入れない方針（10 章）と食い違うので、「商品名を大きくしてください」などに変えることを提案します。
+
+## 13. 未決事項
+
+| # | 項目 | 関係 Issue | 決める相手 |
+| --- | --- | --- | --- |
+| 1 | 期間の終わりを含むか（`[開始, 終了)` に合わせるか） | ADS-02・ADS-03・DB-01 | Core |
+| 2 | 希望期間を範囲型にするか2列にするか | ADS-03・DB-01 | Core |
+| 3 | 承認時に掲載先を絞る `channels` 引数 | INS-01・DB-08 | Insight・Core |
+| 4 | `application_revisions`・`creative_versions.assets`・`ad_calls.description` を共通仕様書に入れるか | COM-01 | 共通仕様書の取りまとめ |
+| 5 | 店舗担当者の役割（募集担当・審査担当）の分け方 | COM-02・DB-06 | Core・Insight |
+| 6 | 素材の容量上限と画像の保存・署名付き URL の期限 | COM-03 | 画像保存の担当 |
+| 7 | `expired` を保存するか、期間から判定するか | DB-04・DB-08 | Core |
+
+## 14. 改訂履歴
+
+| 版 | 日付 | 内容 |
+| --- | --- | --- |
+| v0.1 | 2026-10-24 | 初版（案）。共通仕様書 v0.2 に合わせ、ADS-01〜05 の項目・状態・入力チェック・権限・素材の仕様・Insight との取り決めをまとめた |
