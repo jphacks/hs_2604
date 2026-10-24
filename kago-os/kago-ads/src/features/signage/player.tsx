@@ -1,23 +1,44 @@
 "use client";
-// Signage 端末の全画面表示（SIG-01〜03）。会場では Chrome のキオスクモードで /signage/play?device=D1 を開く
-// ?debug=1 を付けると、通信・キャッシュ・未送信の記録の状態と、通信を切る確認用のボタンを出す
+// Signage 端末の全画面表示（SIG-01〜03）。会場では Chrome のキオスクモードで /signage/play を開く
+// - DB 版（既定）：端末のアカウント（signage 役割）でログインする。端末・店舗はアカウントから決まり、URL では選ばない
+// - 仮データ版（NEXT_PUBLIC_ADS_DATA_SOURCE=mock）：/signage/play?device=D1 のように端末 ID を付けて開く
+// ?debug=1 を付けると、通信・キャッシュ・未送信の記録の状態と、確認用のボタン（通信を切る・ログアウト）を出す
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore, type FormEvent } from "react";
+import { getAdImageUrl, signOutBackend, toBackendError } from "@kago/backend";
 import { AdMedia, PromoMedia } from "@/components/ad-media";
+import { Button, ErrorList, Field, inputClass } from "@/components/parts";
+import { adsDataSource, createAdsBackend } from "@/lib/backend/config";
+import { signInDevice, type SignageClient } from "@/lib/backend/signage";
 import { getRepository } from "@/lib/data";
 import { FALLBACK_ASSET } from "@/lib/signage/feed";
 import { SignageEngine, type EngineState, type Screen } from "./engine";
+import { clearMediaCache, createMediaLoader } from "./media";
+import { mockSignageSource, supabaseSignageSource } from "./source";
 
 const kv = {
   get: (k: string) => window.localStorage.getItem(k),
   set: (k: string, v: string) => window.localStorage.setItem(k, v),
 };
 
-/** 素材を先に読み込み、ブラウザの中の URL にする（通信が切れても表示を続けるため） */
-async function loadMedia(path: string): Promise<string> {
-  const res = await fetch(path);
-  if (!res.ok) throw new Error(`${res.status}`);
-  return URL.createObjectURL(await res.blob());
+type Setup =
+  | { kind: "ready"; engine: SignageEngine; client: SignageClient | null }
+  | { kind: "no-device" }
+  | { kind: "error"; message: string };
+
+/** 接続先（DB／仮データ）に合わせて再生の仕組みを用意する。設定の誤りは仮データに戻さずエラーにする */
+function createSetup(deviceId: string): Setup {
+  try {
+    if (adsDataSource() === "mock") {
+      if (!deviceId) return { kind: "no-device" };
+      return { kind: "ready", client: null, engine: new SignageEngine({ source: mockSignageSource(getRepository(), deviceId), kv, loadMedia: createMediaLoader() }) };
+    }
+    const client = createAdsBackend();
+    const loadMedia = createMediaLoader({ signedUrl: async (path) => (await getAdImageUrl(client, path)).url });
+    return { kind: "ready", client, engine: new SignageEngine({ source: supabaseSignageSource(client), kv, loadMedia }) };
+  } catch (error) {
+    return { kind: "error", message: toBackendError(error).message };
+  }
 }
 
 function registerServiceWorker() {
@@ -38,13 +59,15 @@ function registerServiceWorker() {
     });
 }
 
-const EMPTY: EngineState = { phase: "starting", screen: null, online: false, simulatedOffline: false, outbox: 0, sent: 0 };
+const EMPTY: EngineState = { phase: "starting", screen: null, online: false, simulatedOffline: false, outbox: 0, sent: 0, rejected: 0 };
 
 export function SignagePlayer() {
   const params = useSearchParams();
   const deviceId = params.get("device") ?? "";
   const debug = params.get("debug") === "1";
-  const [engine] = useState(() => (typeof window === "undefined" || !deviceId ? null : new SignageEngine({ repo: getRepository(), deviceId, kv, loadMedia })));
+  const [setup] = useState<Setup | null>(() => (typeof window === "undefined" ? null : createSetup(deviceId)));
+  const engine = setup?.kind === "ready" ? setup.engine : null;
+  const client = setup?.kind === "ready" ? setup.client : null;
   const state = useSyncExternalStore(engine?.subscribe ?? noopSubscribe, engine?.getState ?? emptyState, emptyState);
 
   useEffect(() => {
@@ -60,9 +83,11 @@ export function SignagePlayer() {
     };
   }, [engine]);
 
-  if (!deviceId) {
+  if (setup?.kind === "no-device") {
     return <Message title="端末 ID がありません" body="/signage から端末を選んで開いてください（例：/signage/play?device=D1）" />;
   }
+  if (setup?.kind === "error") return <Message title="接続の設定を確認してください" body={setup.message} />;
+  if (state.phase === "login" && client && engine) return <DeviceLogin client={client} engine={engine} />;
 
   return (
     <div
@@ -76,7 +101,7 @@ export function SignagePlayer() {
           <ScreenView screen={state.screen} engine={engine!} />
         </div>
       ) : null}
-      {debug && <DebugPanel state={state} engine={engine!} />}
+      {debug && engine && <DebugPanel state={state} engine={engine} client={client} />}
     </div>
   );
 }
@@ -126,7 +151,46 @@ function ScreenView({ screen, engine }: { screen: Screen; engine: SignageEngine 
   );
 }
 
-function DebugPanel({ state, engine }: { state: EngineState; engine: SignageEngine }) {
+/** 端末のアカウントでのログイン。会場で一度ログインすれば、Supabase のクライアントが端末に保存して次回から自動で入る */
+function DeviceLogin({ client, engine }: { client: SignageClient; engine: SignageEngine }) {
+  const [errors, setErrors] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
+  async function submit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = new FormData(e.currentTarget);
+    setBusy(true);
+    setErrors([]);
+    try {
+      await signInDevice(client, String(form.get("email") ?? ""), String(form.get("password") ?? ""));
+      await engine.afterLogin();
+    } catch (error) {
+      setErrors([toBackendError(error).message]);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <main className="mx-auto flex min-h-screen w-full max-w-sm flex-col justify-center px-6">
+      <p className="text-sm font-semibold text-brand">KAGO/Signage</p>
+      <h1 className="mt-1 text-2xl font-bold">端末のログイン</h1>
+      <p className="mt-2 text-sm text-muted">Signage 端末用のアカウントでログインします。表示する店舗と端末はアカウントで決まります。</p>
+      <form className="mt-6 space-y-4" onSubmit={submit}>
+        <Field label="メールアドレス">
+          <input name="email" type="email" autoComplete="username" required className={inputClass} />
+        </Field>
+        <Field label="パスワード">
+          <input name="password" type="password" autoComplete="current-password" required className={inputClass} />
+        </Field>
+        <ErrorList errors={errors} />
+        <Button type="submit" disabled={busy} className="w-full">
+          {busy ? "確認中…" : "ログインして表示を始める"}
+        </Button>
+      </form>
+    </main>
+  );
+}
+
+function DebugPanel({ state, engine, client }: { state: EngineState; engine: SignageEngine; client: SignageClient | null }) {
   const s = state.screen;
   return (
     <div
@@ -142,14 +206,31 @@ function DebugPanel({ state, engine }: { state: EngineState; engine: SignageEngi
       <p>最終取得：{fmt(state.lastFetchAt)}｜キャッシュの期限：{fmt(state.cacheExpiresAt)}</p>
       <p>
         未送信の記録：{state.outbox}件｜送信済み：{state.sent}件
+        {state.rejected > 0 && `｜受け付けられなかった記録：${state.rejected}件`}
       </p>
-      <button
-        type="button"
-        className="mt-2 rounded bg-white px-2 py-1 font-sans text-black"
-        onClick={() => engine.setSimulatedOffline(!state.simulatedOffline)}
-      >
-        {state.simulatedOffline ? "通信を戻す" : "通信を切る（確認用）"}
-      </button>
+      <p>接続先：{client ? "DB（Supabase）" : "仮データ"}</p>
+      <div className="mt-2 flex gap-2">
+        <button
+          type="button"
+          className="rounded bg-white px-2 py-1 font-sans text-black"
+          onClick={() => engine.setSimulatedOffline(!state.simulatedOffline)}
+        >
+          {state.simulatedOffline ? "通信を戻す" : "通信を切る（確認用）"}
+        </button>
+        {client && (
+          <button
+            type="button"
+            className="rounded bg-white px-2 py-1 font-sans text-black"
+            onClick={async () => {
+              await signOutBackend(client).catch(() => undefined);
+              await clearMediaCache();
+              engine.signedOut();
+            }}
+          >
+            端末からログアウト
+          </button>
+        )}
+      </div>
     </div>
   );
 }

@@ -2,11 +2,11 @@
 // - 5秒ごとに、未送信の再生記録を送り、配信内容を取り直す（COM-01 案 F）
 // - 取得した配信内容と未送信の記録は端末に保存し、通信が切れても再読み込みしても続きから動く（SIG-03）
 // - 素材は先に読み込んでおき、読み込めたものだけを出す（画像欠落の対策）
-import type { AdsRepository } from "@/lib/data/repository";
 import type { PlayEndReason, Session, SignagePlay } from "@/lib/domain/types";
 import { FALLBACK_ASSET, type FeedItem, type SignageFeed, type SignageReasonCode } from "@/lib/signage/feed";
 import { decide, fallbackReason, pickNext, POLL_MS, type Playing } from "@/lib/signage/player";
 import { endPlay, startPlay } from "@/lib/signage/plays";
+import { NeedLoginError, type SignageSource } from "./source";
 
 export type Screen = {
   playId: string;
@@ -18,7 +18,8 @@ export type Screen = {
 };
 
 export type EngineState = {
-  phase: "starting" | "running" | "error";
+  /** login：端末のアカウントでのログインが必要（DB 版） */
+  phase: "starting" | "running" | "login" | "error";
   error?: string;
   storeName?: string;
   location?: string;
@@ -30,13 +31,14 @@ export type EngineState = {
   cacheExpiresAt?: string;
   outbox: number;
   sent: number;
+  /** DB に受け付けられず捨てた記録の数（中身が配信対象・期間と合わない など） */
+  rejected: number;
 };
 
 type Kv = { get(key: string): string | null; set(key: string, value: string): void };
 
 export type EngineDeps = {
-  repo: AdsRepository;
-  deviceId: string;
+  source: SignageSource;
   kv: Kv;
   /** 素材を読み込み、表示に使う URL を返す */
   loadMedia: (path: string) => Promise<string>;
@@ -46,7 +48,7 @@ export type EngineDeps = {
 class OfflineError extends Error {}
 
 export class SignageEngine {
-  private state: EngineState = { phase: "starting", screen: null, online: false, simulatedOffline: false, outbox: 0, sent: 0 };
+  private state: EngineState = { phase: "starting", screen: null, online: false, simulatedOffline: false, outbox: 0, sent: 0, rejected: 0 };
   private listeners = new Set<() => void>();
   private session: Session | null = null;
   private feed: SignageFeed | null = null;
@@ -55,6 +57,8 @@ export class SignageEngine {
   private media = new Map<string, { status: "loading" } | { status: "ready"; url: string } | { status: "error" }>();
   private timers: ReturnType<typeof setInterval>[] = [];
   private polling = false;
+  private needLogin = false;
+  private verified = false;
   private readonly now: () => number;
 
   constructor(private readonly deps: EngineDeps) {
@@ -77,11 +81,36 @@ export class SignageEngine {
     if (this.feed) this.preload(this.feed);
 
     await this.poll();
+    this.begin();
+  }
+
+  /** ログイン画面でログインした後に呼ぶ */
+  async afterLogin() {
+    this.needLogin = false;
+    await this.poll();
+    this.begin();
+  }
+
+  /** 端末からログアウトしたとき。保存した配信内容は消し、未送信の記録は次のログインで送るので残す */
+  signedOut() {
+    this.close();
+    this.stop();
+    this.session = null;
+    this.verified = false;
+    this.feed = null;
+    this.writeJson("session", null);
+    this.writeJson("feed", null);
+    this.set({ phase: "login", screen: null, online: false, lastFetchAt: undefined, cacheExpiresAt: undefined });
+  }
+
+  private begin() {
     if (!this.session) {
-      this.set({ phase: "error", error: "端末としてログインできません。端末 ID と通信を確認してください" });
+      if (this.needLogin) this.set({ phase: "login" });
+      else this.set({ phase: "error", error: "端末としてログインできません。端末 ID と通信を確認してください" });
       return;
     }
     this.set({ phase: "running", storeName: this.feed?.store_name, location: this.feed?.device.location });
+    if (this.timers.length > 0) return;
     this.tick();
     this.timers.push(setInterval(() => this.tick(), 250));
     this.timers.push(setInterval(() => void this.poll(), POLL_MS));
@@ -129,32 +158,45 @@ export class SignageEngine {
     this.polling = true;
     try {
       if (this.state.simulatedOffline) throw new OfflineError();
-      if (!this.session) {
-        this.session = await this.deps.repo.signInDevice(this.deps.deviceId);
+      if (!this.session || !this.verified) {
+        // 起動後の最初の取得では、保存したログイン情報を信じずに確かめる。通信できないときだけ保存した情報で続ける
+        this.session = await this.deps.source.signIn();
+        this.verified = true;
         this.writeJson("session", this.session);
       }
-      await this.flush();
-      const feed = await this.deps.repo.getSignageFeed(this.session);
+      // 記録を送れなくても配信内容は取り直す（ログインが切れたときだけ止める）
+      await this.flush().catch((error: unknown) => {
+        if (error instanceof NeedLoginError) throw error;
+      });
+      const feed = await this.deps.source.getFeed(this.session);
       this.feed = feed;
       this.writeJson("feed", feed);
       this.preload(feed);
       this.set({ online: true, lastFetchAt: feed.fetched_at, cacheExpiresAt: feed.expires_at, storeName: feed.store_name, location: feed.device.location });
-    } catch {
+    } catch (error) {
       this.set({ online: false });
+      if (error instanceof NeedLoginError) {
+        // ログインが切れた：表示をやめてログイン画面にする（別の端末のアカウントの内容を出し続けない）
+        this.needLogin = true;
+        if (this.state.phase === "running") this.signedOut();
+        else this.session = null;
+      }
     } finally {
       this.polling = false;
     }
   }
 
   private async flush() {
-    // DB では ended_at が必須なので、終わった記録だけを送る（再生中のものは端末に残す）
-    const batch = [...this.outbox.values()].filter((p) => p.ended_at);
+    // DB では ended_at が必須なので、終わった記録だけを送る（再生中のものは端末に残す）。
+    // 送るのはログイン中の端末の記録だけ。別の端末のアカウントの記録は、その端末で入り直したときに送る
+    const deviceId = this.session?.role === "signage" ? this.session.deviceId : null;
+    const batch = [...this.outbox.values()].filter((p) => p.ended_at && p.device_id === deviceId);
     if (!this.session || batch.length === 0) return;
-    await this.deps.repo.recordPlays(this.session, batch);
-    // 送っている間に更新された記録（終了の追記など）は残して次に送る
+    const { rejected } = await this.deps.source.recordPlays(this.session, batch);
+    // 送っている間に更新された記録（終了の追記など）は残して次に送る。受け付けられなかった記録は送り直しても通らないので捨てる
     for (const p of batch) if (this.outbox.get(p.id) === p) this.outbox.delete(p.id);
     this.saveOutbox();
-    this.set({ sent: this.state.sent + batch.length });
+    this.set({ sent: this.state.sent + batch.length - rejected.length, rejected: this.state.rejected + rejected.length });
   }
 
   private preload(feed: SignageFeed) {
@@ -181,6 +223,9 @@ export class SignageEngine {
   private tick() {
     if (this.state.phase !== "running") return;
     if (!this.playing) {
+      // 起動直後に素材を読み込み中なら、案内を出さずに待つ（読み込めなかったときだけ案内にする）
+      const loading = this.feed?.items.some((i) => this.media.get(i.asset.path)?.status === "loading");
+      if (loading && !this.feed?.items.some(this.ready)) return;
       this.startNext(null);
       return;
     }
@@ -198,13 +243,16 @@ export class SignageEngine {
     const now = this.now();
     const item = pickNext(this.feed, now, this.ready, last);
     const reason: SignageReasonCode = fallbackReason(this.feed, now);
-    const play = startPlay(this.deps.deviceId, item, reason, this.storeTime(now));
+    const deviceId = this.session?.role === "signage" ? this.session.deviceId : this.deps.source.cacheKey;
+    const play = startPlay(deviceId, item, reason, this.storeTime(now));
     this.playing = {
       key: item?.key ?? null,
       kind: item?.asset.kind ?? "image",
       startedAtMs: now,
       durationSec: item?.asset.duration_sec,
       feedKeys: this.feed?.items.map((i) => i.key) ?? [],
+      groupKey: item?.group_key,
+      validUntil: item?.valid_until,
       videoEnded: false,
       play,
     };
@@ -248,7 +296,7 @@ export class SignageEngine {
   }
 
   private key(name: string) {
-    return `kago-signage-${name}-v1:${this.deps.deviceId}`;
+    return `kago-signage-${name}-v1:${this.deps.source.cacheKey}`;
   }
 
   private readJson<T>(name: string, fallback: T): T {
