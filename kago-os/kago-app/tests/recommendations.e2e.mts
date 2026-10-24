@@ -27,7 +27,7 @@ try {
   await page.getByText("かごを最新の状態にしました。", { exact: true }).waitFor();
   const r = await a.request.get(origin + "/api/recommendations"); assert.equal(r.status(), 200);
   const body = await r.json();
-  assert.equal(body.visitId, id(13)); assert.equal(body.ruleVersion, 1);
+  assert.equal(body.visitId, id(13)); assert.equal(body.ruleVersion, 2);
   assert.deepEqual(body.items.map((i: { placementType: string; reasonText: string }) => [i.placementType, i.reasonText]), [["store_promo", "旬のりんごです"]]);
   assert.equal((await a.request.get(origin + "/api/recommendations")).status(), 200);
   assert.equal((await fixture.db.query("select * from selections where visit_id=$1", [id(13)])).rows.length, 1);

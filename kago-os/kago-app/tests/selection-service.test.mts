@@ -24,7 +24,7 @@ const hasCode = (code: string) => (e: unknown) => (e as { code?: string }).code 
 
 test("selects, saves and returns DB item ids; the same cart re-sends the same selection (no duplicates)", async () => {
   const first = await selectAndSave(a, id(13), rules);
-  assert.equal(first.cartVersion, 1); assert.equal(first.ruleVersion, 1);
+  assert.equal(first.cartVersion, 1); assert.equal(first.ruleVersion, 2);
   assert.deepEqual(first.items.map(i => [i.slot, i.placementType, i.reasonCode, i.product.productId]), [[1, "store_promo", "store_pick", id(21)]]);
   assert.match(first.items[0].selectionItemId, /^[0-9a-f-]{36}$/);
   const again = await selectAndSave(a, id(13), rules);

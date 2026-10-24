@@ -36,7 +36,7 @@ test("pasta in the cart: organic co_purchase, the store pick and a related ad �
   assert.equal(r.items[1].reasonText, "店内で揚げたてです"); assert.equal(r.items[1].promotionVersionId, "pv-1");
   assert.equal(r.items[2].reasonText, "スパゲッティを選んだ方への広告です");
   assert.deepEqual(r.items[2].sponsor, { makerName: "瀬戸内トマト食品", headline: "トマトの旨みたっぷり", creativeVersionId: "cv-pl-1" });
-  assert.equal(r.ruleVersion, 1); assert.equal(r.cartVersion, 4);
+  assert.equal(r.ruleVersion, 2); assert.equal(r.cartVersion, 4);
   for (const i of r.items) {
     assert.equal(i.placementType === "sponsored", i.reasonCode.startsWith("sponsored_"));
     assert.equal(i.placementType === "store_promo", i.reasonCode.startsWith("store_"));

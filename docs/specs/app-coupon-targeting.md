@@ -31,7 +31,7 @@ Score(u, t, p) = Association(t, p) × Novelty(u, p) × Deal(p)
 
 ### Association（関連の強さ）
 
-APP-04のルール（`association-rules.json`、ルール版1）を使う。
+APP-04のルール（`association-rules.json`、ルール版2）を使う。版2で生鮮商品を追加したが、デモで使う既存商品どうしのルールは版1と同じ。
 
 | tからpへのルール | Association | 結果に残す出所 |
 | --- | ---: | --- |

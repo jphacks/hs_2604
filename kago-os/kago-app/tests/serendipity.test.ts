@@ -24,7 +24,7 @@ test("pasta in the cart: basil coupon (curated relation) with its reason; set de
   assert.equal(r.coupon?.offerId, "c1"); assert.equal(r.coupon?.relation?.origin, "initial");
   assert.equal(r.coupon?.reason, "スパゲッティの仕上げに合います（KAGOが登録した組み合わせ）。25%OFFでお得なため選ばれました。");
   assert.equal(r.sets[0].action, "add"); assert.match(r.sets[0].reason, /スパゲッティとトマトパスタソース/);
-  assert.equal(r.ruleVersion, 1);
+  assert.equal(r.ruleVersion, 2);
 });
 test("coupons are not shown for products already in the cart or without trigger/relation", () => {
   const r = rankSerendipity(list([PASTA.code], [
