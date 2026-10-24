@@ -97,7 +97,7 @@ erDiagram
 
 DB-07は来店行をロックし、本人・active・期待cart_version・非空かご・取扱状態・現価格を確認して、注文・明細・来店終了を1トランザクションで保存する。totalは明細のunit_price×quantityの合計（integer上限超過は拒否）。再送時は既存注文を返す前に本人・来店・確定時cart_versionの一致を確認する。終了後の再送を新規注文にしない。かご更新も来店行をロックし、更新・cart_version加算・イベントを原子的に保存する。同じevent_idの再送では更新しない。3時間放棄は共通仕様Q-07の案であり閾値の担当確認待ち。
 
-DB-03・DB-04の実装・適用手順は[共通DBガイド](../development/database.md)を参照。実験のassignment_id／experiment_armは参照先を作るDB-05で追加する。かごと明細の同店舗商品検査はvisit／orderの店舗を使うトリガー、注文の利用者・店舗一致は複合FKで保証する。購入確定時の合計・版・時刻検証と原子的保存はDB-07で実装する。
+DB-03〜DB-05の実装・適用手順は[共通DBガイド](../development/database.md)を参照。実験のassignment_id／experiment_armはDB-05で追加した。かごと明細の同店舗商品検査はvisit／orderの店舗を使うトリガー、注文の利用者・店舗一致は複合FKで保証する。購入確定時の合計・版・時刻検証と原子的保存はDB-07で実装する。
 
 ### 広告・申請・販促（DB-04・DB-08）
 
@@ -122,13 +122,13 @@ DB-03・DB-04の実装・適用手順は[共通DBガイド](../development/datab
 
 | テーブル | 列（型・参照） | キー・条件 |
 | --- | --- | --- |
-| `selections` | id, visit_id→visits, cart_version integer, rule_version integer, created_at | cart_version≧0、ルール版は1以上の整数。Appのルール成果物と版を対応させ不変に保つ。同じかごで複数選定を許す。保存時に現在の版と一致 |
-| `selection_items` | id, selection_id→selections, slot integer, placement_type text, product_id→products, ad_placement_id?→ad_placements, promotion_version_id?→promotion_versions, rank integer, reason_code text, reason_text text | UNIQUE(selection_id,slot)、UNIQUE(selection_id,product_id)。slot=1〜3、rank≧1。種別条件は次節 |
-| `events` | event_id uuid PK, event_type text, schema_version integer, occurred_at, received_at, store_id→stores, channel text, user_id→Auth, visit_id→visits, selection_item_id?→selection_items, product_id?→products, payload jsonb, data_origin text | schema_version=1、channel=`app`。received_atはDBのみ付与。複合FK(visit_id,user_id,store_id)→visits。追記のみ |
+| `selections` | id, visit_id→visits, cart_version integer, rule_version integer, created_at | cart_version≧0、ルール版は1以上の整数。Appのルール成果物と版を対応させ不変に保つ。同じかごで複数選定を許す。保存時にactive来店の現在の版と一致。created_atの既定値はclock_timestamp()。同じIDの同内容再投入は無操作 |
+| `selection_items` | id, selection_id→selections, slot integer, placement_type text, product_id→products, ad_placement_id?→ad_placements, promotion_version_id?→promotion_versions, rank integer, reason_code text, reason_text text | UNIQUE(selection_id,slot)、UNIQUE(selection_id,product_id)。slot=1〜3、rank≧1。広告・販促は各1枠まで。reason_codeは`sponsored_*`＝広告、`store_*`＝販促、それ以外＝通常推薦。`replenishment`は履歴利用ON時のみ。種別条件は次節 |
+| `events` | event_id uuid PK, event_type text, schema_version integer, occurred_at, received_at, store_id→stores, channel text, user_id→Auth, visit_id→visits, selection_item_id?→selection_items, product_id?→products, payload jsonb, data_origin text | schema_version=1、channel=`app`。received_atはDBのみ付与。複合FK(visit_id,user_id,store_id)→visits、(store_id,product_id)→store_products。種類別payloadをCHECKで検査。同ID同内容は無操作、異内容は拒否。枠ごとの2件目以降の実表示は無操作。追記のみ |
 | `experiments` | id, store_id→stores, slug text, channel text, unit text, arms text[], starts_at, ends_at, version integer, created_at | UNIQUE(store_id,slug,version)、2群以上・重複なし。appのunit=`user`、signageのunit=`device_time_window` |
 | `experiment_assignments` | id, experiment_id→experiments, user_id→Auth, arm text, assigned_at | UNIQUE(experiment_id,user_id)。App実験のみ。armは参照実験のarms内。Appサーバーのみ作成 |
 | `signage_devices` | id, store_id→stores, auth_user_id→Auth, slug text, location text, is_active boolean, created_at | UNIQUE(auth_user_id)、UNIQUE(store_id,slug)。認証metadataのdevice_id/store_idとDB行を照合 |
-| `signage_plays` | id, device_id→signage_devices, ad_placement_id?→ad_placements, promotion_version_id?→promotion_versions, creative_version_id?→creative_versions, mode text, reason_code text, started_at, ended_at, received_at, data_origin text | mode=`schedule/adaptive/fallback`、ended_at≧started_at。広告・販促は排他、fallback案内のみ両方NULL。広告では承認素材版必須 |
+| `signage_plays` | id, device_id→signage_devices, ad_placement_id?→ad_placements, promotion_version_id?→promotion_versions, creative_version_id?→creative_versions, mode text, reason_code text, started_at, ended_at, received_at, data_origin text, media_kind text?, end_reason text? | mode=`schedule/adaptive/fallback`、ended_at≧started_at（終了後に送信、未終了は保存しない）。広告・販促は排他、fallback案内のみ両方NULL。広告では承認素材版必須、同店舗・signage媒体・期間内。media_kind=`image/video`、end_reason=`completed/updated/suspended/expired/media_error/closed`（#39の提案） |
 | `audience_estimates` | play_id→signage_plays, method_version text, measurement_status text, estimated_viewers integer?, estimated_view_seconds numeric?, data_origin text, received_at | PK(play_id)、status=`measured/not_measured/error`。measured時のみ人数・秒数必須かつ≧0、それ以外は両方NULL |
 
 実験は余力拡張（APP-10／INS-04）。visits.assignment_idとexperiment_armは両方NULLか両方非NULL。割当先の利用者・店舗と来店を一致させ、参照後の群を変更しない。Signageの時間窓割当は個人用experiment_assignmentsへ入れず、実装時に端末・時間窓をキーとする別表をDB-05で追加する。この版ではSignageのA/B比較実装を約束しない。
