@@ -65,8 +65,8 @@ export async function startShoppingVisit(client: Client, input: { storeId: strin
   await getBackendIdentity(client, "customer");
   if (!isUuid(input.storeId) || (input.previousVisitId !== null && !isUuid(input.previousVisitId))) throw new BackendError("forbidden");
   try {
-    // APP-01's invoker-rights function uses the DB-02/03 schema. DB-06 must
-    // permit its table operations; do not replace this with admin credentials.
+    // DB-06 grants EXECUTE on the guarded owner-rights function and denies direct
+    // visit writes. Always call it with the verified customer's session.
     const result = await client.rpc("app_start_visit", {
       p_store_id: input.storeId,
       p_start_new: input.startNew,
