@@ -39,6 +39,12 @@ export async function createShoppingFixture() {
       return send(current.id);
     }
     const table = url.pathname.split("/").at(-1);
+    if (table === "app_get_cart") {
+      const visit = visits.find(v => v.id === body.p_visit_id && v.user_id === who && v.status === "active");
+      if (!visit) return send({ code: "42501" }, 403);
+      return send({ visit, cart: visit.id === uuid(n + 10) ? [{ productId: uuid(20 + n), code: `000000000000${n}`, name: n === 3 ? "検証用ミルクA" : "検証用りんごB", category: "検証", price: n === 3 ? 321 : 157, quantity: n === 3 ? 2 : 1, available: true }] : [] });
+    }
+    if (table === "app_list_products") return send({ products: [], hasMore: false });
     if (table === "stores") return send(state.noStores ? [] : stores);
     if (table === "visits") return send(visits.filter(v => v.user_id === who && v.status === "active" && (!url.searchParams.has("id") || url.searchParams.get("id") === `eq.${v.id}`)).map(v => ({ id: v.id, store_id: v.store_id, cart_version: v.cart_version, started_at: v.started_at })));
     if (table === "cart_items") {

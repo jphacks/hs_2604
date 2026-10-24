@@ -5,7 +5,7 @@ import type { ShoppingContext } from "./service";
 
 type Failure = { code: string; message: string };
 type State = { kind: "loading" } | { kind: "login"; error?: string } | { kind: "error"; error: Failure } | { kind: "connected"; context: ShoppingContext };
-const ShoppingSession = createContext<ShoppingContext | null>(null);
+const ShoppingSession = createContext<(ShoppingContext & { revalidate: () => void }) | null>(null);
 const button = "min-h-12 rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-bold text-white disabled:opacity-50";
 
 async function request(body?: Record<string, unknown>, signal?: AbortSignal) {
@@ -102,7 +102,7 @@ export function ShoppingSessionProvider({ children }: { children: ReactNode }) {
   if (state.kind === "connected" && state.context.visit && !choosingStore) {
     const context = state.context;
     const store = context.stores.find(s => s.id === context.visit!.store_id)!;
-    return <ShoppingSession.Provider value={context}>
+    return <ShoppingSession.Provider value={{ ...context, revalidate: () => { void transition(); } }}>
       <div className="border-b border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950">
         <div className="mx-auto flex max-w-xl flex-wrap items-center justify-between gap-2">
           <span className="font-bold">{store.name} {store.branch_name}</span>
