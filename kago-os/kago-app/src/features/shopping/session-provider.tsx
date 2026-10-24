@@ -1,6 +1,8 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { BarcodeScanner } from "@/features/scanner/barcode-scanner";
+import { parseStoreQr } from "./store-qr";
 import type { ShoppingContext } from "./service";
 
 type Failure = { code: string; message: string };
@@ -38,6 +40,8 @@ function safeFailure(error: unknown): Failure {
 export function ShoppingSessionProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<State>({ kind: "loading" });
   const [choosingStore, setChoosingStore] = useState(false);
+  const [qrStore, setQrStore] = useState<string | null>(null);
+  const [qrError, setQrError] = useState("");
   const serial = useRef(0);
   const pending = useRef<AbortController | null>(null);
   const channel = useRef<BroadcastChannel | null>(null);
@@ -61,7 +65,14 @@ export function ShoppingSessionProvider({ children }: { children: ReactNode }) {
       }
       if (current !== serial.current || controller.signal.aborted) return;
       if (body?.action === "start_visit") channel.current?.postMessage("visit_changed");
-      setChoosingStore(false);
+      if (body?.action === "start_visit") {
+        setQrStore(null);
+        setQrError("");
+        const url = new URL(window.location.href);
+        url.searchParams.delete("store");
+        window.history.replaceState(null, "", url);
+        setChoosingStore(false);
+      }
       setState({ kind: "connected", context: data as ShoppingContext });
     } catch (error) {
       if (current !== serial.current || controller.signal.aborted) return;
@@ -73,7 +84,16 @@ export function ShoppingSessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const boot = window.setTimeout(() => { void transition(); }, 0);
+    const boot = window.setTimeout(() => {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has("store")) {
+        const storeId = parseStoreQr(url.href, url.origin);
+        setQrStore(storeId);
+        setQrError(storeId ? "" : "店舗のQRコードが無効です。店頭のQRを読み直すか、デモ用の店舗選択をご利用ください。");
+        setChoosingStore(true);
+      }
+      void transition();
+    }, 0);
     if (typeof BroadcastChannel !== "undefined") {
       channel.current = new BroadcastChannel("kago-shopping-session");
       channel.current.onmessage = () => { void transition(); };
@@ -119,7 +139,7 @@ export function ShoppingSessionProvider({ children }: { children: ReactNode }) {
       {state.kind === "loading" && <p role="status" className="mt-6">ログインと買い物の状態を確認しています…</p>}
       {state.kind === "login" && <>
         <h1 className="mt-3 text-2xl font-black">買い物をはじめる</h1>
-        <p className="mt-3 text-sm leading-6 text-slate-600">ログインして店舗を選ぶと、お使いのかごを開けます。</p>
+        <p className="mt-3 text-sm leading-6 text-slate-600">ログイン後、店舗のQRコードを読み取るか、デモ用の店舗選択から買い物を開始できます。</p>
         {state.error && <p role="alert" className="mt-4 text-sm text-red-700">{state.error}</p>}
         <form onSubmit={login} className="mt-6 grid gap-4">
           <label className="grid gap-2 text-sm font-bold">メールアドレス<input name="email" type="email" required maxLength={254} autoComplete="username" className="min-h-12 rounded-xl border border-slate-300 px-3" /></label>
@@ -136,7 +156,30 @@ export function ShoppingSessionProvider({ children }: { children: ReactNode }) {
         <h1 className="mt-3 text-2xl font-black">お買い物の店舗を選ぶ</h1>
         <p className="mt-3 text-sm leading-6 text-slate-600">続きから開くと、同じ来店のかごを復元します。</p>
         <div className="mt-6 grid gap-4">
-          {state.context.stores.map(store => {
+          <BarcodeScanner purpose="store" onDetected={(value) => {
+            const id = parseStoreQr(value, window.location.origin);
+            if (!id || !state.context.stores.some(store => store.id === id)) {
+              setQrError("利用できる店舗のQRコードではありません。店頭のQRを読み直してください。");
+              return;
+            }
+            setQrStore(id);
+            setQrError("");
+            const url = new URL(window.location.href);
+            url.searchParams.set("store", id);
+            window.history.replaceState(null, "", url);
+          }} />
+          <p className="text-xs leading-5 text-slate-500">カメラを利用できない場合は、スマートフォンのカメラでQRを開くか、下のデモ用店舗選択をご利用ください。</p>
+          {qrError && <p role="alert" className="text-sm text-red-700">{qrError}</p>}
+          {qrStore && !state.context.stores.some(store => store.id === qrStore) && <p role="alert" className="text-sm text-red-700">QRの店舗は現在利用できません。別のQRを読み取るか、デモ用の店舗選択をご利用ください。</p>}
+          {qrStore && state.context.stores.some(store => store.id === qrStore) && <p role="status" className="font-bold text-emerald-800">QRの店舗を確認しました。下のボタンで買い物を開始してください。</p>}
+          {qrStore && <button type="button" onClick={() => {
+            setQrStore(null); setQrError("");
+            const url = new URL(window.location.href);
+            url.searchParams.delete("store");
+            window.history.replaceState(null, "", url);
+          }} className="min-h-11 text-sm underline">デモ用の店舗選択に戻る</button>}
+          {!qrStore && <h2 className="font-bold">店舗を選んで来店する（デモ用・一時対応）</h2>}
+          {state.context.stores.filter(store => !qrStore || store.id === qrStore).map(store => {
             const active = state.context.activeVisits.find(v => v.store_id === store.id);
             const start = (startNew: boolean) => {
               if (startNew && active && !window.confirm("進行中の来店を終了し、空のかごで新しい買い物を始めます。よろしいですか？")) return;
