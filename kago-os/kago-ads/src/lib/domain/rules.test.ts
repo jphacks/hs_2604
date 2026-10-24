@@ -8,7 +8,10 @@ import {
   dayEnd,
   dayStart,
   deliveryState,
+  endDateOf,
   filterAdCalls,
+  periodLabel,
+  validateAdCall,
   validateApplication,
   validateApprovalChannels,
   validateReviewComment,
@@ -131,5 +134,42 @@ describe("validateAsset（素材の仕様）", () => {
     expect(validateAsset({ type: "video/mp4", bytes: 1, width: 1920, height: 1080, durationSec: 16 }, "signage").join()).toContain("15 秒以内");
     expect(validateAsset({ type: "image/png", bytes: 3 * 1024 * 1024, width: 800, height: 800 }, "app").join()).toContain("2MB 以下");
     expect(validateAsset({ type: "image/png", bytes: 1, width: 1000, height: 800 }, "app").join()).toContain("800×800");
+  });
+});
+
+describe("期間の終わり（database-design.md：[starts_at, ends_at)、最終日は翌日0時）", () => {
+  it("日付の最終日は翌日0時で保存し、表示と入力欄は最終日に戻す", () => {
+    expect(dayEnd("2026-10-31")).toBe("2026-11-01T00:00:00+09:00");
+    expect(dayEnd("2026-12-31")).toBe("2027-01-01T00:00:00+09:00");
+    expect(endDateOf(dayEnd("2026-10-31"))).toBe("2026-10-31");
+    expect(periodLabel(dayStart("2026-10-10"), dayEnd("2026-10-31"))).toBe("2026-10-10〜2026-10-31");
+  });
+
+  it("以前の形（最終日の 23:59:59）で保存された値も同じ最終日として扱う", () => {
+    expect(endDateOf("2026-10-31T23:59:59+09:00")).toBe("2026-10-31");
+  });
+
+  it("終わりの時刻ちょうどは期間外、その直前は期間内", () => {
+    const end = Date.parse(base.ends_at);
+    expect(callPhase(base, new Date(end - 1))).toBe("open");
+    expect(callPhase(base, new Date(end))).toBe("ended");
+    const pl: AdPlacement = {
+      id: "PL", application_id: "A", store_id: "S1", creative_version_id: "v", channels: ["app"],
+      starts_at: base.starts_at, ends_at: base.ends_at, status: "active", approved_by: "", approved_at: "",
+    };
+    expect(deliveryState([pl], "app", new Date(end - 1)).state).toBe("delivering");
+    expect(deliveryState([pl], "app", new Date(end)).state).toBe("ended");
+  });
+
+  it("1日だけの期間は作れる。終わりが始まりより前の日付は作れない", () => {
+    const input = { ...base, starts_at: dayStart("2026-10-20"), ends_at: dayEnd("2026-10-20") };
+    expect(validateAdCall(input)).toEqual([]);
+    expect(validateAdCall({ ...input, ends_at: dayEnd("2026-10-19") })).toContain("掲載期間の終わりは始まり以降にしてください");
+  });
+
+  it("日付で絞り込むと、最終日の翌日には出ない", () => {
+    const f = { keyword: "", category: "", channel: "" as const, storeId: "", includeEnded: true };
+    expect(filterAdCalls([base], { ...f, date: "2026-10-31" }, at("2026-10-20")).map((c) => c.id)).toEqual(["C1"]);
+    expect(filterAdCalls([base], { ...f, date: "2026-11-01" }, at("2026-10-20"))).toEqual([]);
   });
 });

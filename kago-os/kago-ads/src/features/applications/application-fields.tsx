@@ -1,6 +1,6 @@
 "use client";
 // ADS-03：申請・再申請で共通の入力欄（素材の版・掲載先・希望期間・メッセージ）
-import { dateOf, dayEnd, dayStart, periodLabel } from "@/lib/domain/rules";
+import { dateOf, dayEnd, dayStart, endDateOf, periodLabel } from "@/lib/domain/rules";
 import { CHANNEL_LABEL, type AdCall, type CreativeVersion } from "@/lib/domain/types";
 import type { ApplicationInput } from "@/lib/data/repository";
 import { AdMedia } from "@/components/ad-media";
@@ -21,7 +21,7 @@ export function ApplicationFields({
 }) {
   const version = versions.find((v) => v.id === value.creative_version_id);
   const minDate = dateOf(call.starts_at);
-  const maxDate = dateOf(call.ends_at);
+  const maxDate = endDateOf(call.ends_at);
   return (
     <div className="space-y-5">
       <Field label="素材の版">
@@ -78,7 +78,7 @@ export function ApplicationFields({
             className={inputClass}
             min={minDate}
             max={maxDate}
-            value={value.requested_end ? dateOf(value.requested_end) : ""}
+            value={value.requested_end ? endDateOf(value.requested_end) : ""}
             onChange={(e) => onChange({ ...value, requested_end: e.target.value ? dayEnd(e.target.value) : "" })}
           />
         </Field>

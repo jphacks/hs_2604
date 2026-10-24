@@ -294,7 +294,7 @@ export function createMockRepository(storage: MockStorage, seed: () => MockDb = 
         if (app.store_id !== storeId) throw new PermissionError("他の店舗の申請は審査できません");
         if (app.status !== "submitted") throw new ValidationError(["すでに審査済みです。再読み込みしてください"]);
         const errors = validateApprovalChannels(app.channels, input.channels);
-        if (Date.parse(input.starts_at) > Date.parse(input.ends_at)) errors.push("配信期間の終わりは始まり以降にしてください");
+        if (Date.parse(input.starts_at) >= Date.parse(input.ends_at)) errors.push("配信期間の終わりは始まり以降にしてください");
         if (errors.length) throw new ValidationError(errors);
         // 新しい版を承認すると、旧版の配信対象は superseded になる（共通仕様書 6）
         for (const p of db.ad_placements) {

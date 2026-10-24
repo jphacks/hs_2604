@@ -28,15 +28,23 @@ export function addDays(date: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-/** 日付を、その日の始まり・終わりの時刻にする（日本時間） */
+/**
+ * 期間は [starts_at, ends_at)（docs/specs/database-design.md）。日付で入力した期間は、
+ * 始まりをその日の0時、終わりを最終日の翌日0時にする（日本時間）
+ */
 export const dayStart = (date: string): Timestamp => `${date}T00:00:00+09:00`;
-export const dayEnd = (date: string): Timestamp => `${date}T23:59:59+09:00`;
+export const dayEnd = (date: string): Timestamp => `${addDays(date, 1)}T00:00:00+09:00`;
 
 const ms = (ts: Timestamp) => Date.parse(ts);
 
-/** 表示用の期間（日本時間の日付） */
+/** 期間の最終日（終わりの時刻は含まないので、その直前の日付）。表示と日付の入力欄に使う */
+export function endDateOf(end: Timestamp): string {
+  return today(new Date(ms(end) - 1));
+}
+
+/** 表示用の期間（日本時間の日付。終わりは最終日） */
 export function periodLabel(start: Timestamp, end: Timestamp): string {
-  return `${dateOf(start)}〜${dateOf(end)}`;
+  return `${dateOf(start)}〜${endDateOf(end)}`;
 }
 
 export type CallPhase = "draft" | "upcoming" | "open" | "ended" | "closed";
@@ -53,7 +61,7 @@ export const PHASE_LABEL: Record<CallPhase, string> = {
 export function callPhase(c: AdCall, now: Date = new Date()): CallPhase {
   if (c.status === "draft") return "draft";
   if (c.status === "closed") return "closed";
-  if (now.getTime() > ms(c.ends_at)) return "ended";
+  if (now.getTime() >= ms(c.ends_at)) return "ended";
   if (now.getTime() < ms(c.starts_at)) return "upcoming";
   return "open";
 }
@@ -77,7 +85,7 @@ export function validateAdCall(input: {
   if (!input.title.trim()) errors.push("募集名を入力してください");
   if (input.categories.length === 0) errors.push("対象カテゴリを1つ以上選んでください");
   if (!input.starts_at || !input.ends_at) errors.push("掲載期間を入力してください");
-  else if (ms(input.starts_at) > ms(input.ends_at)) errors.push("掲載期間の終わりは始まり以降にしてください");
+  else if (ms(input.starts_at) >= ms(input.ends_at)) errors.push("掲載期間の終わりは始まり以降にしてください");
   if (input.channels.length === 0) errors.push("掲載先（App・Signage）を1つ以上選んでください");
   if (!input.description.trim()) errors.push("案内文を入力してください");
   return errors;
@@ -100,7 +108,7 @@ export function validateApplication(
   }
   if (!input.requested_start || !input.requested_end) errors.push("希望期間を入力してください");
   else {
-    if (ms(input.requested_start) > ms(input.requested_end)) errors.push("希望期間の終わりは始まり以降にしてください");
+    if (ms(input.requested_start) >= ms(input.requested_end)) errors.push("希望期間の終わりは始まり以降にしてください");
     if (ms(input.requested_start) < ms(call.starts_at) || ms(input.requested_end) > ms(call.ends_at)) {
       errors.push(`希望期間は募集の掲載期間（${periodLabel(call.starts_at, call.ends_at)}）の中にしてください`);
     }
@@ -156,7 +164,7 @@ export function deliveryState(
   const active = mine.find((p) => p.status === "active");
   if (active) {
     if (now.getTime() < ms(active.starts_at)) return { state: "scheduled", placement: active };
-    if (now.getTime() > ms(active.ends_at)) return { state: "ended", placement: active };
+    if (now.getTime() >= ms(active.ends_at)) return { state: "ended", placement: active };
     return { state: "delivering", placement: active };
   }
   const suspended = mine.find((p) => p.status === "suspended");
@@ -183,7 +191,7 @@ export function filterAdCalls(list: AdCall[], f: PortalFilter, now: Date = new D
     .filter((c) => !f.category || c.categories.includes(f.category))
     .filter((c) => !f.channel || c.channels.includes(f.channel))
     .filter((c) => !f.storeId || c.store_id === f.storeId)
-    .filter((c) => !f.date || (ms(c.starts_at) <= ms(dayEnd(f.date)) && ms(dayStart(f.date)) <= ms(c.ends_at)))
+    .filter((c) => !f.date || (ms(c.starts_at) < ms(dayEnd(f.date)) && ms(dayStart(f.date)) < ms(c.ends_at)))
     .filter((c) => !kw || c.title.includes(kw) || c.description.includes(kw))
     .sort((a, b) => Number(canApplyTo(b, now)) - Number(canApplyTo(a, now)) || ms(a.ends_at) - ms(b.ends_at));
 }

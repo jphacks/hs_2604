@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { getRepository } from "@/lib/data";
 import type { AdCallInput } from "@/lib/data/repository";
-import { addDays, dateOf, dayEnd, dayStart, today } from "@/lib/domain/rules";
+import { addDays, dateOf, dayEnd, dayStart, endDateOf, today } from "@/lib/domain/rules";
 import {
   CHANNEL_LABEL,
   CHANNELS,
@@ -54,7 +54,7 @@ function FormBody({ id, session, categories, current }: { id?: string; session: 
           categories: current.categories,
           channels: current.channels,
           startDate: dateOf(current.starts_at),
-          endDate: dateOf(current.ends_at),
+          endDate: endDateOf(current.ends_at),
           description: current.description,
           disclosure_scope: current.disclosure_scope,
         }
