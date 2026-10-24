@@ -12,6 +12,8 @@ hs_2604/
 ├── CONTRIBUTING.md
 ├── LICENSE
 ├── .github/                 Issue・PRテンプレート
+├── analysis/                公開データの分析（原データはGit管理外）
+│   └── app04-association-rules/  関連購買ルールの生成手順・評価（APP-04）
 ├── docs/
 │   ├── development.md       この開発ガイド
 │   ├── issues/issues.md     全体Issue案
@@ -53,6 +55,7 @@ hs_2604/
 | 機能をまたいで使うUI | `kago-app/src/components/` |
 | 共通の商品定義・表示補助 | `kago-app/src/lib/` |
 | 固定の架空データ | `kago-app/src/data/demo/` |
+| 公開データの分析手順・評価（原データは`raw/`でGit管理外） | `analysis/` |
 | LPの編集対象 | `lp/src/` |
 | 各サービスでWebに配信する素材 | 各サービスの`public/` |
 | 今後のDB定義・変更履歴・初期データ | `kago-core/`（実装時に追加） |
@@ -150,6 +153,8 @@ GitHubでの実装作業の手順は[CONTRIBUTING.md](../CONTRIBUTING.md)を参�
 ## 共通DBのテーブル適用
 
 店舗・商品・店舗別価格・利用者設定の適用と制約検査は[共通DBの適用・検証](development/database.md)を参照してください。本人・所属ごとのアクセス許可はDB-06で実装します。
+
+各画面で共通に使う店舗・商品・アカウント・募集・広告・過去注文の架空データと仮応答は[共通の架空データ](development/demo-data.md)を参照してください。
 
 ### 店舗QRからの来店（#87）
 

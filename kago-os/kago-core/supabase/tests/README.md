@@ -41,3 +41,14 @@ psql -X -v ON_ERROR_STOP=1 -f supabase/tests/product_sales.sql
 41項目で商品・由来別の手計算値、明細の単価、無料明細、JST日／時間境界と別セッションタイムゾーン、部分区間、販売なし、空配列・重複商品、不正入力、2店舗の分離・別役割の拒否、返却型を確認します。イベント・選定・再生は作りません。データはrollbackします。共有・本番DBでは実行しません。
 
 2026-10-24：PGlite 0.5.11 / PostgreSQL 16.11で、最新mainのmigrationと本追加SQLをファイル名順に適用。商品別41項目と、DB-02〜09・COM-03のSQLをそれぞれ各2回成功し、毎回fixtureのrollbackを確認しました。Auth/Storageの最小定義はローカルで模擬しており、実Supabaseの署名・HTTP・Insight画面は未検証です。既存migrationのversion重複は[利用ガイド](../../../../docs/development/product-sales.md)の適用上の注意を参照してください。
+
+## 店舗販促の保存（`kago_save_promotion`）
+
+`20261024150000_promotion_save.sql`を含む全migrationを適用した、破棄可能なSupabase互換DBでOwnerとして実行します。
+
+```sh
+# kago-os/kago-core/ で実行。接続先はPGHOST等で別途指定する。
+psql -X -v ON_ERROR_STOP=1 -f supabase/tests/promotion_save.sql
+```
+
+権限、初回作成・再送、新しい版への切替、古い画面からの保存（`40001`）、不正入力・取扱停止で失敗しても元の`active`版が残ること、停止後の再保存を確認します。データはrollbackします。契約は[データベース仕様](../../../../docs/development/database.md)を参照してください。

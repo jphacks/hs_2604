@@ -2,7 +2,7 @@
 // ADS-02：募集（ad_calls）の作成・編集フォーム。成果の公開範囲もここで募集ごとに決める（共通仕様書 5）
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { getRepository } from "@/lib/data";
+import { useStoreCallsRepository, useStoreSession, useAdsRuntime } from "@/features/auth/ads-runtime";
 import type { AdCallInput } from "@/lib/data/repository";
 import { addDays, dateOf, dayEnd, dayStart, endDateOf, today } from "@/lib/domain/rules";
 import {
@@ -15,7 +15,6 @@ import {
   type DisclosureMetric,
   type Session,
 } from "@/lib/domain/types";
-import { useSession } from "@/lib/session";
 import { Button, Card, ErrorList, Field, inputClass, Loading, NeedRole, PageTitle } from "@/components/parts";
 import { errorMessages, useLoad } from "@/lib/use-load";
 
@@ -23,7 +22,9 @@ import { errorMessages, useLoad } from "@/lib/use-load";
 type FormState = Omit<AdCallInput, "starts_at" | "ends_at"> & { startDate: string; endDate: string };
 
 export function RecruitmentForm({ id }: { id?: string }) {
-  const session = useSession();
+  const session = useStoreSession();
+  const getRepository = useStoreCallsRepository();
+  const { source } = useAdsRuntime();
   const { state } = useLoad(async () => {
     const repo = getRepository();
     const [categories, current] = await Promise.all([
@@ -41,11 +42,15 @@ export function RecruitmentForm({ id }: { id?: string }) {
   if (id && (!current || current.store_id !== session.storeId)) {
     return <ErrorList errors={["募集が見つからないか、他の店舗の募集です"]} />;
   }
-  return <FormBody key={current?.updated_at ?? "new"} id={id} session={session} categories={categories} current={current} />;
+  if (current?.status === "closed") return <ErrorList errors={["終了した募集は変更・再公開できません。"]} />;
+  return <FormBody key={current?.updated_at ?? "new"} id={id} session={session} categories={categories} current={current} source={source} />;
 }
 
 /** 読み込み後に描画する本体（初期値の日付はここで作るので、事前描画中に現在時刻を読まない） */
-function FormBody({ id, session, categories, current }: { id?: string; session: Session; categories: string[]; current?: AdCall }) {
+function FormBody({ id, session, categories, current, source }: { id?: string; session: Session; categories: string[]; current?: AdCall; source: "mock" | "supabase" }) {
+  const getRepository = useStoreCallsRepository();
+  const [savedRecord, setSavedRecord] = useState(() => current ? { id: current.id, updatedAt: current.updated_at } : undefined);
+  const fixed = source === "supabase" && current?.status === "open";
   const router = useRouter();
   const [form, setForm] = useState<FormState>(() =>
     current
@@ -85,11 +90,12 @@ function FormBody({ id, session, categories, current }: { id?: string; session: 
       const { startDate, endDate, ...rest } = form;
       const input: AdCallInput = {
         ...rest,
-        starts_at: startDate ? dayStart(startDate) : "",
-        ends_at: endDate ? dayEnd(endDate) : "",
+        starts_at: fixed && current ? current.starts_at : startDate ? dayStart(startDate) : "",
+        ends_at: fixed && current ? current.ends_at : endDate ? dayEnd(endDate) : "",
       };
-      const saved = await repo.saveAdCall(session, input, id);
-      if (publish && saved.status === "draft") await repo.setAdCallStatus(session, saved.id, "open");
+      const saved = await repo.saveAdCall(session, input, savedRecord?.id ?? id, savedRecord?.updatedAt);
+      setSavedRecord({ id: saved.id, updatedAt: saved.updated_at });
+      if (publish && saved.status === "draft") await repo.setAdCallStatus(session, saved.id, "open", saved.updated_at);
       router.push("/ads/store/calls");
     } catch (e) {
       setErrors(errorMessages(e));
@@ -121,19 +127,20 @@ function FormBody({ id, session, categories, current }: { id?: string; session: 
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="掲載期間（はじめ）">
-            <input type="date" className={inputClass} value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
+            <input type="date" className={inputClass} disabled={fixed} value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
           </Field>
           <Field label="掲載期間（おわり）">
-            <input type="date" className={inputClass} value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
+            <input type="date" className={inputClass} disabled={fixed} value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
           </Field>
         </div>
 
         <fieldset>
           <legend className="text-sm font-semibold">掲載先</legend>
+          {fixed && <p className="text-xs text-muted">公開後は掲載期間と掲載先を変更できません。</p>}
           <div className="mt-2 flex flex-wrap gap-4">
             {CHANNELS.map((c: Channel) => (
               <label key={c} className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={form.channels.includes(c)} onChange={() => toggle("channels", c)} />
+                <input type="checkbox" disabled={fixed} checked={form.channels.includes(c)} onChange={() => toggle("channels", c)} />
                 {CHANNEL_LABEL[c]}
                 <span className="text-xs text-muted">{c === "app" ? "（お客様のスマホのおすすめ枠）" : "（店内の画面。動画15秒以内も可）"}</span>
               </label>
@@ -164,6 +171,7 @@ function FormBody({ id, session, categories, current }: { id?: string; session: 
           募集を公開しても、広告の掲載は承認されません。届いた申請は KAGO/Insight で審査し、承認するときに掲載先を絞ることもできます。
         </p>
 
+        {categories.length === 0 && <p role="alert" className="text-sm text-muted">商品カテゴリがありません。担当者に商品データの登録を依頼してください。</p>}
         <ErrorList errors={errors} />
 
         <div className="flex flex-wrap gap-2">
@@ -175,7 +183,7 @@ function FormBody({ id, session, categories, current }: { id?: string; session: 
           ) : (
             <Button disabled={saving} onClick={() => save(false)}>保存</Button>
           )}
-          <Button variant="secondary" onClick={() => router.back()}>戻る</Button>
+          <Button variant="secondary" disabled={saving} onClick={() => router.back()}>戻る</Button>
         </div>
       </Card>
     </>

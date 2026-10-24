@@ -2,11 +2,15 @@
 import { createServer } from "node:http";
 import { randomUUID } from "node:crypto";
 import { createCartDatabase, id } from "./cart-database.mts";
+import { seedAccountHistory } from "./account-history.mts";
+import { seedOffers } from "./offers.mts";
 
-export async function createCartBackend() {
+export async function createCartBackend({ accountHistory = false, offers = false } = {}) {
   const database = await createCartDatabase();
+  if (accountHistory) await seedAccountHistory(database);
+  if (offers) await seedOffers(database);
   const revoked = new Set<string>();
-  const calls: { name: string; body: Record<string, unknown> }[] = [];
+  const calls: { name: string; body: Record<string, unknown>; method?: string; query?: string }[] = [];
   const user = (n: number) => ({ id:id(n), aud:"authenticated", role:"authenticated", email:`user${n}@example.test`,
     created_at:"2026-10-24T00:00:00Z", app_metadata:{kago:{roles:[n === 5 ? "maker_staff" : "customer"]}}, user_metadata:{} });
   const server = createServer(async (req, res) => {
@@ -28,6 +32,7 @@ export async function createCartBackend() {
       if(url.pathname.endsWith("/logout")){revoked.add(token);res.writeHead(204);return res.end();}
       if(url.pathname.endsWith("/user"))return send(user(n));
       const name=url.pathname.split("/").at(-1)!;
+      if(!url.pathname.includes("/rpc/")) calls.push({name,body,method:req.method,query:url.search});
       if(url.pathname.includes("/rpc/")) {
         calls.push({name,body});
         const params: Record<string,string[]>={
@@ -36,19 +41,41 @@ export async function createCartBackend() {
           app_list_products:["p_visit_id","p_query","p_offset"],
           app_lookup_product:["p_visit_id","p_request_id","p_code","p_product_id","p_failure_reason"],
           app_set_cart_item:["p_visit_id","p_request_id","p_product_id","p_quantity","p_expected_cart_version","p_source","p_selection_item_id"],
+          app_list_offers:["p_visit_id"],
+          app_claim_offer:["p_visit_id","p_request_id","p_offer_id","p_expected_cart_version"],
+          app_record_offer_event:["p_visit_id","p_event_id","p_offer_id","p_event_type"],
         };
         if(!params[name])throw Error("Unknown RPC");
         return send(await database.rpc(name,params[name].map(p=>body[p]??null),n,n===5?"maker_staff":"customer"));
       }
       const rows=await database.as(n,async()=>{
         if(name==="stores")return (await database.db.query("select id,slug,name,branch_name from stores order by name")).rows;
-        if(name==="visits")return (await database.db.query("select id,store_id,cart_version,started_at from visits where user_id=auth.uid() and status='active' order by started_at desc")).rows;
+        if(name==="visits")return (await database.db.query("select id,store_id,cart_version,started_at from visits where user_id=auth.uid() and status='active' and ($1::uuid is null or id=$1) order by started_at desc",[url.searchParams.get("id")?.slice(3)??null])).rows;
+        if(name==="customer_settings") {
+          const columns="use_purchase_history,use_current_cart,to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') as updated_at";
+          if(req.method==="POST")return (await database.db.query(`insert into customer_settings(user_id,use_purchase_history,use_current_cart) values ($1,$2,$3) returning ${columns}`,[body.user_id,body.use_purchase_history??false,body.use_current_cart??false])).rows;
+          if(req.method==="PATCH") {
+            const key=Object.keys(body)[0];if(!["use_purchase_history","use_current_cart"].includes(key))throw Error("Unknown setting");
+            return (await database.db.query(`update customer_settings set ${key}=$1 where user_id=$2 and ($3::timestamptz is null or updated_at=$3) returning ${columns}`,[body[key],url.searchParams.get("user_id")?.slice(3),url.searchParams.get("updated_at")?.slice(3)??null])).rows;
+          }
+          return (await database.db.query(`select ${columns} from customer_settings where user_id=$1`,[url.searchParams.get("user_id")?.slice(3)])).rows;
+        }
+        if(name==="orders") {
+          const cursor=url.searchParams.get("or");
+          const match=cursor?.match(/^\(ordered_at\.lt\.([^,]+),and\(ordered_at\.eq\.([^,]+),id\.lt\.([\w-]+)\)\)$/);
+          if(cursor&&!match)throw Error("Unexpected history cursor");
+          return (await database.db.query(`select o.id,to_char(o.ordered_at at time zone 'UTC','YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') as ordered_at,o.total,o.data_origin,
+            (select coalesce(jsonb_agg(jsonb_build_object('product_id',i.product_id,'product_name',i.product_name,'unit_price',i.unit_price,'quantity',i.quantity)), '[]'::jsonb) from order_items i where i.order_id=o.id) as order_items
+            from orders o where o.user_id=$1 and o.store_id=$2 and o.ordered_at<$3::timestamptz
+            and ($4::timestamptz is null or (o.ordered_at,o.id)<($4::timestamptz,$5::uuid))
+            order by o.ordered_at desc,o.id desc limit $6`,[url.searchParams.get("user_id")?.slice(3),url.searchParams.get("store_id")?.slice(3),url.searchParams.get("ordered_at")?.slice(3),match?.[1]??null,match?.[3]??null,Number(url.searchParams.get("limit")??11)])).rows;
+        }
         if(name==="cart_items")return (await database.db.query("select product_id,quantity from cart_items where visit_id=$1",[url.searchParams.get("visit_id")?.slice(3)])).rows;
         if(name==="products")return (await database.db.query("select id,code,name,category from products")).rows;
         if(name==="store_products")return (await database.db.query("select product_id,price from store_products where store_id=$1",[url.searchParams.get("store_id")?.slice(3)])).rows;
         throw Error("Unknown table");
-      });
-      return send(rows);
+      },n===5?"maker_staff":"customer");
+      return send(req.headers.accept?.includes("application/vnd.pgrst.object+json") ? rows[0]??null : rows);
     } catch(error) {const e=error as {code?:string;detail?:string};return send({code:e.code??"XX000",details:e.detail,message:"Test database rejected request"},400);}
   });
   await new Promise<void>(resolve=>server.listen(0,"127.0.0.1",resolve));

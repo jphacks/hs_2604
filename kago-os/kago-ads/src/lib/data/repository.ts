@@ -114,7 +114,9 @@ export interface AdsRepository {
 export class PermissionError extends Error {}
 /** 入力が仕様に合わない */
 export class ValidationError extends Error {
-  constructor(public readonly messages: string[]) {
+  readonly messages: string[];
+  constructor(messages: string[]) {
     super(messages.join("\n"));
+    this.messages = messages;
   }
 }
