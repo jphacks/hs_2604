@@ -38,6 +38,8 @@
     "test:session:e2e": "node --experimental-strip-types tests/session-background.e2e.mts",
     "test:events": "node --experimental-strip-types --test tests/events.test.mts",
     "test:events:e2e": "node --experimental-strip-types tests/events.e2e.mts",
+    "test:menu": "node --experimental-strip-types --test tests/product-genres.test.ts tests/menu-products.test.mts",
+    "test:menu:e2e": "node --experimental-strip-types tests/menu.e2e.mts",
     "test:refresh": "node --experimental-strip-types --test tests/recommendation-refresh.test.mts",
     "test:refresh:e2e": "node --experimental-strip-types tests/recommendation-refresh.e2e.mts",
     "test:checkout": "node --experimental-strip-types --test tests/checkout.test.mts",
