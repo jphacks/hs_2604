@@ -5,7 +5,7 @@ export const uuid = n => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}
 export async function createShoppingFixture() {
   const stores = [1, 2].map(n => ({ id: uuid(n), slug: `store-${n}`, name: `架空店舗${n}`, branch_name: "検証店" }));
   const visits = [3, 4].map(n => ({ id: uuid(n + 10), user_id: uuid(n), store_id: uuid(1), status: "active", cart_version: 1, started_at: "2026-10-24T10:00:00+09:00" }));
-  const state = { revoked: new Set(), dbError: null, noStores: false, nextVisit: 50, calls: [] };
+  const state = { revoked: new Set(), dbError: /** @type {string|null} */ (null), noStores: false, nextVisit: 50, calls: /** @type {Array<{path:string, who:string|undefined, body:Record<string,unknown>}>} */ ([]) };
   const user = n => ({ id: uuid(n), aud: "authenticated", role: "authenticated", email: `user${n}@example.test`, created_at: "2026-10-24T00:00:00Z", app_metadata: { kago: { roles: [n === 5 ? "maker_staff" : "customer"] } }, user_metadata: {} });
   const token = n => [{ alg: "HS256", typ: "JWT" }, { sub: uuid(n), aud: "authenticated", role: "authenticated", exp: Math.floor(Date.now() / 1000) + 3600 }].map(v => Buffer.from(JSON.stringify(v)).toString("base64url")).join(".") + ".fixture";
   const server = createServer(async (req, res) => {
@@ -40,7 +40,7 @@ export async function createShoppingFixture() {
     }
     const table = url.pathname.split("/").at(-1);
     if (table === "stores") return send(state.noStores ? [] : stores);
-    if (table === "visits") return send(visits.filter(v => v.user_id === who && v.status === "active").map(v => ({ id: v.id, store_id: v.store_id, cart_version: v.cart_version, started_at: v.started_at })));
+    if (table === "visits") return send(visits.filter(v => v.user_id === who && v.status === "active" && (!url.searchParams.has("id") || url.searchParams.get("id") === `eq.${v.id}`)).map(v => ({ id: v.id, store_id: v.store_id, cart_version: v.cart_version, started_at: v.started_at })));
     if (table === "cart_items") {
       const selected = url.searchParams.get("visit_id")?.slice(3);
       const own = visits.find(v => v.user_id === who && v.id === selected && v.status === "active");

@@ -5,7 +5,7 @@ import { PGlite } from "@electric-sql/pglite";
 import { createHeadlessBackend } from "@kago/backend";
 import { loadShoppingContext, startShoppingVisit } from "../src/features/shopping/service.ts";
 
-// Real DB-02/03 SQL in a disposable PostgreSQL engine. Auth claims are simulated;
+// Real SQL through DB-05 in a disposable PostgreSQL engine. Auth claims are simulated;
 // test-only policies below are rolled back and are NOT the DB-06 implementation.
 const db = new PGlite();
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
@@ -25,7 +25,7 @@ await db.exec(`
     select (auth.jwt()->>'sub')::uuid
   $$;
 `);
-for (const file of ["20261024020000_connection_check.sql", "20261024030000_store_product_settings.sql", "20261024040000_visits_cart_orders.sql", "20261024041000_app_start_visit.sql"]) {
+for (const file of ["20261024020000_connection_check.sql", "20261024030000_store_product_settings.sql", "20261024040000_visits_cart_orders.sql", "20261024041000_app_start_visit.sql", "20261024050000_ads_promotions.sql", "20261024060000_selections_events_signage.sql"]) {
   await db.exec(await readFile(new URL(`../../kago-core/supabase/migrations/${file}`, import.meta.url), "utf8"));
 }
 after(() => db.close());
@@ -173,6 +173,23 @@ test("failure after ending a prior visit rolls back its status and cart", async 
   const old = await db.query<{status:string}>("select status from visits where id=$1",[first]);
   assert.equal(old.rows[0].status,"active");
   assert.equal((await db.query<{quantity:number}>("select quantity from cart_items where visit_id=$1",[first])).rows[0].quantity,2);
+});
+
+test("DB-05 selection records stay with the old visit after explicit re-entry", async () => {
+  await allowTestAccess();
+  await asUser();
+  const first = await start();
+  await owner();
+  const selection = await db.query<{id:string}>("insert into selections(visit_id,cart_version,rule_version) values ($1,0,1) returning id",[first]);
+  await db.query("insert into selection_items(selection_id,slot,placement_type,product_id,rank,reason_code,reason_text) values ($1,1,'organic',$2,1,'popular','検証用の通常推薦')",[selection.rows[0].id,id(5)]);
+  await asUser();
+  const next = await start(id(1),true,first);
+  await owner();
+  assert.equal((await db.query("select * from selections where visit_id=$1",[first])).rows.length,1);
+  assert.equal((await db.query("select * from selections where visit_id=$1",[next])).rows.length,0);
+  assert.equal((await db.query("select * from selection_items where selection_id=$1",[selection.rows[0].id])).rows.length,1);
+  const fresh = await db.query<{assignment_id:string|null;experiment_arm:string|null}>("select assignment_id,experiment_arm from visits where id=$1",[next]);
+  assert.deepEqual(fresh.rows[0],{assignment_id:null,experiment_arm:null});
 });
 
 test("App's real transport reads DB-02 nullable branch/price and DB-03 cart via RPC", async () => {

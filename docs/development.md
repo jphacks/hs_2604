@@ -81,6 +81,8 @@ pnpm dev
 
 スマートフォンのカメラ確認にはHTTPSを使用します。現在の`/App`は本人の認証・DB接続が前提です。[共通接続のセットアップ](development/backend.md)に従って設定してください。設定不足や業務DB未準備は画面で案内し、ブラウザ内のデモへ自動で切り替えません。[APP-01の接続契約・検証手順](specs/app-session-contract.md)に、DB-02・DB-03と来店開始関数の適用、DB-06で必要な権限、テスト方法を記載しています。LPの閲覧には接続設定は不要です。静的検査・型検査・本番ビルドも`kago-app/`で実行します。
 
+DB-05までの統合試験と、DB-06適用後の[2利用者の実接続確認](development/app-session-check.md)も用意しています。実接続にはGit管理外の専用環境ファイルが必要です。通常のテスト成功だけで実DBの完成条件を満たしたことにはしません。
+
 ```sh
 pnpm lint
 pnpm exec next typegen
