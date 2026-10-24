@@ -9,6 +9,7 @@ type CartContextValue = {
   claimedOfferIds: string[]; loaded: boolean; canEdit: boolean; busy: boolean;
   version: number; message: string; error: boolean; pending: boolean;
   addProduct: (product: StoreProduct) => void; scan: (code: string) => void;
+  addRecommendation: (productId: string, selectionItemId: string) => void;
   scanFailed: (reason: string) => void;
   setQuantity: (productId: string, quantity: number) => void;
   claimOffer: (offerId: string) => void;
@@ -150,6 +151,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     version: snapshot?.visit.cart_version ?? 0,
     canEdit: !!snapshot && !busy && !pending, busy, pending, message, error,
     addProduct: product => lookup({ productId: product.productId }), scan: code => lookup({ code }),
+    addRecommendation: (productId, selectionItemId) => {
+      if (!snapshot) return;
+      begin({ kind: "set", operation: { visitId, productId, selectionItemId, source: "recommendation",
+        quantity: (snapshot.cart.find(line => line.productId === productId)?.quantity ?? 0) + 1,
+        requestId: crypto.randomUUID(), expectedVersion: snapshot.visit.cart_version } });
+    },
     scanFailed: reason => lookup({ failureReason: reason }),
     setQuantity: (productId, quantity) => {
       if (!snapshot) return;

@@ -52,7 +52,12 @@ export async function createCartBackend({ accountHistory = false, offers = false
       }
       const rows=await database.as(n,async()=>{
         if(name==="stores")return (await database.db.query("select id,slug,name,branch_name from stores order by name")).rows;
-        if(name==="visits")return (await database.db.query("select id,store_id,cart_version,started_at from visits where user_id=auth.uid() and status='active' and ($1::uuid is null or id=$1) order by started_at desc",[url.searchParams.get("id")?.slice(3)??null])).rows;
+        if(name==="visits")return (await database.db.query("select id,store_id,cart_version,started_at from visits where user_id=auth.uid() and ($1::uuid is null or id=$1) and ($2::text is null or status=$2) order by started_at desc",[url.searchParams.get("id")?.slice(3)??null,url.searchParams.get("status")?.slice(3)??null])).rows;
+        if(name==="events" && req.method==="POST") {
+          await database.db.query(`insert into events(event_id,event_type,schema_version,occurred_at,store_id,user_id,visit_id,channel,data_origin,selection_item_id,product_id,payload)
+            values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::jsonb)`, [body.event_id,body.event_type,body.schema_version,body.occurred_at,body.store_id,body.user_id,body.visit_id,body.channel,body.data_origin,body.selection_item_id,body.product_id,JSON.stringify(body.payload)]);
+          return [];
+        }
         if(name==="customer_settings") {
           const columns="use_purchase_history,use_current_cart,to_char(updated_at at time zone 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') as updated_at";
           if(req.method==="POST")return (await database.db.query(`insert into customer_settings(user_id,use_purchase_history,use_current_cart) values ($1,$2,$3) returning ${columns}`,[body.user_id,body.use_purchase_history??false,body.use_current_cart??false])).rows;
@@ -72,7 +77,8 @@ export async function createCartBackend({ accountHistory = false, offers = false
             and ($4::timestamptz is null or (o.ordered_at,o.id)<($4::timestamptz,$5::uuid))
             order by o.ordered_at desc,o.id desc limit $6`,[url.searchParams.get("user_id")?.slice(3),url.searchParams.get("store_id")?.slice(3),url.searchParams.get("ordered_at")?.slice(3),match?.[1]??null,match?.[3]??null,Number(url.searchParams.get("limit")??11)])).rows;
         }
-        if(name==="selection_items")return (await database.db.query("select id,slot,product_id from selection_items where selection_id=$1 order by slot",[url.searchParams.get("selection_id")?.slice(3)])).rows;
+        if(name==="selection_items")return (await database.db.query("select id,slot,product_id,selection_id from selection_items where ($1::uuid is null or selection_id=$1) and ($2::uuid is null or id=$2) order by slot",[url.searchParams.get("selection_id")?.slice(3)??null,url.searchParams.get("id")?.slice(3)??null])).rows;
+        if(name==="selections")return (await database.db.query("select id,visit_id from selections where id=$1",[url.searchParams.get("id")?.slice(3)])).rows;
         if(name==="cart_items")return (await database.db.query("select product_id,quantity from cart_items where visit_id=$1",[url.searchParams.get("visit_id")?.slice(3)])).rows;
         if(name==="products")return (await database.db.query("select id,code,name,category from products")).rows;
         if(name==="store_products")return (await database.db.query("select product_id,price from store_products where store_id=$1",[url.searchParams.get("store_id")?.slice(3)])).rows;

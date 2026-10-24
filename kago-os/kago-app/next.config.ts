@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Keep browser checks/builds separate from a developer's running server.
+  distDir: process.env.KAGO_NEXT_DIST_DIR ?? ".next",
   transpilePackages: ["@kago/backend"],
   async rewrites() {
     // Serve the original static LP without applying the App's styles or scripts.
