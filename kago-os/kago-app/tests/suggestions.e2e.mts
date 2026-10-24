@@ -78,17 +78,43 @@ try {
   };
   await page.route("**/api/recommendations", three);
   await page.reload(); await page.getByText("かごを最新の状態にしました。", { exact: true }).waitFor();
-  await section().getByRole("article", { name: "一緒におすすめ：生バジル" }).waitFor();
-  await section().getByRole("article", { name: "店舗からのおすすめ：若鶏の唐揚げ 100g" }).waitFor();
+  // One slide at a time, in the order ad → store pick → personal recommendation.
+  const visibleSlide = async () => (await cards().evaluateAll(els => els.map(e => e.getAttribute("aria-label")))).join("|");
   const ad = section().getByRole("article", { name: `広告：${LONG}` });
+  await ad.waitFor();
+  assert.equal(await cards().count(), 1, "only the current slide is exposed");
   await ad.getByText("提供：瀬戸内トマト食品", { exact: true }).waitFor();
-  assert.equal(await cards().count(), 3);
   assert.equal(await ad.getByRole("heading").getAttribute("title"), LONG, "the full long name stays available");
-  const heights = await cards().evaluateAll(els => els.map(e => Math.round(e.getBoundingClientRect().height)));
-  assert(Math.max(...heights) - Math.min(...heights) <= 2, `cards share one height: ${heights}`);
   await noHorizontalOverflow();
-  await section().scrollIntoViewIfNeeded();
-  await page.screenshot({ path: resolve(output, "three-types-mobile.png") });
+  await page.evaluate(() => document.getElementById("suggestions-heading")!.scrollIntoView({ block: "start" }));
+  await page.screenshot({ path: resolve(output, "slide-ad-mobile.png") });
+  await section().getByRole("button", { name: "次のおすすめ", exact: true }).click();
+  await section().getByRole("article", { name: "店舗からのおすすめ：若鶏の唐揚げ 100g" }).waitFor(); await delay(700);
+  await page.screenshot({ path: resolve(output, "slide-store-mobile.png") });
+  await section().getByRole("button", { name: "次のおすすめ", exact: true }).click();
+  await section().getByRole("article", { name: "一緒におすすめ：生バジル" }).waitFor(); await delay(700);
+  await page.screenshot({ path: resolve(output, "slide-organic-mobile.png") });
+  await section().getByRole("button", { name: "次のおすすめ", exact: true }).click();
+  await ad.waitFor();
+  await section().getByRole("button", { name: "前のおすすめ", exact: true }).click();
+  await section().getByRole("article", { name: "一緒におすすめ：生バジル" }).waitFor();
+  pass("slides go ad → store pick → personal and wrap around; up/down buttons move one at a time");
+
+  // Auto-rotation every few seconds; it pauses while the customer is on it and with the stop button.
+  const away = async () => { await page.getByRole("heading", { name: "商品をスキャン" }).click(); await page.mouse.move(5, 5); };
+  await away();
+  const before = await visibleSlide(); await delay(4800);
+  assert.notEqual(await visibleSlide(), before, "auto-advances after about 4 seconds");
+  await section().getByRole("button", { name: "おすすめの自動切り替えを停止", exact: true }).click();
+  await away();
+  const stopped = await visibleSlide(); await delay(5000);
+  assert.equal(await visibleSlide(), stopped, "stop keeps the current slide");
+  await section().getByRole("button", { name: "おすすめの自動切り替えを再開", exact: true }).click();
+  const hovered = await visibleSlide(); await section().getByRole("group", { name: "おすすめ商品" }).hover(); await delay(5000);
+  assert.equal(await visibleSlide(), hovered, "hovering/focusing pauses the rotation");
+  pass("auto-rotates about every 4 seconds, pauses on hover/focus and with the stop button");
+
+  while (!(await visibleSlide()).startsWith("広告")) await section().getByRole("button", { name: "次のおすすめ", exact: true }).click();
   await ad.getByRole("button", { name: /の詳細（広告）$/ }).click();
   const adDialog = page.getByRole("dialog");
   await adDialog.getByText("この枠は広告です。提供：瀬戸内トマト食品（店舗が承認した広告）").waitFor();
@@ -96,8 +122,10 @@ try {
   await page.screenshot({ path: resolve(output, "ad-detail-mobile.png") });
   await adDialog.getByRole("button", { name: "かごに追加", exact: true }).click();
   await page.getByText("かごを保存しました。", { exact: true }).waitFor();
+  await section().getByRole("button", { name: "おすすめの自動切り替えを停止", exact: true }).click();
+  while (!(await visibleSlide()).startsWith("広告")) await section().getByRole("button", { name: "次のおすすめ", exact: true }).click();
   await ad.getByRole("button", { name: /かごに追加/ }).and(page.getByText("かごに追加済み")).waitFor();
-  pass("organic / store pick / ad are distinguishable; the ad shows its sponsor; long names wrap without breaking the 375px layout; ad → detail → add works");
+  pass("the ad shows its sponsor and long names stay readable in the 375px layout; ad → detail → add works");
   await page.unroute("**/api/recommendations");
 
   // 3. Failure, then retry.
@@ -109,7 +137,7 @@ try {
   await page.screenshot({ path: resolve(output, "error-mobile.png") });
   fail = false;
   await section().getByRole("button", { name: "おすすめを再試行", exact: true }).click();
-  await section().getByRole("article", { name: "一緒におすすめ：生バジル" }).waitFor();
+  await section().getByRole("article", { name: `広告：${LONG}` }).waitFor();
   await page.unroute("**/api/recommendations");
   pass("a connection failure shows a retry and recovers");
 
