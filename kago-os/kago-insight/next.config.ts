@@ -1,5 +1,9 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {};
+const nextConfig: NextConfig = {
+  // 共有パッケージ @kago/backend は TypeScript ソースを公開する内部パッケージなので、
+  // Next.js 側で変換する（docs/development/backend.md「各サービスからの利用」）。
+  transpilePackages: ["@kago/backend"],
+};
 
 export default nextConfig;
