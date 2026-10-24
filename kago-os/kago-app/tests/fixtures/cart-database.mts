@@ -17,7 +17,9 @@ export async function createCartDatabase() {
     create table storage.objects(id uuid primary key default gen_random_uuid(), bucket_id text, name text);
     alter table storage.objects enable row level security;`);
   const migrations = new URL("../../../kago-core/supabase/migrations/", import.meta.url);
-  for (const file of (await readdir(migrations)).filter(f => f.endsWith(".sql")).sort()) await db.exec(await readFile(new URL(file, migrations), "utf8"));
+  // Storage owns its schemas in Supabase; image policies are verified by COM-03.
+  // This fixture exercises relational App/cart migrations, not the Storage service.
+  for (const file of (await readdir(migrations)).filter(f => f.endsWith(".sql") && !f.endsWith("_ad_image_storage.sql")).sort()) await db.exec(await readFile(new URL(file, migrations), "utf8"));
   await db.query("insert into auth.users(id,email) values ($1,'user3@example.test'),($2,'user4@example.test'),($3,'user5@example.test')", [id(3), id(4), id(5)]);
   await db.query("insert into stores(id,slug,name) values ($1,'one','検証1号店'),($2,'two','検証2号店')", [id(1), id(2)]);
   await db.query("insert into products(id,code,name,category) values ($1,'4900000000016','検証ミルク','乳製品'),($2,'PLU-APPLE','検証りんご','青果'),($3,'4900000000023','停止中の商品','食品')", [id(20),id(21),id(22)]);
