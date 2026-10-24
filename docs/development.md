@@ -151,6 +151,8 @@ GitHubでの実装作業の手順は[CONTRIBUTING.md](../CONTRIBUTING.md)を参�
 
 店舗・商品・店舗別価格・利用者設定の適用と制約検査は[共通DBの適用・検証](development/database.md)を参照してください。本人・所属ごとのアクセス許可はDB-06で実装します。
 
+各画面で共通に使う店舗・商品・アカウント・募集・広告・過去注文の架空データと仮応答は[共通の架空データ](development/demo-data.md)を参照してください。
+
 ### 店舗QRからの来店（#87）
 
 店舗QRには `https://<Appの公開元>/App?store=<stores.idのUUID>` を格納します。
