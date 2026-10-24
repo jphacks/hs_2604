@@ -230,3 +230,49 @@ APP-01の`kago-app/tests/visit-database.test.mts`は関数がSECURITY INVOKERで
 - anon・役割なし・customer 2名・store_staff 2名と所属なし1名・maker_staff 2名・signage 2台で、許可／拒否とID書換え（他人の来店ID・利用者ID・店舗ID・メーカーID・端末ID、JWTの端末主張の書換え、停止端末）を確認。
 - kago-appの来店・かご取得処理（`loadShoppingContext`・`startShoppingVisit`）を、テスト用の許可なしでDB-06の権限だけで実行し10件成功。
 - 実Supabaseでの適用、実JWTでの確認、複数接続の同時実行は未検証。
+
+## DB-07：購入確定（注文・明細・来店終了を一体で保存）
+
+DB-06の後に`20261024080000_checkout.sql`を適用する。本人のセッションから呼ぶ所有者権限の関数`kago_checkout`を追加する。テーブル定義・権限の変更はない。
+
+```sh
+# kago-os/kago-core/から、所有者権限の破棄可能な検証DBに対して実行
+psql -X -v ON_ERROR_STOP=1 -f supabase/tests/db07.sql
+```
+
+成功時は`DB-07: all assertions passed; rolling back fixtures`を返す。
+
+### 呼出し契約（APP-09）
+
+```text
+kago_checkout(
+  p_visit_id uuid,               -- 購入する来店
+  p_idempotency_key uuid,        -- 購入確認画面を開いた時にAppが作る購入要求ID。再送でも同じ値
+  p_expected_cart_version integer, -- 確認画面に表示したかごの版
+  p_expected_total integer       -- 確認画面に表示した税込合計（円）
+) returns table (order_id uuid, total integer, ordered_at timestamptz, replayed boolean)
+```
+
+Supabaseからは`client.rpc("kago_checkout", {...})`で呼ぶ。利用者IDは引数に受けず`auth.uid()`から決める。`replayed = true`は同じ購入要求の再送で、既存の注文を返したことを示す。
+
+| 状況 | 結果 |
+| --- | --- |
+| 正常 | 現在の取扱・価格から明細（商品名・税込単価・数量）を作り、合計を検算して注文を保存し、来店を`completed`にする。注文時刻＝来店終了時刻。由来は`operated` |
+| 同じ購入要求の再送（同じ本人・来店・版・合計） | 同じ注文を返す（`replayed = true`）。件数は増えない |
+| 同じ購入要求IDを別の来店・版・合計・利用者で使用 | 23505。新しい注文を作らない |
+| 注文済みの来店に別の購入要求ID | 23505 |
+| かごの版が違う | 40001・detail `cart_changed`。かごを再読込して確認画面を出し直す |
+| 現在価格の合計が確認画面と違う | 40001・detail `price_changed`。新しい合計で確認し直す |
+| 空のかご・取扱停止の商品・終了済み／放棄済みの来店 | 23514 |
+| 他人の来店・customer以外・未ログイン | 42501 |
+| 合計がinteger上限を超える | 22003 |
+
+同じ購入要求IDの同時送信はアドバイザリロックで、同じ来店への別IDの同時送信は来店行のロックで直列化する。かごの商品と店舗別価格は確定まで共有ロックする。途中で失敗した場合は関数全体が取り消され、注文・明細・来店終了の一部だけが残ることはない。購入イベントは作らない（注文が正本）。
+
+### DB-07の検証記録（2026-10-24）
+
+- PGlite 0.5.11（PostgreSQL 17相当）と実PostgreSQL 16.15で全migrationを適用し、`db02.sql`〜`db07.sql`を各2回成功した。実PostgreSQLではSupabaseと同じ定義の`auth.uid()`・`auth.jwt()`を使った。
+- `db07.sql`：未ログイン・店舗担当・他人の来店・引数欠落・かご版違い・価格変更・空のかご・取扱停止・放棄済み来店・合計の上限超過を拒否することを確認した。途中失敗（明細2行目で失敗）では注文・明細0件、来店はactive・版2のまま、かご2行が残る。成功時は548円の注文1件・明細2件、来店終了＝注文時刻。再送では同じ注文を返し、別IDや別合計、他人による同じIDの再使用は23505。購入後に価格を変えても明細は変わらない。
+- 実PostgreSQLの別接続で、同じ購入要求IDを3件同時に送ると注文1件（1件が作成、2件が再送扱い）になった。同じ来店へ別IDを2件同時に送ると、注文1件と23505になった。
+- PostgreSQL 16ではON DELETE RESTRICTの違反が23503、17では23001になるため、`db02`〜`db04`の期待値をサーバーのバージョンで切り替えた。
+- 実Supabaseでの適用、Appからの呼出し（APP-09）は未検証。
