@@ -6,7 +6,8 @@ export default function PromotionsLayout({ children }: { children: React.ReactNo
       <header>
         <h1 className="text-xl font-bold">販促設定</h1>
         <p className="mt-1 text-sm text-[var(--muted)]">
-          自店で押したい商品と、出したい時間帯・掲載先を設定します。設定した内容はアプリとサイネージで「店舗からのおすすめ」として表示されます。
+          自店で押したい商品を設定します。値引きはクーポンとして、おすすめは「店舗からのおすすめ」として、
+          アプリとサイネージに出ます。
         </p>
         {USING_MOCK ? (
           <p className="mt-2 inline-block rounded bg-amber-100 px-2 py-1 text-xs font-bold text-amber-900">
