@@ -44,7 +44,7 @@ psql -X -v ON_ERROR_STOP=1 -f supabase/tests/product_sales.sql
 
 ## 店舗販促の保存（`kago_save_promotion`）
 
-`20261024140000_promotion_save.sql`を含む全migrationを適用した、破棄可能なSupabase互換DBでOwnerとして実行します。
+`20261024150000_promotion_save.sql`を含む全migrationを適用した、破棄可能なSupabase互換DBでOwnerとして実行します。
 
 ```sh
 # kago-os/kago-core/ で実行。接続先はPGHOST等で別途指定する。

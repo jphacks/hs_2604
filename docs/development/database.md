@@ -432,7 +432,7 @@ psql -X -v ON_ERROR_STOP=1 -f supabase/tests/db09.sql
 
 ## 店舗販促の保存（版の切替を1回で行う）
 
-`20261024140000_promotion_save.sql`で`kago_save_promotion`を追加します。DB-04・DB-06・DB-08の後に適用します。Insightの販促設定から、店舗担当が本人のセッションで呼びます。旧`active`版の`inactive`化と新しい版の`active`での作成を1トランザクションで行い、途中で失敗すると何も変わりません。従来の「UPDATE→INSERT」の2文では、INSERTが失敗すると有効な版がない販促が残りました。停止は従来どおり`active`→`inactive`のUPDATE 1文です。
+`20261024150000_promotion_save.sql`で`kago_save_promotion`を追加します。DB-04・DB-06・DB-08の後に適用します。Insightの販促設定から、店舗担当が本人のセッションで呼びます。旧`active`版の`inactive`化と新しい版の`active`での作成を1トランザクションで行い、途中で失敗すると何も変わりません。従来の「UPDATE→INSERT」の2文では、INSERTが失敗すると有効な版がない販促が残りました。停止は従来どおり`active`→`inactive`のUPDATE 1文です。
 
 ```sh
 # kago-os/kago-core/から、所有者権限の破棄可能な検証DBに対して実行
