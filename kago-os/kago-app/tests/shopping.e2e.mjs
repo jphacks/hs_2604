@@ -203,13 +203,19 @@ try {
   await page.getByRole("button", { name: "再試行", exact: true }).click();
   await waitText("お買い物の店舗を選ぶ");
   pass("missing DB is explicit and retry recovers without fake data");
+  // A background check (focus / interval) that cannot connect keeps the current screen instead of
+  // replacing it with an error; the next check retries. Explicit actions still show the error (above).
   fixture.state.dbError = "08006";
+  const checks = state => state.calls.filter(c => c.path.endsWith("/stores")).length;
+  const before = checks(fixture.state);
   await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
-  await waitText("接続できませんでした。通信状態を確認して再試行してください。");
-  fixture.state.dbError = null;
-  await page.getByRole("button", { name: "再試行", exact: true }).click();
+  for (let i = 0; i < 50 && checks(fixture.state) === before; i++) await delay(100);
+  await delay(500);
   await waitText("お買い物の店舗を選ぶ");
-  pass("connection failure is distinct from missing DB and retry recovers");
+  assert.equal(await page.getByText("接続できませんでした。通信状態を確認して再試行してください。", { exact: true }).count(), 0);
+  assert.equal(await page.getByText("ログインと買い物の状態を確認しています…", { exact: true }).count(), 0);
+  fixture.state.dbError = null;
+  pass("a background connection failure keeps the current screen (no blank loading or error page)");
   fixture.state.noStores = true;
   await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
   await waitText("利用できる店舗がありません。店舗の登録をお待ちください。");
