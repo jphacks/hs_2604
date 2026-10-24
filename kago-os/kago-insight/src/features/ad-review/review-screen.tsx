@@ -3,13 +3,11 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
-  actionErrorMessage,
   approveApplication,
-  creativeImageUrl,
   rejectApplication,
   suspendPlacement,
-  type ActionErrorCode,
-} from "@/lib/data-source";
+} from "@/lib/actions";
+import { actionErrorMessage, type ActionErrorCode } from "@/lib/action-result";
 import { channelLabel, placementStatusLabel } from "@/lib/labels";
 import { formatDate, formatDateTime, toDateInputValue } from "@/lib/format";
 import { EmptyState } from "@/components/state";
@@ -258,12 +256,19 @@ function ApplicationDetail({
 
   return (
     <article className="rounded-lg border border-[var(--line)] bg-[var(--panel)] p-4">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={creativeImageUrl(application.image_path)}
-        alt={`${application.headline} の広告素材`}
-        className="aspect-[16/10] w-full rounded border border-[var(--line)] object-cover"
-      />
+      {application.image_url ? (
+        // 署名付きURLは数分で失効する。next/image のキャッシュに載せず素の img で出す。
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={application.image_url}
+          alt={`${application.headline} の広告素材`}
+          className="aspect-[16/10] w-full rounded border border-[var(--line)] object-cover"
+        />
+      ) : (
+        <div className="flex aspect-[16/10] w-full items-center justify-center rounded border border-[var(--line)] bg-[var(--panel-2,#f5f5f0)] text-sm text-[var(--muted)]">
+          素材画像を読み込めませんでした
+        </div>
+      )}
 
       <h2 className="mt-4 text-lg font-bold">{application.headline}</h2>
 
