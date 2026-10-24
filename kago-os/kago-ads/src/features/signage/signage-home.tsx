@@ -1,12 +1,46 @@
 "use client";
 // 端末を選んで全画面表示を開く入口。本番では端末ごとに専用のアカウントでログインし、URL を固定して開く
 import Link from "next/link";
+import { adsDataSource } from "@/lib/backend/config";
 import { getRepository } from "@/lib/data";
 import { storeLabel } from "@/lib/domain/rules";
 import { Card, ErrorList, Loading, PageTitle } from "@/components/parts";
 import { useLoad } from "@/lib/use-load";
 
 export function SignageHome() {
+  let mock = false;
+  try {
+    mock = adsDataSource() === "mock";
+  } catch {
+    // 設定の誤りは DB 版として扱う（端末の画面で設定エラーを出す）
+  }
+  return mock ? <MockSignageHome /> : <DatabaseSignageHome />;
+}
+
+/** DB 版：端末と店舗はログインした端末のアカウントで決まるので、ここでは選ばない */
+function DatabaseSignageHome() {
+  return (
+    <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-12">
+      <p className="text-sm font-semibold text-brand">KAGO/Signage</p>
+      <PageTitle
+        title="店内サイネージ"
+        lead="Signage 端末用のアカウントでログインすると、その端末の店舗で承認済みの広告と店舗販促を、全画面で順に表示します。画面をクリックすると全画面になります。"
+      />
+      <Card>
+        <div className="flex flex-wrap gap-4 text-sm">
+          <Link className="font-semibold text-brand hover:underline" href="/signage/play">
+            端末の画面を開く
+          </Link>
+          <Link className="text-muted hover:underline" href="/signage/play?debug=1">
+            状態を表示して開く
+          </Link>
+        </div>
+      </Card>
+    </main>
+  );
+}
+
+function MockSignageHome() {
   const { state } = useLoad(async () => {
     const repo = getRepository();
     const stores = await repo.listStores();
