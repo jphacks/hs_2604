@@ -35,6 +35,8 @@
     "test:offer-scenarios:e2e": "node --experimental-strip-types tests/offer-scenarios.e2e.mts",
     "test:offers:e2e": "node --experimental-strip-types tests/offers.e2e.mts",
     "test:coupon-open:e2e": "node --experimental-strip-types tests/coupon-open-once.e2e.mts",
+    "test:coupon-appearance": "node --experimental-strip-types --test tests/coupon-appearance.test.mts",
+    "test:coupon-appearance:e2e": "node --experimental-strip-types tests/coupon-appearance.e2e.mts",
     "test:coupon-redemption:e2e": "node --experimental-strip-types tests/coupon-redemption.e2e.mts",
     "test:selection": "node --experimental-strip-types --test tests/selection.test.ts tests/selection-database.test.mts tests/selection-service.test.mts",
     "test:selection:e2e": "node --experimental-strip-types tests/recommendations.e2e.mts",

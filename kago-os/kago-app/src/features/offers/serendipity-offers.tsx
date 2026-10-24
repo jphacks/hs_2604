@@ -6,6 +6,7 @@ import { useShoppingSession } from "@/features/shopping/session-provider";
 import { productIcon } from "@/lib/product-visuals";
 import { shortProductName } from "@/lib/product-name";
 import { CouponRedemption } from "./coupon-redemption";
+import { decideCouponAppearance, readCouponAppearance, type CouponAppearance } from "./coupon-appearance";
 import { offerKindLabel, type OfferEventType, type SerendipityOffer, type SerendipityResponse } from "./contracts";
 
 const yen = new Intl.NumberFormat("ja-JP", { style: "currency", currency: "JPY" });
@@ -33,11 +34,15 @@ export function SerendipityOffers() {
   const shownKey = `kago-offers-shown:${session.userId}:${visitId}`;
   const dismissedKey = `kago-offers-dismissed:${session.userId}:${visitId}`;
   const openedKey = `kago-offers-opened:${session.userId}:${visitId}`;
+  const appearanceKey = `kago-coupon-appearance:${session.userId}:${visitId}`;
   const [data, setData] = useState<SerendipityResponse | null>(null);
   const [failed, setFailed] = useState(false);
   const [open, setOpen] = useState<SerendipityOffer | null>(null);
   const [dismissed, setDismissed] = useState<string[]>([]);
   const [opened, setOpened] = useState<string[]>([]);
+  const [visibleCouponId, setVisibleCouponId] = useState<string | null>(null);
+  const appearance = useRef<CouponAppearance | null>(null);
+  const consumedCoupons = useRef(new Set<string>());
   const request = useRef<AbortController | null>(null);
   const timer = useRef<number | null>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
@@ -50,7 +55,16 @@ export function SerendipityOffers() {
     const controller = new AbortController(); request.current = controller;
     try {
       const next: SerendipityResponse = await cartRequest("/api/offers", undefined, controller.signal);
-      if (controller.signal.aborted || next.visitId !== visitId) return;
+      if (controller.signal.aborted || next.visitId !== visitId || next.cartVersion !== cart.version) return;
+      if (!appearance.current) {
+        try { appearance.current = readCouponAppearance(sessionStorage.getItem(appearanceKey)); }
+        catch { appearance.current = readCouponAppearance(null); }
+      }
+      const candidate = next.coupon && !consumedCoupons.current.has(next.coupon.offerId) ? next.coupon.offerId : null;
+      const decision = decideCouponAppearance(appearance.current, next.cartVersion, candidate);
+      appearance.current = decision;
+      try { sessionStorage.setItem(appearanceKey, JSON.stringify(decision)); } catch { /* keep the in-memory decision */ }
+      setVisibleCouponId(decision.visible ? decision.offerId : null);
       setData(next); setFailed(false);
       if (timer.current) window.clearTimeout(timer.current);
       // Refresh exactly when a time sale starts or ends, and at least every minute.
@@ -68,6 +82,7 @@ export function SerendipityOffers() {
       setDismissed(readList(dismissedKey));
       // Keep the in-memory choice when storage is unavailable during a cart refresh.
       setOpened(previous => [...new Set([...previous, ...readList(openedKey)])]);
+      for (const id of [...readList(openedKey), ...readList(dismissedKey)]) consumedCoupons.current.add(id);
       void load();
     }, 0);
     return () => { window.clearTimeout(boot); request.current?.abort(); if (timer.current) window.clearTimeout(timer.current); };
@@ -76,7 +91,8 @@ export function SerendipityOffers() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cart.version, cart.error]);
 
-  const coupon = data?.coupon && !dismissed.includes(data.coupon.offerId) && !opened.includes(data.coupon.offerId) ? data.coupon : null;
+  const coupon = data?.cartVersion === cart.version && data?.coupon && visibleCouponId === data.coupon.offerId
+    && !dismissed.includes(data.coupon.offerId) && !opened.includes(data.coupon.offerId) ? data.coupon : null;
   const visible = data ? [...data.timeSales, ...data.sets, ...(coupon ? [coupon] : [])] : [];
   const visibleIds = visible.map(offer => offer.offerId).join(",");
   useEffect(() => {
@@ -100,10 +116,12 @@ export function SerendipityOffers() {
   const openCoupon = (offer: SerendipityOffer) => {
     // Opening consumes the sticker for this customer/visit/tab, without declining the offer.
     const next = [...opened, offer.offerId]; setOpened(next); writeList(openedKey, next);
+    consumedCoupons.current.add(offer.offerId);
     setOpen(offer); record(offer.offerId, "offer_opened");
   };
   const dismiss = (offer: SerendipityOffer) => {
     const next = [...dismissed, offer.offerId]; setDismissed(next); writeList(dismissedKey, next);
+    consumedCoupons.current.add(offer.offerId);
     record(offer.offerId, "offer_dismissed"); setOpen(null);
   };
   if (!data || (!data.timeSales.length && !data.sets.length && !coupon && !open)) {
