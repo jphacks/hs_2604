@@ -5,7 +5,7 @@ import { PGlite } from "@electric-sql/pglite";
 import { createHeadlessBackend } from "@kago/backend";
 import { loadShoppingContext, startShoppingVisit } from "../src/features/shopping/service.ts";
 
-// Real DB-02/03 SQL in a disposable PostgreSQL engine. Auth claims are simulated;
+// Real SQL through DB-05 in a disposable PostgreSQL engine. Auth claims are simulated;
 // test-only policies below are rolled back and are NOT the DB-06 implementation.
 const db = new PGlite();
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
@@ -25,7 +25,7 @@ await db.exec(`
     select (auth.jwt()->>'sub')::uuid
   $$;
 `);
-for (const file of ["20261024020000_connection_check.sql", "20261024030000_store_product_settings.sql", "20261024040000_visits_cart_orders.sql", "20261024041000_app_start_visit.sql"]) {
+for (const file of ["20261024020000_connection_check.sql", "20261024030000_store_product_settings.sql", "20261024040000_visits_cart_orders.sql", "20261024041000_app_start_visit.sql", "20261024050000_ads_promotions.sql", "20261024060000_selections_events_signage.sql"]) {
   await db.exec(await readFile(new URL(`../../kago-core/supabase/migrations/${file}`, import.meta.url), "utf8"));
 }
 after(() => db.close());
