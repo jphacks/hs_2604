@@ -30,6 +30,7 @@ export function AdsHeader() {
           { href: "/ads/store/calls", label: "自店の募集" },
           { href: "/ads/portal", label: "募集ポータル" },
           { href: "/ads/dev/review", label: "審査（確認用）" },
+          { href: "/signage/dev", label: "Signage（確認用）" },
         ]
       : session.role === "maker_staff"
         ? [

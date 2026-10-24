@@ -158,6 +158,75 @@ export type AdPlacement = {
   suspend_reason?: string;
 };
 
+/** 店舗販促の状態（提案：共通仕様書は status の値を決めていない。INS-02 と合わせる） */
+export type PromotionStatus = "active" | "suspended";
+
+/** 配信する時間帯（日本時間の時。[start_hour, end_hour)、1時間単位。COM-01 案 G） */
+export type TimeWindow = { start_hour: number; end_hour: number };
+
+/**
+ * 店舗販促 store_promotions（INS-02 で店舗が設定する）。1行が1つの版。
+ * id は販促、version_id は版の行の ID（再生記録・提案枠の promotion_version_id が参照する）
+ */
+export type StorePromotion = {
+  id: string;
+  version_id: string;
+  store_id: string;
+  product_id: string;
+  version: number;
+  channels: Channel[];
+  /** 空なら終日 */
+  time_windows: TimeWindow[];
+  /** 0〜100。大きいほど先に出す（提案） */
+  priority: number;
+  reason_text: string;
+  starts_at: Timestamp;
+  ends_at: Timestamp;
+  status: PromotionStatus;
+};
+
+/** Signage の表示モード（共通仕様書 8.3） */
+export type PlayMode = "schedule" | "adaptive" | "fallback";
+
+/** 提案：再生が終わった理由（COM-01 案 E・F）。集計（DB-09）で動画の数え方に使う */
+export type PlayEndReason =
+  | "completed" // 1枠の秒数を表示した・動画を最後まで再生した
+  | "updated" // 承認版・販促の版が変わったので切り替えた
+  | "suspended" // 停止されたのですぐ切り替えた
+  | "expired" // 期間・時間帯の終わり、またはキャッシュの有効期限切れ
+  | "media_error" // 素材を表示できなかった
+  | "closed"; // 画面を閉じた・再読み込みした
+
+export const PLAY_END_REASON_LABEL: Record<PlayEndReason, string> = {
+  completed: "最後まで表示",
+  updated: "内容の更新",
+  suspended: "停止",
+  expired: "期限切れ",
+  media_error: "素材の読み込み失敗",
+  closed: "画面を閉じた",
+};
+
+/** 再生記録 signage_plays（SIG-02）。id は端末が再生開始時に作り、再送しても同じ id を使う */
+export type SignagePlay = {
+  id: string;
+  device_id: string;
+  ad_placement_id: string | null;
+  promotion_version_id: string | null;
+  creative_version_id: string | null;
+  mode: PlayMode;
+  reason_code: string;
+  /** 店舗の時刻（デモ用の時刻があればその時刻。COM-01 案 G） */
+  started_at: Timestamp;
+  ended_at: Timestamp | null;
+  data_origin: DataOrigin;
+  /** 提案：画像か動画か（動画は最後まで再生したときだけ数える） */
+  media_kind: "image" | "video";
+  /** 提案：終わった理由 */
+  end_reason: PlayEndReason | null;
+  /** 提案：DB が最初に受け取った時刻（端末の時刻と分けて持つ。COM-01 案 E） */
+  received_at?: Timestamp;
+};
+
 /**
  * デモ用のログイン状態。役割の名前は共通の認証（kago-os/shared/backend の roles）に合わせる。
  * 共通の認証へ切り替えるときは、店舗・メーカーの所属を store_members・maker_members から読む
@@ -165,4 +234,6 @@ export type AdPlacement = {
 export type Session =
   | { role: "guest" }
   | { role: "store_staff"; storeId: string }
-  | { role: "maker_staff"; makerId: string };
+  | { role: "maker_staff"; makerId: string }
+  /** Signage 端末（共通の認証の signage 役割。app_metadata.kago の device_id・store_id に相当） */
+  | { role: "signage"; deviceId: string; storeId: string };

@@ -49,7 +49,9 @@ export function sessionKey(s: Session): string {
     case "guest":
       return "guest";
     case "maker_staff":
-      return `maker:${s.makerId}`;
+      return `maker_staff:${s.makerId}`;
+    case "signage":
+      return `signage:${s.deviceId}`;
     default:
       return `${s.role}:${s.storeId}`;
   }

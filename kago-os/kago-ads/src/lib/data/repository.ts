@@ -12,11 +12,16 @@ import type {
   MediaAsset,
   Product,
   Session,
+  PromotionStatus,
   SignageDevice,
+  SignagePlay,
   Store,
+  StorePromotion,
   StoreProduct,
   Timestamp,
+  TimeWindow,
 } from "../domain/types";
+import type { SignageFeed } from "../signage/feed";
 
 export type AdCallInput = Pick<AdCall, "title" | "categories" | "channels" | "starts_at" | "ends_at" | "description" | "disclosure_scope">;
 
@@ -33,6 +38,16 @@ export type ApplicationInput = {
 };
 
 export type ApprovalInput = { channels: Channel[]; starts_at: Timestamp; ends_at: Timestamp };
+
+export type PromotionInput = {
+  product_id: string;
+  channels: Channel[];
+  time_windows: TimeWindow[];
+  priority: number;
+  reason_text: string;
+  starts_at: Timestamp;
+  ends_at: Timestamp;
+};
 
 export interface AdsRepository {
   listStores(): Promise<Store[]>;
@@ -69,6 +84,27 @@ export interface AdsRepository {
   devApprove(session: Session, applicationId: string, input: ApprovalInput): Promise<AdPlacement>;
   devReject(session: Session, applicationId: string, comment: string): Promise<AdApplication>;
   devSuspend(session: Session, placementId: string, reason: string): Promise<AdPlacement>;
+
+  /**
+   * Signage 端末としてログインする（SIG-01）。仮データ版は端末 ID だけで入れる。
+   * 共通の認証では端末用のアカウント（signage 役割、app_metadata.kago に device_id・store_id）でログインする
+   */
+  signInDevice(deviceId: string): Promise<Session>;
+  /** 端末の店舗の配信内容（SIG-01）。端末は利用者・来店・かご・注文を読めない */
+  getSignageFeed(session: Session, now?: Date): Promise<SignageFeed>;
+  /** 再生記録を保存する（SIG-02）。同じ id は1件にまとめる（再送しても増えない） */
+  recordPlays(session: Session, plays: SignagePlay[]): Promise<{ saved: number }>;
+
+  /** INS-02・INS-03 ができるまでの確認用。店舗の担当者として販促・再生記録・デモ用の時刻を扱う */
+  devListStorePlacements(session: Session): Promise<AdPlacement[]>;
+  devListPromotions(session: Session): Promise<StorePromotion[]>;
+  devCreatePromotion(session: Session, input: PromotionInput): Promise<StorePromotion>;
+  devSetPromotionStatus(session: Session, promotionId: string, status: PromotionStatus): Promise<StorePromotion>;
+  devListPlays(session: Session): Promise<SignagePlay[]>;
+  /** デモ用の時刻（店舗の時刻 − 実時刻、ミリ秒）。未設定なら 0 */
+  devGetClockOffset(session: Session): Promise<number>;
+  /** デモ用の時刻を設定する。null で実時刻に戻す */
+  devSetDemoTime(session: Session, demoTime: Timestamp | null): Promise<void>;
 
   /** 仮データを初期状態に戻す */
   reset(): Promise<void>;

@@ -1,6 +1,6 @@
 # kago-ads
 
-KAGO/OS のうち **KAGO/Ads**（店舗の広告募集・メーカーの広告申請）の画面です。Ads のデータ項目・状態・素材の仕様は [docs/specs/ads-spec.md](../../docs/specs/ads-spec.md) にまとめています。
+KAGO/OS のうち **KAGO/Ads**（店舗の広告募集・メーカーの広告申請）と **KAGO/Signage**（店内サイネージの全画面表示・再生記録）の画面です。**Signage もこのアプリにあります**（`/signage`。2026-10-24 決定。開発ガイドにある `kago-signage/` は作りません）。Ads のデータ項目・状態・素材の仕様は [docs/specs/ads-spec.md](../../docs/specs/ads-spec.md) にまとめています。
 
 今は **仮データ（ブラウザの localStorage）** で動きます。Ads のテーブル（DB-04）と権限（DB-06）ができたら、共通の認証・DB接続（`@kago/backend`）を使うデータ層に差し替えます。
 
@@ -27,16 +27,41 @@ pnpm build
 
 `/ads/dev/review` の審査画面は、INS-01（KAGO/Insight）と DB-08 ができるまでの確認用です。Insight ができたら削除します。
 
+## Signage（SIG-01〜03）
+
+| URL | 内容 |
+| --- | --- |
+| `/signage` | 端末を選ぶ入口 |
+| `/signage/play?device=D1` | 端末の全画面表示。`&debug=1` で通信・キャッシュ・未送信の記録の状態と「通信を切る（確認用）」ボタンを出す |
+| `/signage/dev` | 店舗の担当者の確認画面（INS-02・INS-03 ができるまでの仮）。デモ用の時刻、端末に届く内容と出さないもの、販促の停止・再開・追加、再生記録と時間帯別の集計 |
+
+会場の端末では Chrome のキオスクモードで開きます（クリックでも全画面になります）。
+
+```bash
+google-chrome --kiosk --autoplay-policy=no-user-gesture-required "https://<デプロイ先>/signage/play?device=D1"
+```
+
+決まり（COM-01 案 C・E・F・G、共通仕様書 8.3・9.3）：
+
+- 出すもの：自店で承認済み（`active`・期間内・掲載先に Signage）のメーカー広告と、時間帯・期間内の店舗販促。広告（承認順）と販促（優先度順）を交互に流す。出せるものがなければ案内（`mode = fallback`）
+- 画像は1枠10秒、動画は最後まで。5秒ごとに取り直し、内容が変わったら画像は表示3秒以上で、動画は終わってから切り替える（新しく入ったものを先に出す）。停止・期間や時間帯の終わりはすぐ切り替える
+- 取得した内容の有効期限は10分。通信が切れても期限まで表示を続け、過ぎたら案内にする。素材は先に読み込み、`/signage/` の範囲の Service Worker（`public/signage/sw.js`、本番ビルドのみ）が保存する
+- 再生記録は再生の開始と終了ごとに端末で作り（id は端末が採番）、端末に貯めて5秒ごとに送る。同じ id は1件にまとめるので、再送しても増えない。「再生1回」は「終わっていて3秒以上・案内ではない・動画は最後まで再生」（`src/lib/signage/plays.ts` の `isCountedPlay`。DB-09 に渡す）
+- 端末は利用者・来店・かご・注文を読まない。記録にも `user_id`・`visit_id` を持たない
+
+仮データでは Ads と Signage が同じブラウザの localStorage を共有します。確認画面（別のタブ）で販促を止めると、端末の画面は次の取得（5秒以内）で切り替わります。
+
 ## 構成
 
 kago-app と同じ形にしています。
 
 | 場所 | 内容 |
 | --- | --- |
-| `src/app/` | ページとレイアウト。`/ads/store/calls`（ADS-02）、`/ads/portal`（ADS-01）、`/ads/maker/creatives`・`/ads/maker/applications`（ADS-03）、`/ads/dev/review` |
-| `src/features/` | 機能ごとの画面。`ad-calls`（ADS-02）・`portal`（ADS-01）・`creatives`・`applications`（ADS-03）・`dev-review`・`shell`（ヘッダー・入口） |
-| `src/components/` | 機能をまたいで使う部品。`ad-media.tsx` は素材の表示と「広告｜提供」・価格の重ね表示で、Signage（SIG-01）でも使う |
+| `src/app/` | ページとレイアウト。`/ads/store/calls`（ADS-02）、`/ads/portal`（ADS-01）、`/ads/maker/creatives`・`/ads/maker/applications`（ADS-03）、`/ads/dev/review`、`/signage`・`/signage/play`・`/signage/dev`（SIG-01〜03） |
+| `src/features/` | 機能ごとの画面。`ad-calls`（ADS-02）・`portal`（ADS-01）・`creatives`・`applications`（ADS-03）・`dev-review`・`shell`（ヘッダー・入口）・`signage`（端末の画面と再生の仕組み `engine.ts`・確認画面） |
+| `src/components/` | 機能をまたいで使う部品。`ad-media.tsx` は素材の表示と「広告｜提供」・価格の重ね表示、店舗販促の表示（`PromoMedia`）。ADS-03 のプレビューと Signage の全画面表示で同じものを使う |
 | `src/lib/domain/` | 型（共通仕様書の列名のまま）、判定ルール、素材の仕様 |
+| `src/lib/signage/` | Signage の配信内容の組み立て（`feed.ts`）、切り替えの判定（`player.ts`）、再生記録の数え方（`plays.ts`）。画面から切り離した関数でテストする |
 | `src/lib/data/` | データの窓口（`repository.ts`）と仮データ版（`mock-repository.ts`）。画面はここだけを通して読み書きする |
 | `src/data/demo/` | 仮データ（`seed.ts`）、広告素材・商品の対応表（`ad-assets.csv`・`products.csv`） |
 | `public/ad-assets/` | ADS-05 のデモ広告素材（画像・動画） |
@@ -48,4 +73,6 @@ Next.js の約束：描画中に現在時刻を読まず、`today()` は読み�
 
 - 共通の認証・DB との接続（DB-04・DB-06・COM-03 待ち）。アップロードした素材は、仮データではページを再読み込みすると消える
 - ADS-04（メーカー向けの成果画面）は DB-09・INS-03 待ち
+- Signage の端末ログインは仮（端末 ID だけで入れる）。COM-02 の signage 役割のアカウントに差し替える。店舗販促・再生記録のテーブルは DB-04・DB-05 待ち
+- カメラ（SIG-04・SIG-05）、店内傾向での切り替え（SIG-06）はまだない
 - ID は読みやすい略号（`S1`・`C1` など）。DB では UUID と slug

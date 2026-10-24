@@ -8,13 +8,24 @@ import {
   validateApprovalChannels,
   validateReviewComment,
 } from "../domain/rules";
-import type { AdApplication, AdCall, AdPlacement, ApplicationRevision, CreativeVersion, Session } from "../domain/types";
+import type {
+  AdApplication,
+  AdCall,
+  AdPlacement,
+  ApplicationRevision,
+  CreativeVersion,
+  Session,
+  StorePromotion,
+} from "../domain/types";
+import { buildFeed } from "../signage/feed";
+import { mergePlay } from "../signage/plays";
 import {
   type AdCallInput,
   type AdsRepository,
   type ApplicationInput,
   type CreativeInput,
   type CreativeWithVersions,
+  type PromotionInput,
   PermissionError,
   ValidationError,
 } from "./repository";
@@ -22,7 +33,7 @@ import { createSeed, type MockDb } from "../../data/demo/seed";
 
 export type MockStorage = { load(): MockDb | null; save(db: MockDb): void };
 
-const STORAGE_KEY = "kago-ads-mock-v2";
+const STORAGE_KEY = "kago-ads-mock-v3";
 
 export function browserStorage(): MockStorage {
   return {
@@ -30,7 +41,7 @@ export function browserStorage(): MockStorage {
       try {
         const raw = window.localStorage.getItem(STORAGE_KEY);
         const db = raw ? (JSON.parse(raw) as MockDb) : null;
-        return db?.version === 2 ? db : null;
+        return db?.version === 3 ? db : null;
       } catch {
         return null;
       }
@@ -65,6 +76,25 @@ function requireStoreStaff(s: Session): string {
   return s.storeId;
 }
 
+function requireDevice(s: Session): { deviceId: string; storeId: string } {
+  if (s.role !== "signage") throw new PermissionError("Signage 端末としてログインしてください");
+  return s;
+}
+
+function validatePromotion(input: PromotionInput): string[] {
+  const errors: string[] = [];
+  if (!input.product_id) errors.push("対象商品を選んでください");
+  if (input.channels.length === 0) errors.push("掲載先を1つ以上選んでください");
+  if (!input.reason_text.trim()) errors.push("理由文を入力してください");
+  else if (input.reason_text.trim().length > 40) errors.push("理由文は40字以内にしてください");
+  if (!Number.isInteger(input.priority) || input.priority < 0 || input.priority > 100) errors.push("優先度は0〜100の整数にしてください");
+  for (const w of input.time_windows) {
+    if (!(0 <= w.start_hour && w.start_hour < w.end_hour && w.end_hour <= 24)) errors.push("時間帯は0〜24時の範囲で、終わりを始まりより後にしてください");
+  }
+  if (Date.parse(input.starts_at) > Date.parse(input.ends_at)) errors.push("期間の終わりは始まり以降にしてください");
+  return errors;
+}
+
 function requireMaker(s: Session): string {
   if (s.role !== "maker_staff") throw new PermissionError("メーカーとしてログインしてください");
   return s.makerId;
@@ -72,9 +102,12 @@ function requireMaker(s: Session): string {
 
 export function createMockRepository(storage: MockStorage, seed: () => MockDb = () => createSeed()): AdsRepository {
   let cache: MockDb | null = null;
+  // 毎回保存先から読み直す。Ads の画面（別のタブ）で停止した結果を、Signage の画面が次の取得で読めるようにする
   const read = (): MockDb => {
-    if (!cache) {
-      cache = storage.load() ?? seed();
+    const stored = storage.load();
+    if (stored) cache = stored;
+    else if (!cache) {
+      cache = seed();
       storage.save(cache);
     }
     return cache;
@@ -348,6 +381,106 @@ export function createMockRepository(storage: MockStorage, seed: () => MockDb = 
         saved = p;
       });
       return out(saved);
+    },
+
+    signInDevice(deviceId) {
+      const device = read().signage_devices.find((d) => d.id === deviceId);
+      if (!device) throw new PermissionError("登録されていない端末です");
+      return { role: "signage", deviceId: device.id, storeId: device.store_id } satisfies Session;
+    },
+
+    getSignageFeed(session, at = new Date()) {
+      const { deviceId, storeId } = requireDevice(session);
+      const db = read();
+      const device = db.signage_devices.find((d) => d.id === deviceId && d.store_id === storeId);
+      if (!device) throw new PermissionError("登録されていない端末です");
+      // 端末に渡すのは自店の配信対象・販促と、表示に要る素材・商品名・価格だけ
+      const feed = buildFeed(
+        {
+          device,
+          store: db.stores.find((x) => x.id === storeId)!,
+          placements: db.ad_placements.filter((p) => p.store_id === storeId),
+          creatives: db.creatives,
+          creative_versions: db.creative_versions,
+          makers: db.makers,
+          products: db.products,
+          store_products: db.store_products.filter((p) => p.store_id === storeId),
+          promotions: db.store_promotions.filter((p) => p.store_id === storeId),
+        },
+        at,
+        db.store_clocks.find((c) => c.store_id === storeId)?.offset_ms ?? 0,
+      );
+      return out(feed);
+    },
+
+    recordPlays(session, plays) {
+      const { deviceId } = requireDevice(session);
+      if (plays.some((p) => p.device_id !== deviceId)) throw new PermissionError("他の端末の再生記録は保存できません");
+      write((db) => {
+        for (const p of plays) {
+          const i = db.signage_plays.findIndex((x) => x.id === p.id);
+          const merged = mergePlay(i >= 0 ? db.signage_plays[i] : undefined, p, now());
+          if (i >= 0) db.signage_plays[i] = merged;
+          else db.signage_plays.push(merged);
+        }
+      });
+      return { saved: plays.length };
+    },
+
+    devListStorePlacements(session) {
+      const storeId = requireStoreStaff(session);
+      return out(read().ad_placements.filter((p) => p.store_id === storeId));
+    },
+
+    devListPromotions(session) {
+      const storeId = requireStoreStaff(session);
+      return out(read().store_promotions.filter((p) => p.store_id === storeId));
+    },
+
+    devCreatePromotion(session, input) {
+      const storeId = requireStoreStaff(session);
+      const errors = validatePromotion(input);
+      if (errors.length) throw new ValidationError(errors);
+      let created!: StorePromotion;
+      write((db) => {
+        const id = newId("SP");
+        created = { id, version_id: `${id}-v1`, store_id: storeId, version: 1, ...input, reason_text: input.reason_text.trim(), status: "active" };
+        db.store_promotions.push(created);
+      });
+      return out(created);
+    },
+
+    devSetPromotionStatus(session, promotionId, status) {
+      const storeId = requireStoreStaff(session);
+      let saved!: StorePromotion;
+      write((db) => {
+        const p = db.store_promotions.find((x) => x.id === promotionId);
+        if (!p) throw new ValidationError(["販促が見つかりません"]);
+        if (p.store_id !== storeId) throw new PermissionError("他の店舗の販促は変更できません");
+        p.status = status;
+        saved = p;
+      });
+      return out(saved);
+    },
+
+    devListPlays(session) {
+      const storeId = requireStoreStaff(session);
+      const db = read();
+      const mine = new Set(db.signage_devices.filter((d) => d.store_id === storeId).map((d) => d.id));
+      return out(db.signage_plays.filter((p) => mine.has(p.device_id)));
+    },
+
+    devGetClockOffset(session) {
+      const storeId = requireStoreStaff(session);
+      return read().store_clocks.find((c) => c.store_id === storeId)?.offset_ms ?? 0;
+    },
+
+    devSetDemoTime(session, demoTime) {
+      const storeId = requireStoreStaff(session);
+      write((db) => {
+        db.store_clocks = db.store_clocks.filter((c) => c.store_id !== storeId);
+        if (demoTime) db.store_clocks.push({ store_id: storeId, offset_ms: Date.parse(demoTime) - Date.now() });
+      });
     },
 
     async reset() {
