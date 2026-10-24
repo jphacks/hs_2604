@@ -149,6 +149,26 @@ pnpm exec tsc --noEmit
 pnpm build
 ```
 
-自動テストは架空のAuth・DB応答で、4役割の認証・ログアウト・期限切れ・役割不一致・編集可能metadataでの昇格拒否・DB設定不足等を確認します。実Supabaseへの接続・SQL適用・4アカウントでの手順再現は別途必要です。APP-01の画面接続、DB-06の業務データ権限、COM-03の画像保存はこのIssueの対象外です。
+自動テストは架空のAuth・DB応答で、4役割の認証・ログアウト・期限切れ・役割不一致・編集可能metadataでの昇格拒否・DB設定不足等を確認します。別の開発環境では、上記の実接続手順も実施してください。APP-01の画面接続、DB-06の業務データ権限、COM-03の画像保存はこのIssueの対象外です。
+
+### 実接続の検証記録（2026-10-24）
+
+開発用のSupabaseプロジェクトを東京リージョン・無料プランで作成し、接続確認用migrationをSQL Editorから適用しました。担当者が4件の架空アカウントを作成し、管理者のSQL操作で役割と端末識別情報を設定しました。確認にはpublishable keyと本人のセッションを使い、管理キーは使っていません。
+
+| 確認 | 結果 |
+| --- | --- |
+| `customer`・`store_staff`・`maker_staff`・`signage`でログイン→DB接続確認 | 4役割とも成功 |
+| 各アカウントで別の役割を要求 | `forbidden` |
+| ログアウト後に再接続 | `unauthenticated` |
+| 保存セッションの期限を過去にし、ログアウトで失効した更新トークンからSSRの復元を試行 | 4役割とも`session_expired` |
+| 未認証でDB接続確認関数を実行 | HTTP 401・`42501`で拒否 |
+| Appの接続確認APIへ認証Cookieを送信 | HTTP 200・`connected`。役割・DB接続状態を取得 |
+| Appの接続確認APIをCookieなしで実行 | HTTP 401・`unauthenticated` |
+| API応答のキャッシュ・秘密情報 | `private, no-store`。パスワード・トークンを返さない |
+| 同梱の`check:backend`確認処理を消費者アカウントで実行 | ログイン・DB接続・ログアウト後の拒否が成功 |
+| 配信用ファイルへの検証用パスワード混入 | 83ファイルを確認し、混入なし |
+| 実接続設定を読み込んだAppの本番ビルド | `pnpm build --webpack`成功 |
+
+期限切れの検証では保存セッションの時刻を操作し、更新トークンの失効は実Supabaseのログアウトで行いました。認証済みの接続確認成功は、業務テーブルのRLS検証を意味しません。自動テスト26件・Appと共有パッケージの型検査・Appのlintも成功しています。担当者以外によるレビュー・手順の再現確認はPRで行います。
 
 参照：[Supabase SSR](https://supabase.com/docs/guides/auth/server-side/creating-a-client)、[getUser](https://supabase.com/docs/reference/javascript/auth-getuser)、[API keys](https://supabase.com/docs/guides/api/api-keys)。
