@@ -6,6 +6,9 @@
 
 import type { Channel, DataOrigin, PlacementType } from "./labels";
 
+// 画面は型を types.ts からまとめて取れるようにする
+export type { Channel, DataOrigin, PlacementType };
+
 export type ApplicationStatus = "submitted" | "approved" | "rejected";
 export type PlacementStatus = "active" | "suspended" | "expired" | "superseded";
 export type MeasurementStatus = "measured" | "not_measured" | "error";
@@ -113,4 +116,25 @@ export type SignageMetricRow = {
   estimated_viewers: number | null;
   estimated_view_seconds: number | null;
   same_hour_product_sales: number;
+};
+
+/** 商品（products ＋ store_products の価格） */
+export type Product = {
+  product_id: string;
+  code: string;
+  name: string;
+  price: number;
+  category: string;
+};
+
+/** 販促設定の保存内容。version と status は保存側で決まる */
+export type PromotionDraft = {
+  id: string | null;
+  product_id: string;
+  channels: Channel[];
+  time_windows: { start: string; end: string }[];
+  priority: number;
+  reason_text: string;
+  starts_at: string;
+  ends_at: string;
 };
