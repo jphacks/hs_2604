@@ -1,6 +1,6 @@
 // 広告素材の表示。Ads のプレビュー（ADS-03）と Signage の全画面表示（SIG-01）で共通に使う
 // 「広告｜提供：〇〇」と価格は素材に入れず、ここで重ねる（docs/specs/ads-spec.md の 10 章）
-import { OVERLAY_ZONES, SIZE, zoneStyle } from "@/lib/domain/media";
+import { OVERLAY_ZONES, PROMO_ZONES, SIZE, zoneStyle } from "@/lib/domain/media";
 import type { Channel, MediaAsset } from "@/lib/domain/types";
 
 export function AdMedia({
@@ -9,7 +9,12 @@ export function AdMedia({
   makerName,
   price,
   autoPlay = false,
+  loop,
+  src,
+  onEnded,
+  onError,
   className = "",
+  children,
 }: {
   asset: MediaAsset;
   channel: Channel;
@@ -18,7 +23,15 @@ export function AdMedia({
   /** 渡すと価格を重ねる（DB-02 の店舗別価格）。文字列ならそのまま出す（申請前のプレビュー用） */
   price?: number | string;
   autoPlay?: boolean;
+  /** 省略時は autoPlay と同じ。Signage は最後まで再生して切り替えるので false にする */
+  loop?: boolean;
+  /** 読み込み済みの素材の URL（Signage は通信が切れても表示できるよう、先に読み込んだものを渡す） */
+  src?: string;
+  onEnded?: () => void;
+  onError?: () => void;
   className?: string;
+  /** 素材の上に重ねる追加の表示（店舗販促の商品名など） */
+  children?: React.ReactNode;
 }) {
   const zones = OVERLAY_ZONES[channel];
   const { width, height } = SIZE[channel];
@@ -29,18 +42,20 @@ export function AdMedia({
     >
       {asset.kind === "video" ? (
         <video
-          src={asset.path}
+          src={src ?? asset.path}
           className="h-full w-full object-contain"
           muted
           playsInline
-          loop={autoPlay}
+          loop={loop ?? autoPlay}
           autoPlay={autoPlay}
           controls={!autoPlay}
+          onEnded={onEnded}
+          onError={onError}
         />
       ) : (
         // 素材は外部・アップロードのURLもあるため next/image ではなく img を使う
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={asset.path} alt="" className="h-full w-full object-contain" />
+        <img src={src ?? asset.path} alt="" className="h-full w-full object-contain" onError={onError} />
       )}
       {makerName && (
         <div className="absolute flex items-center whitespace-nowrap" style={zoneStyle(zones.label, channel)}>
@@ -52,27 +67,73 @@ export function AdMedia({
           </span>
         </div>
       )}
-      {price !== undefined && (
-        <div className="absolute flex items-center justify-end whitespace-nowrap" style={zoneStyle(zones.price, channel)}>
-          <span
-            className="rounded-lg bg-white font-extrabold text-red-700 shadow"
-            style={{ fontSize: channel === "app" ? "9cqw" : "6.5cqw", padding: "0.6cqw 1.8cqw" }}
-          >
-            {typeof price === "number" ? (
-              <>
-                ¥{price.toLocaleString("ja-JP")}
-                <small className="ml-1 font-medium text-gray-500" style={{ fontSize: "40%" }}>
-                  （税込）
-                </small>
-              </>
-            ) : (
-              <span className="font-medium text-gray-500" style={{ fontSize: "45%" }}>
-                {price}
-              </span>
-            )}
-          </span>
-        </div>
-      )}
+      {children}
+      {price !== undefined && <PriceBadge price={price} channel={channel} />}
     </div>
+  );
+}
+
+function PriceBadge({ price, channel }: { price: number | string; channel: Channel }) {
+  return (
+    <div className="absolute flex items-center justify-end whitespace-nowrap" style={zoneStyle(OVERLAY_ZONES[channel].price, channel)}>
+      <span
+        className="rounded-lg bg-white font-extrabold text-red-700 shadow"
+        style={{ fontSize: channel === "app" ? "9cqw" : "6.5cqw", padding: "0.6cqw 1.8cqw" }}
+      >
+        {typeof price === "number" ? (
+          <>
+            ¥{price.toLocaleString("ja-JP")}
+            <small className="ml-1 font-medium text-gray-500" style={{ fontSize: "40%" }}>
+              （税込）
+            </small>
+          </>
+        ) : (
+          <span className="font-medium text-gray-500" style={{ fontSize: "45%" }}>
+            {price}
+          </span>
+        )}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * 店舗販促の表示。ADS-05 の背景（「店舗からのおすすめ」）に、商品名・店舗の理由文・価格を重ねる
+ * 位置と文字の大きさは scripts/ad-assets/generate.py の確認ページと同じ
+ */
+export function PromoMedia({
+  asset,
+  channel,
+  productName,
+  reasonText,
+  price,
+  src,
+  onError,
+  className = "",
+}: {
+  asset: MediaAsset;
+  channel: Channel;
+  productName: string;
+  reasonText: string;
+  price: number;
+  src?: string;
+  onError?: () => void;
+  className?: string;
+}) {
+  const zones = PROMO_ZONES[channel];
+  const app = channel === "app";
+  return (
+    <AdMedia asset={asset} channel={channel} price={price} src={src} onError={onError} className={className}>
+      <div className="absolute flex items-center whitespace-nowrap" style={zoneStyle(zones.name, channel)}>
+        <span className="font-extrabold text-ink" style={{ fontSize: app ? "10cqw" : "6cqw" }}>
+          {productName}
+        </span>
+      </div>
+      <div className="absolute flex items-center whitespace-nowrap" style={zoneStyle(zones.message, channel)}>
+        <span className="font-bold text-red-700" style={{ fontSize: app ? "5.5cqw" : "3cqw" }}>
+          {reasonText}
+        </span>
+      </div>
+    </AdMedia>
   );
 }

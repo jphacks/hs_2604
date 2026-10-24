@@ -11,10 +11,10 @@ export default function Home() {
           <p className="font-bold">KAGO/Ads</p>
           <p className="mt-1 text-sm text-muted">店舗の広告募集と、メーカーの広告申請</p>
         </Link>
-        <div className="rounded-xl border border-dashed border-line p-5 text-muted">
+        <Link href="/signage" className="rounded-xl border border-line bg-surface p-5 hover:border-brand">
           <p className="font-bold">KAGO/Signage</p>
-          <p className="mt-1 text-sm">準備中（SIG-01）</p>
-        </div>
+          <p className="mt-1 text-sm text-muted">店内サイネージの全画面表示と再生記録</p>
+        </Link>
       </div>
     </main>
   );

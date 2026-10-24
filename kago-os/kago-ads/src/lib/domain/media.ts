@@ -21,6 +21,12 @@ export const OVERLAY_ZONES: Record<Channel, { label: Zone; price: Zone }> = {
   app: { label: { x: 24, y: 24, w: 400, h: 52 }, price: { x: 496, y: 664, w: 280, h: 112 } },
 };
 
+/** 店舗販促テンプレートに重ねる領域。scripts/ad-assets/generate.py の PROMO_ZONES と同じ値 */
+export const PROMO_ZONES: Record<Channel, { name: Zone; message: Zone; price: Zone }> = {
+  signage: { name: { x: 120, y: 380, w: 1100, h: 200 }, message: { x: 120, y: 600, w: 1100, h: 120 }, price: { x: 1360, y: 800, w: 520, h: 240 } },
+  app: { name: { x: 40, y: 250, w: 720, h: 140 }, message: { x: 40, y: 400, w: 720, h: 90 }, price: { x: 496, y: 664, w: 280, h: 112 } },
+};
+
 /** 領域を素材に対する割合（%）にする。表示サイズが変わっても同じ位置に重ねられる */
 export function zoneStyle(zone: Zone, channel: Channel) {
   const { width, height } = SIZE[channel];

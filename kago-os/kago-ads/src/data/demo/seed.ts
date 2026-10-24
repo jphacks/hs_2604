@@ -13,12 +13,17 @@ import type {
   MediaAsset,
   Product,
   SignageDevice,
+  SignagePlay,
   Store,
+  StorePromotion,
   StoreProduct,
 } from "../../lib/domain/types";
 
+/** 提案：店舗ごとのデモ用の時刻（COM-01 案 G・DB-01 に依頼予定）。店舗の時刻 = 実時刻 + offset_ms */
+export type StoreClock = { store_id: string; offset_ms: number };
+
 export type MockDb = {
-  version: 2;
+  version: 3;
   stores: Store[];
   signage_devices: SignageDevice[];
   makers: Maker[];
@@ -29,6 +34,9 @@ export type MockDb = {
   creative_versions: CreativeVersion[];
   ad_applications: AdApplication[];
   ad_placements: AdPlacement[];
+  store_promotions: StorePromotion[];
+  signage_plays: SignagePlay[];
+  store_clocks: StoreClock[];
 };
 
 /** kago-app の既存商品（src/data/demo/products.json・src/lib/products.ts）と、DATA-01 で追加する P-SAUCE */
@@ -200,8 +208,23 @@ export function createSeed(on: string = today()): MockDb {
     },
   ];
 
+  // 共通仕様書 11.2 No.6 の SP1（夕方の惣菜）と、終日の販促 SP2（デモ手順①「パンを売り切りたい」の確認用）
+  // S2（駅前店）には配信対象も販促もない → D3 は案内を出す（SIG-01 の「広告0件」の確認）
+  const store_promotions: StorePromotion[] = [
+    {
+      id: "SP1", version_id: "SP1-v1", store_id: "S1", product_id: productId("PLU-2001"), version: 1, channels: ["app", "signage"],
+      time_windows: [{ weekdays: [1, 2, 3, 4, 5, 6, 7], start: "16:00", end: "19:00" }], priority: 50, reason_text: "店内で揚げたてです",
+      starts_at: dayStart(d(-1)), ends_at: dayEnd(d(30)), status: "active",
+    },
+    {
+      id: "SP2", version_id: "SP2-v1", store_id: "S1", product_id: productId("PLU-3001"), version: 1, channels: ["signage"],
+      time_windows: [], priority: 30, reason_text: "朝と夕方に店内で焼き上げています",
+      starts_at: dayStart(d(-1)), ends_at: dayEnd(d(30)), status: "active",
+    },
+  ];
+
   return {
-    version: 2, stores, signage_devices, makers, products, store_products, ad_calls, creatives, creative_versions,
-    ad_applications: [a1, a2], ad_placements,
+    version: 3, stores, signage_devices, makers, products, store_products, ad_calls, creatives, creative_versions,
+    ad_applications: [a1, a2], ad_placements, store_promotions, signage_plays: [], store_clocks: [],
   };
 }
