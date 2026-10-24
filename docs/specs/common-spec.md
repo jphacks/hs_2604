@@ -13,6 +13,8 @@
 
 参照元は[企画書](proposal.md)、[Issue一覧](../issues/issues.md)、[開発ガイド](../development.md)、既存の[商品データ](../../kago-os/kago-app/src/data/demo/products.json)・[計量品を含む商品定義](../../kago-os/kago-app/src/lib/products.ts)・[架空利用者と履歴](../../kago-os/kago-app/src/data/demo/customer.json)・[履歴集計処理](../../kago-os/kago-app/src/features/recommendations/customer.ts)です。既存コードはブラウザ内の事前実装であり、本書のDB接続・広告・計測が実装済みという意味ではありません。
 
+DB-01の型・制約・権限・2店舗の確認例は[共通DB設計（レビュー案）](database-design.md)を参照してください。DDL・RLSは未実装です。
+
 ## 目次
 
 1. [決定事項の一覧](#decisions)
