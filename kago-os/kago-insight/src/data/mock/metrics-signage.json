@@ -1,38 +1,52 @@
 [
   {
     "store_id": "S1",
+    "channel": "signage",
+    "data_origin": "operated",
     "device_id": "D1",
-    "hour": "2026-10-25T17:00:00+09:00",
-    "placement_type": "sponsored",
+    "hour_start": "2026-10-25T17:00:00+09:00",
     "ad_placement_id": "PL1",
     "promotion_version_id": null,
-    "creative_version_id": "CR1-v2",
     "mode": "schedule",
-    "data_origin": "operated",
     "plays": 20,
     "play_seconds": 300,
     "measured_plays": 0,
-    "measurement_status": "not_measured",
+    "not_measured_plays": 20,
+    "error_plays": 0,
     "estimated_viewers": null,
     "estimated_view_seconds": null,
-    "same_hour_product_sales": 1
+    "synthetic_estimates": 0,
+    "synthetic_viewers": null,
+    "synthetic_view_seconds": null,
+    "reference_sales_quantity": 1,
+    "disclosed_metrics": [
+      "signage_views",
+      "purchases"
+    ]
   },
   {
     "store_id": "S1",
+    "channel": "signage",
+    "data_origin": "operated",
     "device_id": "D1",
-    "hour": "2026-10-25T17:00:00+09:00",
-    "placement_type": "store_promo",
+    "hour_start": "2026-10-25T17:00:00+09:00",
     "ad_placement_id": null,
     "promotion_version_id": "SP1-v1",
-    "creative_version_id": null,
     "mode": "schedule",
-    "data_origin": "operated",
     "plays": 20,
     "play_seconds": 300,
     "measured_plays": 0,
-    "measurement_status": "not_measured",
+    "not_measured_plays": 20,
+    "error_plays": 0,
     "estimated_viewers": null,
     "estimated_view_seconds": null,
-    "same_hour_product_sales": 0
+    "synthetic_estimates": 0,
+    "synthetic_viewers": null,
+    "synthetic_view_seconds": null,
+    "reference_sales_quantity": 0,
+    "disclosed_metrics": [
+      "signage_views",
+      "purchases"
+    ]
   }
 ]
