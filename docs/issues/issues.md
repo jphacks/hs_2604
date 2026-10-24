@@ -738,6 +738,8 @@ Insight・Adsが参照する、共通定義の件数・母数を取得できるD
 
 2026-10-24・hackday：[Issue #17](https://github.com/jphacks/hs_2604/issues/17)／[画面先行PR #56](https://github.com/jphacks/hs_2604/pull/56)に続き、[PR #60](https://github.com/jphacks/hs_2604/pull/60)で完了済みDB-02・DB-03へ接続し、来店開始・再開関数と実SQL検証を追加。テーブル定義・RLSは変更せず、実環境への適用とDB-06の権限設定を待ちます。[接続契約と検証手順](../specs/app-session-contract.md)を参照してください。実Supabaseでの完了条件は未確認のため、Issueは閉じません。
 
+[PR #66](https://github.com/jphacks/hs_2604/pull/66)でDB-05までの統合試験と[2利用者の実接続確認手順](../development/app-session-check.md)を追加。ローカル51テスト・ブラウザ16ケースは成功し、実接続はDB-06の完了・環境ファイルの提供待ちです。DB-05の完了をDB-06の権限適用済みとは扱いません。
+
 **目的**
 
 固定の架空アカウントから、本人のかごと履歴を使うAppへ接続する。

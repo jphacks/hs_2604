@@ -175,6 +175,23 @@ test("failure after ending a prior visit rolls back its status and cart", async 
   assert.equal((await db.query<{quantity:number}>("select quantity from cart_items where visit_id=$1",[first])).rows[0].quantity,2);
 });
 
+test("DB-05 selection records stay with the old visit after explicit re-entry", async () => {
+  await allowTestAccess();
+  await asUser();
+  const first = await start();
+  await owner();
+  const selection = await db.query<{id:string}>("insert into selections(visit_id,cart_version,rule_version) values ($1,0,1) returning id",[first]);
+  await db.query("insert into selection_items(selection_id,slot,placement_type,product_id,rank,reason_code,reason_text) values ($1,1,'organic',$2,1,'popular','検証用の通常推薦')",[selection.rows[0].id,id(5)]);
+  await asUser();
+  const next = await start(id(1),true,first);
+  await owner();
+  assert.equal((await db.query("select * from selections where visit_id=$1",[first])).rows.length,1);
+  assert.equal((await db.query("select * from selections where visit_id=$1",[next])).rows.length,0);
+  assert.equal((await db.query("select * from selection_items where selection_id=$1",[selection.rows[0].id])).rows.length,1);
+  const fresh = await db.query<{assignment_id:string|null;experiment_arm:string|null}>("select assignment_id,experiment_arm from visits where id=$1",[next]);
+  assert.deepEqual(fresh.rows[0],{assignment_id:null,experiment_arm:null});
+});
+
 test("App's real transport reads DB-02 nullable branch/price and DB-03 cart via RPC", async () => {
   await allowTestAccess();
   const actor = claims();
