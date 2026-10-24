@@ -22,7 +22,7 @@ test("pasta in the cart: basil coupon (curated relation) with its reason; set de
     offer({ offerId: "s1", kind: "set_deal", product: SAUCE, trigger: { ...PASTA, unitDiscount: 24 }, triggerInCart: true, discountPercent: 10, unitDiscount: 29 }),
   ]), rules);
   assert.equal(r.coupon?.offerId, "c1"); assert.equal(r.coupon?.relation?.origin, "initial");
-  assert.equal(r.coupon?.reason, "スパゲッティの仕上げに合います");
+  assert.equal(r.coupon?.reason, "スパゲッティの仕上げに合います（KAGOが登録した組み合わせ）。25%OFFでお得なため選ばれました。");
   assert.equal(r.sets[0].action, "add"); assert.match(r.sets[0].reason, /スパゲッティとトマトパスタソース/);
   assert.equal(r.ruleVersion, 1);
 });
@@ -52,10 +52,12 @@ test("time sales are always listed, ordered by end; 'apply' when the product is 
   assert.deepEqual(r.timeSales.map(o => [o.offerId, o.action]), [["soon", "apply"], ["late", "add"]]);
   assert.equal(discountLabel({ discountPercent: 20, discountAmount: null }), "20% OFF");
 });
-test("a coupon the store tied to the scanned product comes before a rule-only coupon", () => {
+// DEMO-02 (#112/#116) replaced "a store-tied coupon always comes first": every coupon competes on
+// Association × Novelty × Deal. Apple: pasta→pip fruit lift 1.945 × (1 + 50/158) beats basil 1.5 × 1.25.
+test("a store-tied coupon no longer jumps the queue; the higher Association × Deal wins", () => {
   const r = rankSerendipity(list([PASTA.code], [
     offer({ offerId: "rule-only", kind: "guerrilla_coupon", product: product("PLU-1002", "国産りんご 1個", 158), discountPercent: null, discountAmount: 50, unitDiscount: 50 }),
     offer({ offerId: "store", kind: "guerrilla_coupon", product: BASIL, trigger: { ...PASTA, unitDiscount: 0 }, triggerInCart: true }),
   ]), rules);
-  assert.equal(r.coupon?.offerId, "store");
+  assert.equal(r.coupon?.offerId, "rule-only"); assert.equal(r.coupon?.targeting?.relation.source, "analysis");
 });

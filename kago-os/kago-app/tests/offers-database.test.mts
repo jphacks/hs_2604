@@ -12,7 +12,7 @@ after(() => db.close());
 
 type Line = { productId: string; price: number; quantity: number; discount: number; offerId: string | null; offerKind: string | null };
 type Cart = { visit: { cart_version: number }; cart: Line[]; discountTotal: number; claimedOfferIds: string[] };
-type OfferList = { offers: { offerId: string; kind: string; unitDiscount: number; productInCart: boolean; triggerInCart: boolean; trigger: { unitDiscount: number } | null }[]; nextChangeAt: string | null };
+type OfferList = { offers: { offerId: string; kind: string; unitDiscount: number; productInCart: boolean; triggerInCart: boolean; trigger: { unitDiscount: number } | null; dismissed: boolean }[]; nextChangeAt: string | null };
 const code = (expected: string, detail?: string) => (error: unknown) => {
   const e = error as { code?: string; detail?: string };
   return e.code === expected && (detail === undefined || e.detail === detail);
@@ -157,4 +157,24 @@ test("offer events are recorded once per id for the caller's own visit", async (
   await assert.rejects(rpc("app_record_offer_event", [id(visitNo), next(), OFFER.otherStore, "offer_shown"]), code("P0001", "offer_unavailable"));
   await assert.rejects(rpc("app_record_offer_event", [id(visitNo), next(), OFFER.timeSale, "offer_shown"], 4), code("42501"));
   assert.equal((await db.query("select * from offer_events where event_id=$1", [eventId])).rows.length, 1);
+});
+test("DEMO-02 inputs: last product put in the cart, own dismissals and received coupons; nothing of another customer", async () => {
+  let list = await offers(visitNo) as OfferList & { lastAddedProduct: { code: string } | null; claimedCouponCount: number };
+  assert.equal(list.lastAddedProduct, null); assert.equal(list.claimedCouponCount, 0);
+  assert.ok(list.offers.every(o => o.dismissed === false));
+  await set(PRODUCT.pasta, 1, visitNo); await delay(5); await set(PRODUCT.karaage, 1, visitNo);
+  await set(PRODUCT.pasta, 3, visitNo); // a quantity change does not make pasta the "last added" product again
+  list = await offers(visitNo) as typeof list;
+  assert.equal(list.lastAddedProduct?.code, "PLU-2002");
+  await rpc("app_record_offer_event", [id(visitNo), next(), OFFER.coupon, "offer_dismissed"]);
+  await claim(OFFER.coupon, visitNo);
+  list = await offers(visitNo) as typeof list;
+  assert.equal(list.lastAddedProduct?.code, "2900000000179", "the claimed coupon put basil into the cart");
+  assert.equal(list.claimedCouponCount, 1);
+  // Another customer's dismissal of the same offer is not visible as theirs, and their visit is refused.
+  await db.query("insert into visits(id,user_id,store_id) values ($1,$2,$3)", [id(99), id(4), id(1)]);
+  const other = await offers(99, 4) as typeof list;
+  assert.equal(other.offers.find(o => o.offerId === OFFER.coupon)?.dismissed, false);
+  assert.equal(other.claimedCouponCount, 0);
+  await assert.rejects(offers(visitNo, 4), code("42501"));
 });

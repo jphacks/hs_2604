@@ -51,7 +51,7 @@ try {
   pass("scanning pasta surfaces the basil guerrilla coupon sticker and the pasta + sauce set deal");
 
   await sticker().click(); await page.getByRole("dialog", { name: "生バジル 25% OFF" }).waitFor();
-  await wait("スパゲッティの仕上げに合います"); await wait("￥149");
+  await wait("スパゲッティの仕上げに合います（KAGOが登録した組み合わせ）。25%OFFでお得なため選ばれました。"); await wait("￥149");
   await page.screenshot({ path: resolve(output, "coupon-dialog-mobile.png"), fullPage: false });
   await page.getByRole("button", { name: "割引付きでかごに追加", exact: true }).click(); await saved();
   let s = await snapshot(); assert.equal(line(s, PRODUCT.basil)!.discount, 49); assert.equal(s.discountTotal, 49);
