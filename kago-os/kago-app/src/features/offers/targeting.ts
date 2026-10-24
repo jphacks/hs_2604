@@ -7,6 +7,7 @@
 import type { AssociationRule, AssociationRuleSet } from "../recommendations/association";
 import type { ProductPurchaseSummary } from "../recommendations/customer";
 import type { StoreOffer } from "./contracts";
+import { shortProductName } from "../../lib/product-name.ts";
 
 export const INITIAL_ASSOCIATION = 1.5;      // curated (initialRules) pair without enough public data
 export const STORE_TRIGGER_ASSOCIATION = 1.2; // the store tied the coupon to t, without a data/curated rule
@@ -56,7 +57,6 @@ export type CouponDecision = {
 };
 
 const round = (value: number) => Math.round(value * SCORE_DIGITS) / SCORE_DIGITS;
-const shortName = (name: string) => name.replace(/\s.*$/, "");
 
 /** Regular purchase: bought ≥3 times and the last purchase is still within 1.5 × the average interval. */
 export function isRegularPurchase(summary: ProductPurchaseSummary) {
@@ -94,7 +94,7 @@ export function association(rules: AssociationRuleSet, from: string, offer: Pick
 
 function reasonText(trigger: TriggerProduct, source: RelationSource, rule: AssociationRule | null, noveltyReason: NoveltyReason,
   discount: string, regularExcluded: boolean) {
-  const t = shortName(trigger.name);
+  const t = shortProductName(trigger.name);
   const relation = source === "analysis" ? `公開購買データ（Groceries）では${t}と一緒に買われやすい組み合わせです。`
     : source === "initial" ? `${rule?.reason ?? `${t}と相性のよい商品です`}（KAGOが登録した組み合わせ）。`
       : `店舗が${t}と一緒に案内しているクーポンです。`;

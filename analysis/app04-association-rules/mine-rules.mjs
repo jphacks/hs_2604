@@ -18,6 +18,12 @@ export const PARAMS = {
 };
 
 const round = (value, digits = 4) => Number(value.toFixed(digits));
+// The first word, plus the second when the first is a Latin-letter brand ("KAGO 緑茶 500ml" → "KAGO 緑茶").
+// Same rule as kago-os/kago-app/src/lib/product-name.ts (#137).
+export function shortProductName(name) {
+  const words = name.trim().split(/\s+/);
+  return words.slice(0, /^[A-Za-z][A-Za-z0-9&.'-]*$/.test(words[0]) && words.length > 1 ? 2 : 1).join(" ");
+}
 
 export function parseBaskets(text) {
   return text.split(/\r?\n/).filter(line => line.length > 0)
@@ -73,7 +79,7 @@ export function mine(baskets, productMap, params = PARAMS) {
         id: `grc-${from.code}-${to.code}`, origin: "analysis", from: from.code, to: to.code,
         evidence: { from: rule.from, to: rule.to },
         support: round(rule.train.support), confidence: round(rule.train.confidence), lift: round(rule.train.lift, 3),
-        testLift: round(rule.test.lift, 3), reason: `${from.name.replace(/\s.*$/, "")}と一緒に選ばれています`,
+        testLift: round(rule.test.lift, 3), reason: `${shortProductName(from.name)}と一緒に選ばれています`,
       }]);
     }
   }
