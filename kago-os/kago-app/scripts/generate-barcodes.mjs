@@ -4,9 +4,8 @@ import { join } from "node:path";
 import bwipjs from "bwip-js";
 
 const root = process.cwd();
-const products = JSON.parse(
-  readFileSync(join(root, "src/data/demo/products.json"), "utf8"),
-);
+const products = ["products.json", "coupon-barcodes.json"].flatMap(file =>
+  JSON.parse(readFileSync(join(root, "src/data/demo", file), "utf8")));
 const outputDir = join(root, "public/demo/barcodes");
 
 mkdirSync(outputDir, { recursive: true });

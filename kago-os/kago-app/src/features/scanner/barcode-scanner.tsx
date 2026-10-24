@@ -9,10 +9,11 @@ type BarcodeScannerProps = {
   onDetected: (code: string) => void;
   disabled?: boolean;
   purpose?: "product" | "store";
+  description?: string;
   onReadFailure?: (reason: "camera_unavailable" | "permission_denied" | "unreadable") => void;
 };
 
-export function BarcodeScanner({ onDetected, onReadFailure, disabled = false, purpose = "product" }: BarcodeScannerProps) {
+export function BarcodeScanner({ onDetected, onReadFailure, disabled = false, purpose = "product", description }: BarcodeScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const controlsRef = useRef<IScannerControls | null>(null);
   const lastCodeRef = useRef("");
@@ -180,7 +181,7 @@ export function BarcodeScanner({ onDetected, onReadFailure, disabled = false, pu
             </div>
             <div className="min-w-0">
               <p className="text-sm font-black sm:text-base">{purpose === "store" ? "店舗のQRコードを読み取る" : "バーコードをカメラで読み取る"}</p>
-              <p className="mt-1 text-xs leading-5 text-slate-300 sm:text-sm">{purpose === "store" ? "店頭に設置されたQRコードを読み取ってください" : "読み取り後、商品を自動でかごへ追加します"}</p>
+              <p className="mt-1 text-xs leading-5 text-slate-300 sm:text-sm">{description ?? (purpose === "store" ? "店頭に設置されたQRコードを読み取ってください" : "読み取り後、商品を自動でかごへ追加します")}</p>
             </div>
           </div>
           {status === "error" && (
