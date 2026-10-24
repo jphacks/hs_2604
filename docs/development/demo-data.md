@@ -80,4 +80,4 @@ pnpm test:demo-data
 
 2026-10-24：Node.js 24.18.1・PGlite 0.5.11で、最新mainの全migrationとAuth/Storageの最小模擬定義に投入し、`pnpm test:demo-data`の7項目が成功しました。2回目の投入で行も応答も変わらないこと、仮応答JSONとの完全一致、App・Adsの商品と履歴との一致、9アカウントの読取範囲、A1の審査履歴、Appの商品一覧関数での店舗別価格、アカウント不足・役割の不一致での停止を確認しています。
 
-実PostgreSQL・共有Supabaseへの投入、実Authのログイン、画像のアップロード、各画面での表示は未確認です。
+2026-10-24夕方に共有Supabase（kago-os-dev）へ投入しました（[共有開発DBの確認記録](database.md)）。実Authのログイン、画像のアップロード、各画面での表示は未確認です。
