@@ -110,3 +110,23 @@ test("missing accounts or a differently configured account stop the seed", async
   await assert.rejects(conflicting.seed(), /app_metadata\.kago differs for misaki\.sato@example\.test/);
   await conflicting.db.close();
 });
+
+test("a product already registered under a demo code is reused; a taken store slug stops the seed", async () => {
+  const existing = await createDemoDatabase();
+  const pasta = "0990f017-0000-4000-8000-000000000001";
+  await existing.db.query("insert into public.products(id,code,name,category) values ($1,'2900000000100','スパゲッティ 500g','乾麺')", [pasta]);
+  await existing.seed();
+  const rows = (await existing.db.query<Row>(`select (select count(*)::int from public.products where code='2900000000100') as same_code,
+    (select count(*)::int from public.store_products where product_id=$1) as prices,
+    (select count(*)::int from public.order_items where product_id=$1) as history`, [pasta])).rows[0];
+  assert.deepEqual(rows, { same_code: 1, prices: 2, history: 1 });
+  await existing.seed();
+  await existing.db.close();
+
+  const taken = await createDemoDatabase();
+  await taken.db.exec("insert into public.stores(id,slug,name) values (gen_random_uuid(),'hiroshima-demo-store','既存の店舗')");
+  await assert.rejects(taken.seed(), /another store already uses the slug hiroshima-demo-store \(既存の店舗\); rename it first/);
+  await taken.db.exec("rollback");
+  assert.deepEqual((await taken.db.query("select 1 from public.ad_calls")).rows, []);
+  await taken.db.close();
+});
