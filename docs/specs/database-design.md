@@ -97,7 +97,7 @@ erDiagram
 
 DB-07は来店行をロックし、本人・active・期待cart_version・非空かご・取扱状態・現価格を確認して、注文・明細・来店終了を1トランザクションで保存する。totalは明細のunit_price×quantityの合計（integer上限超過は拒否）。再送時は既存注文を返す前に本人・来店・確定時cart_versionの一致を確認する。終了後の再送を新規注文にしない。かご更新も来店行をロックし、更新・cart_version加算・イベントを原子的に保存する。同じevent_idの再送では更新しない。3時間放棄は共通仕様Q-07の案であり閾値の担当確認待ち。
 
-DB-03の実装・適用手順は[共通DBガイド](../development/database.md)を参照。実験のassignment_id／experiment_armは参照先を作るDB-05で追加する。かごと明細の同店舗商品検査はvisit／orderの店舗を使うトリガー、注文の利用者・店舗一致は複合FKで保証する。購入確定時の合計・版・時刻検証と原子的保存はDB-07で実装する。
+DB-03・DB-04の実装・適用手順は[共通DBガイド](../development/database.md)を参照。実験のassignment_id／experiment_armは参照先を作るDB-05で追加する。かごと明細の同店舗商品検査はvisit／orderの店舗を使うトリガー、注文の利用者・店舗一致は複合FKで保証する。購入確定時の合計・版・時刻検証と原子的保存はDB-07で実装する。
 
 ### 広告・申請・販促（DB-04・DB-08）
 
@@ -105,15 +105,16 @@ DB-03の実装・適用手順は[共通DBガイド](../development/database.md)�
 | --- | --- | --- |
 | `makers` | id, slug text, display_name text, is_fictional boolean, created_at | slug UNIQUE |
 | `maker_members` | maker_id→makers, user_id→Auth, created_at | PK(maker_id,user_id) |
-| `ad_calls` | id, store_id→stores, title text, categories text[], channels text[], starts_at, ends_at, status text, disclosure_scope text[], created_at, updated_at | status=`draft/open/closed`。categories空不可。disclosure_scopeは`impressions/clicks/cart_adds/purchases/signage_views`の部分集合（空可） |
+| `ad_calls` | id, store_id→stores, title text, description text?, categories text[], channels text[], starts_at, ends_at, status text, disclosure_scope text[], created_at, updated_at | status=`draft/open/closed`（後戻り不可）。categories空不可。disclosure_scopeは`impressions/clicks/cart_adds/purchases/signage_views`の部分集合（空可）。公開後は店舗・媒体・期間を固定、closedは変更不可 |
 | `creatives` | id, maker_id→makers, product_id→products, created_at | 1素材1商品。参照後のメーカー・商品の変更禁止 |
-| `creative_versions` | id, creative_id→creatives, version integer, image_path text, headline text, created_at | UNIQUE(creative_id,version)、version≧1。image_pathは保存先キー（署名付きURLを保存しない）。追加のみ |
-| `ad_applications` | id, ad_call_id→ad_calls, maker_id→makers, creative_version_id→creative_versions, channels text[], requested_period tstzrange, status text, review_comment text?, reviewed_by?→Auth, reviewed_at?, created_at, updated_at | status=`submitted/approved/rejected`。期間は有限非空の`[)`、募集内。channelsは募集・素材対応媒体の部分集合。maker_idは素材の所有メーカーと一致 |
-| `ad_placements` | id, application_id→ad_applications, store_id→stores, creative_version_id→creative_versions, channels text[], starts_at, ends_at, status text, approved_by→Auth, approved_at | status=`active/suspended/expired/superseded`。申請の承認版を固定。UNIQUE(application_id) WHERE status=`active` |
-| `store_promotions` | id, store_id→stores, product_id→products, created_at | 販促の同一性。参照後の店舗・商品の変更禁止 |
-| `promotion_versions` | id, promotion_id→store_promotions, version integer, channels text[], time_windows jsonb, priority integer, reason_text text, starts_at, ends_at, status text, created_at | UNIQUE(promotion_id,version)、version≧1、priority≧0、status=`active/inactive`。内容は追加のみ、停止の状態変更はInsightのDB処理のみ |
+| `creative_versions` | id, creative_id→creatives, version integer, image_path text, headline text, note text?, created_at | UNIQUE(creative_id,version)、versionは素材ごとに1からの連番。image_pathは保存先キー（URL・署名付きURLを保存しない）。追加のみ |
+| `ad_applications` | id, ad_call_id, store_id, maker_id, creative_id, creative_version_id, channels text[], requested_period tstzrange, message text?, revision integer, status text, review_comment text?, reviewed_by?→Auth, reviewed_at?, created_at, updated_at | status=`submitted/approved/rejected`。複合FK(ad_call_id,store_id)→募集、(creative_id,maker_id)→素材、(creative_version_id,creative_id)→版。UNIQUE(ad_call_id,creative_id)。期間は有限非空の`[)`、募集内。channelsは募集の部分集合。提出はopenかつ募集終了前のみ。却下理由は必須・200字以内 |
+| `application_revisions` | application_id→ad_applications, revision integer, creative_version_id, channels, requested_period, message?, submitted_at, status, review_comment?, reviewed_by?, reviewed_at? | PK(application_id,revision)。申請の各回をad_applicationsのトリガーだけが記録。直接の変更・削除不可 |
+| `ad_placements` | id, application_id, revision, store_id, creative_version_id→creative_versions, channels text[], starts_at, ends_at, status text, approved_by→Auth, approved_at, suspend_reason?, suspended_by?→Auth, suspended_at? | status=`active/suspended/expired/superseded`。複合FK(application_id,store_id)→申請、(application_id,revision)→承認した回。UNIQUE(application_id,revision)、UNIQUE(application_id) WHERE status=`active`。承認版・媒体・期間・承認者・承認時刻を固定。停止は理由・停止者必須 |
+| `store_promotions` | id, store_id, product_id, created_at | 販促の同一性。複合FK(store_id,product_id)→store_products。店舗・商品の変更禁止 |
+| `promotion_versions` | id, promotion_id→store_promotions, version integer, channels text[], time_windows jsonb, priority integer, reason_text text, starts_at, ends_at, status text, created_at | UNIQUE(promotion_id,version)、versionは連番、priority≧0、status=`active/inactive`。販促ごとにactiveは1版まで。内容は追加のみ、状態はactive→inactiveのみ |
 
-`time_windows`は`[{"weekdays":[1,2,3,4,5,6,7],"start":"16:00","end":"19:00"}]`（ISO曜日、店舗時間帯）。空配列は終日。時刻はHH:mm、start＜end、日跨ぎは2窓に分割し、重複曜日を拒否する。DB-04でJSON構造を検査する。販促の版と行IDを分け、参照列は常に`promotion_version_id`とする。
+`time_windows`は`[{"weekdays":[1,2,3,4,5,6,7],"start":"16:00","end":"19:00"}]`（ISO曜日、店舗時間帯）。空配列は終日。時刻はHH:mm（endのみ24:00可）、start＜end、日跨ぎは2窓に分割し、窓内の重複曜日と同じ曜日で重なる窓を拒否する。DB-04でJSON構造を検査する。販促の版と行IDを分け、参照列は常に`promotion_version_id`とする。
 
 `requested_period`は共通仕様の単一範囲列を採用する設計案。Adsの画面入力`requested_start/requested_end`は境界でこの範囲に変換する。`expired`は共通仕様どおり保持するが、失効状態の更新が遅れても期間条件で配信から除外する。再申請で申請の状態を戻しても、旧配信対象に保存した承認版を変更しない。承認切替はDB-08で同じ申請をロックし旧activeをsupersededにして新activeを作る。停止・再審査では承認者の自店所属を再検証する。
 
@@ -216,7 +217,8 @@ RLSを全業務表で有効にし、未認証と所属なしは拒否する。ap
 | --- | --- |
 | 日付の終了境界 | 共通仕様の[開始,終了)を維持。最終日翌日0時に変換（Ads担当確認待ち） |
 | requested_start/end | DBはrequested_period。画面との変換で対応（Ads担当確認待ち） |
-| application_revisions | 有用だが共通仕様未反映。審査履歴の追加表はDB-04着手前にAds・Insightと決める。承認済み内容は配信対象に保持 |
+| description・note・message・suspend_reason | DB-04でNULL可の列として採用。媒体別assets・動画はCOM-03合意後に別migration |
+| application_revisions | DB-04で採用（2026-10-24、担当判断）。共通仕様5章への反映はCOM-01担当へ依頼 |
 | 媒体別assets・動画・description | 現在はimage_pathの画像を基準。COM-03・Adsで媒体別形式を合意し共通仕様へ反映するまで本設計で確定扱いにしない |
 | 承認時の媒体絞込み・承認済みからの再申請 | 共通仕様の状態遷移から拡張が必要。DB-08・Insight・Adsで合意後に反映 |
 | 店舗担当者の役割 | 現接続基盤のstore_staff＋自店所属。募集／審査の細分化はDB-06で判断 |
