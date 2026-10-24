@@ -5,6 +5,7 @@ import { cartRequest, useCart } from "@/features/cart/cart-provider";
 import { useShoppingSession } from "@/features/shopping/session-provider";
 import { productIcon } from "@/lib/product-visuals";
 import { shortProductName } from "@/lib/product-name";
+import { CouponRedemption } from "./coupon-redemption";
 import { offerKindLabel, type OfferEventType, type SerendipityOffer, type SerendipityResponse } from "./contracts";
 
 const yen = new Intl.NumberFormat("ja-JP", { style: "currency", currency: "JPY" });
@@ -139,7 +140,7 @@ export function SerendipityOffers() {
     </button>}
     {open && <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <button type="button" tabIndex={-1} className="absolute inset-0 bg-slate-950/50" onClick={() => setOpen(null)} aria-label="クーポンを閉じる" />
-      <section role="dialog" aria-modal="true" aria-labelledby="coupon-heading" className="relative w-full max-w-md rounded-t-3xl bg-white p-6 shadow-2xl sm:rounded-3xl">
+      <section role="dialog" aria-modal="true" aria-labelledby="coupon-heading" className="relative max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-white p-6 shadow-2xl sm:rounded-3xl">
         <div className="flex items-start justify-between gap-3"><div><p className="text-xs font-black text-pink-600">{offerKindLabel[open.kind]}・店舗のお得情報</p>
           <h2 id="coupon-heading" className="mt-1 text-2xl font-black">{open.headline}</h2></div>
           <button ref={closeButton} type="button" onClick={() => setOpen(null)} className="size-11 shrink-0 rounded-full bg-slate-100 text-xl" aria-label="閉じる">×</button></div>
@@ -148,7 +149,7 @@ export function SerendipityOffers() {
             <p className="mt-1"><span className="text-sm text-slate-500 line-through">{yen.format(open.product.price)}</span> <span className="text-xl font-black text-pink-700">{yen.format(open.product.price - open.unitDiscount)}</span></p>
             <p className="text-xs text-slate-600">1点まで{open.discountLabel}・{clock.format(new Date(open.endsAt))}まで</p></div></div>
         <p className="mt-3 text-sm text-slate-700">{open.reason}</p>
-        <button type="button" disabled={!cart.canEdit} onClick={() => claim(open)} className={`${button} mt-4 w-full bg-pink-600 text-white`}>割引付きでかごに追加</button>
+        <CouponRedemption key={open.offerId} offer={open} visitId={visitId} canEdit={cart.canEdit} onClaim={() => claim(open)} />
         <button type="button" onClick={() => dismiss(open)} className="mt-2 min-h-11 w-full text-sm text-slate-600 underline">今回は見送る</button>
       </section>
     </div>}

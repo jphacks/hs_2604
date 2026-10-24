@@ -8,7 +8,8 @@ import { CartProvider } from "../cart/cart-provider";
 import { EventProvider } from "../events/event-provider";
 
 export function AppProviders({children}:{children:ReactNode}) {
-  // Checkout authenticates via its own API and must remain reachable after the visit is completed.
-  if(usePathname()==="/App/checkout") return children;
+  // Checkout owns its auth; printed reference barcodes need no shopping session.
+  const pathname = usePathname();
+  if(pathname==="/App/checkout" || pathname==="/App/demo-barcodes") return children;
   return <ShoppingSessionProvider><StoreProvider><EventProvider><CartProvider>{children}</CartProvider></EventProvider></StoreProvider></ShoppingSessionProvider>;
 }

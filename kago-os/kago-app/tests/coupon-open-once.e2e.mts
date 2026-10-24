@@ -88,6 +88,9 @@ try {
   pass("closing by tapping the backdrop also leaves the sticker hidden");
 
   await newVisit(); await sticker().click(); await dialog().waitFor();
+  await page.getByLabel("クーポン対象の商品コードを入力", { exact: true }).fill("2900000000179");
+  await page.getByRole("button", { name: "商品を確認", exact: true }).click();
+  await page.getByText("対象商品を確認しました：生バジル", { exact: true }).waitFor();
   await page.getByRole("button", { name: "割引付きでかごに追加", exact: true }).click();
   await page.getByText("かごを保存しました。", { exact: true }).waitFor();
   const snapshot = await (await context.request.get(origin + "/api/cart")).json();
