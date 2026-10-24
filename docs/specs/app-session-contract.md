@@ -110,6 +110,8 @@ E2Eはローカル限定の検証用Supabase HTTP応答とNext.jsの実API、Chr
 
 Node.js 22.23.4を使い、接続処理11件・共通基盤26件の自動テスト、Appと共有基盤の型検査、lint、本番ビルド（Webpack）が成功しました。Playwrightと既存Chromeによる16ケースでは、実際のNext.js APIを経由し、2利用者の切替・再読込・新規来店・店舗変更・別タブログアウト・遅延応答・認証失効・役割違い・DB未準備・通信失敗・店舗0件を確認しました。スマートフォン幅390pxのログイン・店舗選択・かごの画面画像を確認しています。
 
+画面確認の資料：[ログイン](../images/app01-login-mobile.png)、[店舗・来店選択](../images/app01-stores-mobile.png)。画像の店舗・利用者は検証用の架空データです。Node.js 22とpnpm 11.19.0で`install --frozen-lockfile --offline`の再現も確認しました。
+
 本番起動では接続設定を空にし、APIがHTTP 503・`configuration_missing`、デスクトップ幅1280pxの画面が設定不足の案内になること、固定の架空プロフィールを表示しないこと、LPがHTTP 200になることを確認しました。実Supabaseでの業務データ取得・原子的な来店開始・RLSは未確認です。
 
 設計の参照：[SupabaseのRLS（権限とポリシーの両方を設定）](https://supabase.com/docs/guides/database/postgres/row-level-security)。
