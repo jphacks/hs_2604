@@ -103,7 +103,7 @@ export function BarcodeScanner({ onDetected, onReadFailure, disabled = false, pu
       timeout.current = setTimeout(() => {
         if (current !== generation.current) return;
         generation.current++; controls.stop(); controlsRef.current = null;
-        setStatus("error"); setErrorMessage("読み取れませんでした。商品コード入力や商品一覧も利用できます。");
+        setStatus("error"); setErrorMessage(purpose === "store" ? "QRを読み取れませんでした。もう一度試すか、デモ用の店舗選択をご利用ください。" : "読み取れませんでした。商品コード入力や商品一覧も利用できます。");
         onReadFailure?.("unreadable");
       }, 20_000);
     } catch (error) {

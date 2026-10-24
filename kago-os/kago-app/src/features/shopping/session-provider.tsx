@@ -72,8 +72,6 @@ export function ShoppingSessionProvider({ children }: { children: ReactNode }) {
         url.searchParams.delete("store");
         window.history.replaceState(null, "", url);
         setChoosingStore(false);
-      } else if (body?.action === "logout") {
-        setChoosingStore(false);
       }
       setState({ kind: "connected", context: data as ShoppingContext });
     } catch (error) {
@@ -166,12 +164,20 @@ export function ShoppingSessionProvider({ children }: { children: ReactNode }) {
             }
             setQrStore(id);
             setQrError("");
+            const url = new URL(window.location.href);
+            url.searchParams.set("store", id);
+            window.history.replaceState(null, "", url);
           }} />
           <p className="text-xs leading-5 text-slate-500">カメラを利用できない場合は、スマートフォンのカメラでQRを開くか、下のデモ用店舗選択をご利用ください。</p>
           {qrError && <p role="alert" className="text-sm text-red-700">{qrError}</p>}
           {qrStore && !state.context.stores.some(store => store.id === qrStore) && <p role="alert" className="text-sm text-red-700">QRの店舗は現在利用できません。別のQRを読み取るか、デモ用の店舗選択をご利用ください。</p>}
           {qrStore && state.context.stores.some(store => store.id === qrStore) && <p role="status" className="font-bold text-emerald-800">QRの店舗を確認しました。下のボタンで買い物を開始してください。</p>}
-          {qrStore && <button type="button" onClick={() => { setQrStore(null); setQrError(""); }} className="min-h-11 text-sm underline">デモ用の店舗選択に戻る</button>}
+          {qrStore && <button type="button" onClick={() => {
+            setQrStore(null); setQrError("");
+            const url = new URL(window.location.href);
+            url.searchParams.delete("store");
+            window.history.replaceState(null, "", url);
+          }} className="min-h-11 text-sm underline">デモ用の店舗選択に戻る</button>}
           {!qrStore && <h2 className="font-bold">店舗を選んで来店する（デモ用・一時対応）</h2>}
           {state.context.stores.filter(store => !qrStore || store.id === qrStore).map(store => {
             const active = state.context.activeVisits.find(v => v.store_id === store.id);
