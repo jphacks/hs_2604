@@ -46,6 +46,9 @@ export async function createCartDatabase() {
       app_set_cart_item: "select app_set_cart_item($1::uuid,$2::uuid,$3::uuid,$4::integer,$5::integer,$6::text,$7::uuid) as value",
       app_start_visit: "select app_start_visit($1::uuid,$2::boolean,$3::uuid) as value",
       kago_checkout: "select to_jsonb(r) as value from kago_checkout($1::uuid,$2::uuid,$3::integer,$4::integer) r",
+      app_list_offers: "select app_list_offers($1::uuid) as value",
+      app_claim_offer: "select app_claim_offer($1::uuid,$2::uuid,$3::uuid,$4::integer) as value",
+      app_record_offer_event: "select app_record_offer_event($1::uuid,$2::uuid,$3::uuid,$4::text)::text as value",
     };
     if (!functions[name]) throw new Error("Unexpected RPC");
     const values = name === "app_lookup_product" && args.length === 4 ? [...args, null] : args;

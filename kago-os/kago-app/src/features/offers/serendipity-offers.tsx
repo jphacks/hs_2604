@@ -1,0 +1,143 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { cartRequest, useCart } from "@/features/cart/cart-provider";
+import { useShoppingSession } from "@/features/shopping/session-provider";
+import { productIcon } from "@/lib/product-visuals";
+import { offerKindLabel, type OfferEventType, type SerendipityOffer, type SerendipityResponse } from "./contracts";
+
+const yen = new Intl.NumberFormat("ja-JP", { style: "currency", currency: "JPY" });
+const clockFormat = new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", hour: "2-digit", minute: "2-digit" });
+const dayFormat = new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric", day: "numeric" });
+// "17:30", or "10/26 17:30" when the time is not today (JST).
+const clock = { format: (at: Date) => (dayFormat.format(at) === dayFormat.format(new Date()) ? "" : `${dayFormat.format(at)} `) + clockFormat.format(at) };
+const REFRESH_MS = 60_000;
+const button = "min-h-11 rounded-xl px-4 py-2 text-sm font-black disabled:opacity-40";
+
+function readList(key: string): string[] {
+  try { const value = JSON.parse(sessionStorage.getItem(key) ?? "[]"); return Array.isArray(value) ? value.filter(v => typeof v === "string") : []; }
+  catch { return []; }
+}
+function writeList(key: string, values: string[]) {
+  try { sessionStorage.setItem(key, JSON.stringify(values)); } catch { /* only a display convenience */ }
+}
+
+// APP-13: store offers shown as surprises, visibly separate from recommendations and sponsored ads.
+// Validity, prices and discounts always come from the DB; this component never computes a charge.
+export function SerendipityOffers() {
+  const cart = useCart();
+  const session = useShoppingSession();
+  const visitId = session.visit!.id;
+  const shownKey = `kago-offers-shown:${session.userId}:${visitId}`;
+  const dismissedKey = `kago-offers-dismissed:${session.userId}:${visitId}`;
+  const [data, setData] = useState<SerendipityResponse | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [open, setOpen] = useState<SerendipityOffer | null>(null);
+  const [dismissed, setDismissed] = useState<string[]>([]);
+  const request = useRef<AbortController | null>(null);
+  const timer = useRef<number | null>(null);
+  const closeButton = useRef<HTMLButtonElement>(null);
+
+  const record = (offerId: string, type: OfferEventType) => {
+    void cartRequest("/api/offers", { visitId, eventId: crypto.randomUUID(), offerId, type }).catch(() => { /* logging never blocks shopping */ });
+  };
+  const load = async () => {
+    request.current?.abort();
+    const controller = new AbortController(); request.current = controller;
+    try {
+      const next: SerendipityResponse = await cartRequest("/api/offers", undefined, controller.signal);
+      if (controller.signal.aborted || next.visitId !== visitId) return;
+      setData(next); setFailed(false);
+      if (timer.current) window.clearTimeout(timer.current);
+      // Refresh exactly when a time sale starts or ends, and at least every minute.
+      const until = next.nextChangeAt ? Date.parse(next.nextChangeAt) - Date.parse(next.serverTime) + 1000 : REFRESH_MS;
+      timer.current = window.setTimeout(() => { void load(); }, Math.max(1000, Math.min(REFRESH_MS, until)));
+    } catch (failure) {
+      if (controller.signal.aborted) return;
+      const code = (failure as { code?: string })?.code;
+      if (code === "unauthenticated" || code === "session_expired") session.revalidate();
+      else setFailed(true);
+    }
+  };
+  useEffect(() => {
+    const boot = window.setTimeout(() => { setDismissed(readList(dismissedKey)); void load(); }, 0);
+    return () => { window.clearTimeout(boot); request.current?.abort(); if (timer.current) window.clearTimeout(timer.current); };
+    // Reload whenever the saved cart changes (scan, removal, claim) or a cart/claim request is refused
+    // (e.g. the offer just ended); the visit boundary unmounts this tree.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cart.version, cart.error]);
+
+  const visible = data ? [...data.timeSales, ...data.sets, ...(data.coupon && !dismissed.includes(data.coupon.offerId) ? [data.coupon] : [])] : [];
+  const visibleIds = visible.map(offer => offer.offerId).join(",");
+  useEffect(() => {
+    if (!visibleIds) return;
+    const shown = readList(shownKey);
+    const fresh = visibleIds.split(",").filter(id => !shown.includes(id));
+    if (!fresh.length) return;
+    writeList(shownKey, [...shown, ...fresh]);
+    fresh.forEach(id => record(id, "offer_shown"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibleIds]);
+  useEffect(() => {
+    if (!open) return;
+    closeButton.current?.focus();
+    const close = (event: KeyboardEvent) => { if (event.key === "Escape") setOpen(null); };
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [open]);
+
+  const claim = (offer: SerendipityOffer) => { setOpen(null); cart.claimOffer(offer.offerId); };
+  const dismiss = (offer: SerendipityOffer) => {
+    const next = [...dismissed, offer.offerId]; setDismissed(next); writeList(dismissedKey, next);
+    record(offer.offerId, "offer_dismissed"); setOpen(null);
+  };
+  const coupon = data?.coupon && !dismissed.includes(data.coupon.offerId) ? data.coupon : null;
+  if (!data || (!data.timeSales.length && !data.sets.length && !coupon)) {
+    return failed ? <p className="text-xs text-slate-500" role="status">お得情報を取得できませんでした。通信が戻ると自動で再表示します。</p> : null;
+  }
+
+  return <>
+    {(data.timeSales.length > 0 || data.sets.length > 0) && <section aria-labelledby="offers-heading" className="grid gap-3">
+      <div><p className="text-xs font-black tracking-wider text-orange-600">STORE DEALS</p>
+        <h2 id="offers-heading" className="text-2xl font-black">いまだけのお得</h2>
+        <p className="mt-1 text-xs text-slate-500">店舗が実施しているセール・セット割です（おすすめ・広告とは別枠）。</p></div>
+      {data.timeSales.map(offer => <article key={offer.offerId} aria-label={`タイムセール ${offer.headline}`} className="rounded-2xl border-2 border-orange-300 bg-gradient-to-br from-orange-50 to-amber-50 p-4 shadow-sm">
+        <p className="text-sm font-black text-orange-700"><span aria-hidden="true">⏰ </span>タイムセール開始！ <time dateTime={offer.startsAt}>{clock.format(new Date(offer.startsAt))}</time>〜<time dateTime={offer.endsAt}>{clock.format(new Date(offer.endsAt))}</time></p>
+        <div className="mt-2 flex items-center gap-3"><span className="grid size-14 shrink-0 place-items-center rounded-xl bg-white text-3xl" aria-hidden="true">{productIcon(offer.product)}</span>
+          <div className="min-w-0"><h3 className="font-black">{offer.headline}</h3><p className="text-sm">{offer.product.name}</p>
+            <p className="mt-1 text-sm"><span className="text-slate-500 line-through">{yen.format(offer.product.price)}</span> <span className="text-lg font-black text-orange-700">{yen.format(offer.product.price - offer.unitDiscount)}</span> <span className="text-xs font-bold">（{offer.discountLabel}）</span></p></div></div>
+        <p className="mt-2 text-xs text-slate-600">{offer.reason}。終了後に追加した分はセール対象外です。</p>
+        <button type="button" disabled={!cart.canEdit} onClick={() => claim(offer)} className={`${button} mt-3 w-full bg-orange-600 text-white`}>{offer.action === "apply" ? "かごの商品をセール価格にする" : "セール価格でかごに追加"}</button>
+      </article>)}
+      {data.sets.map(offer => <article key={offer.offerId} aria-label={`セット割 ${offer.headline}`} className="rounded-2xl border border-emerald-200 bg-white p-4 shadow-sm">
+        <p className="text-sm font-black text-emerald-700"><span aria-hidden="true">🍝 </span>セットでお得</p>
+        <h3 className="mt-1 font-black">{offer.trigger!.name} ＋ {offer.product.name}</h3>
+        <p className="mt-1 text-sm">2点一緒に買うと<strong>それぞれ{offer.discountLabel}</strong>（1セットあたり {yen.format(offer.unitDiscount + offer.trigger!.unitDiscount)} 引き）</p>
+        <p className="mt-1 text-xs text-slate-600">{offer.reason}。どちらかをかごから外すとセット割は外れます。</p>
+        <button type="button" disabled={!cart.canEdit} onClick={() => claim(offer)} className={`${button} mt-3 w-full bg-emerald-700 text-white`}>{offer.action === "apply" ? "セット割を適用" : `セットでかごに追加（${offer.product.name}を追加）`}</button>
+      </article>)}
+    </section>}
+    {coupon && !open && <button type="button" onClick={() => { setOpen(coupon); record(coupon.offerId, "offer_opened"); }}
+      className="fixed bottom-24 right-4 z-40 max-w-[11rem] -rotate-6 rounded-2xl border-4 border-white bg-gradient-to-br from-pink-500 to-orange-400 px-3 py-2 text-left text-white shadow-xl motion-safe:animate-bounce"
+      style={{ animationIterationCount: 3 }} // a short "pop" to be noticed, then it stays still to be tapped
+      aria-label={`ゲリラクーポン：${coupon.product.name} ${coupon.discountLabel}。詳細を開く`}>
+      <span className="block text-xs font-black"><span aria-hidden="true">🎉 </span>ゲリラクーポン！</span>
+      <span className="block text-sm font-black leading-tight">{coupon.product.name.replace(/\s.*$/, "")} {coupon.discountLabel}</span>
+    </button>}
+    {open && <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+      <button type="button" tabIndex={-1} className="absolute inset-0 bg-slate-950/50" onClick={() => setOpen(null)} aria-label="クーポンを閉じる" />
+      <section role="dialog" aria-modal="true" aria-labelledby="coupon-heading" className="relative w-full max-w-md rounded-t-3xl bg-white p-6 shadow-2xl sm:rounded-3xl">
+        <div className="flex items-start justify-between gap-3"><div><p className="text-xs font-black text-pink-600">{offerKindLabel[open.kind]}・店舗のお得情報</p>
+          <h2 id="coupon-heading" className="mt-1 text-2xl font-black">{open.headline}</h2></div>
+          <button ref={closeButton} type="button" onClick={() => setOpen(null)} className="size-11 shrink-0 rounded-full bg-slate-100 text-xl" aria-label="閉じる">×</button></div>
+        <div className="mt-4 flex items-center gap-3 rounded-2xl bg-pink-50 p-4"><span className="grid size-14 place-items-center rounded-xl bg-white text-3xl" aria-hidden="true">{productIcon(open.product)}</span>
+          <div><p className="font-bold">{open.product.name}</p>
+            <p className="mt-1"><span className="text-sm text-slate-500 line-through">{yen.format(open.product.price)}</span> <span className="text-xl font-black text-pink-700">{yen.format(open.product.price - open.unitDiscount)}</span></p>
+            <p className="text-xs text-slate-600">1点まで{open.discountLabel}・{clock.format(new Date(open.endsAt))}まで</p></div></div>
+        <p className="mt-3 text-sm text-slate-700">{open.reason}</p>
+        <button type="button" disabled={!cart.canEdit} onClick={() => claim(open)} className={`${button} mt-4 w-full bg-pink-600 text-white`}>割引付きでかごに追加</button>
+        <button type="button" onClick={() => dismiss(open)} className="mt-2 min-h-11 w-full text-sm text-slate-600 underline">今回は見送る</button>
+      </section>
+    </div>}
+  </>;
+}

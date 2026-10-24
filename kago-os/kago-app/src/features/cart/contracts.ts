@@ -1,8 +1,9 @@
 import type { ShoppingVisit } from "../shopping/service";
 
 export type StoreProduct = { productId: string; code: string; name: string; category: string; price: number; available: boolean };
-export type CartLine = StoreProduct & { quantity: number };
-export type CartSnapshot = { visit: ShoppingVisit; cart: CartLine[] };
+// discount/offer fields come from APP-13 (DB-computed; 0 / null when no claimed offer applies).
+export type CartLine = StoreProduct & { quantity: number; discount?: number; offerId?: string | null; offerKind?: "guerrilla_coupon" | "set_deal" | "time_sale" | null };
+export type CartSnapshot = { visit: ShoppingVisit; cart: CartLine[]; discountTotal?: number; claimedOfferIds?: string[] };
 export type ProductPage = { products: StoreProduct[]; hasMore: boolean };
 export type CartOperation = {
   requestId: string;
@@ -12,7 +13,8 @@ export type CartOperation = {
   quantity: number;
   source: "scan" | "manual";
 };
-export type PendingCart = { kind: "set"; operation: CartOperation } | {
+export type OfferClaim = { requestId: string; visitId: string; expectedVersion: number; offerId: string };
+export type PendingCart = { kind: "set"; operation: CartOperation } | { kind: "claim"; claim: OfferClaim } | {
   kind: "lookup";
   requestId: string;
   mutationId: string;
@@ -37,4 +39,7 @@ export const cartMessages: Record<string, string> = {
   configuration_missing: "買い物機能の接続設定がまだありません。担当者へお問い合わせください。",
   configuration_invalid: "買い物機能の接続設定を確認する必要があります。",
   connection_failed: "通信が途切れました。保存結果を確認するため、同じ操作を再試行してください。",
+  offer_unavailable: "このお得情報は終了したか、いまは利用できません。",
+  offer_claimed: "このお得情報はすでにかごに適用されています。",
+  trigger_missing: "対象の商品がかごにないため、このお得情報は利用できません。",
 };

@@ -5,11 +5,13 @@ import { useShoppingSession } from "@/features/shopping/session-provider";
 import { cartMessages, type CartLine, type CartSnapshot, type PendingCart, type StoreProduct } from "./contracts";
 
 type CartContextValue = {
-  lines: CartLine[]; itemCount: number; total: number; canEdit: boolean; busy: boolean;
+  lines: CartLine[]; itemCount: number; subtotal: number; discountTotal: number; total: number;
+  claimedOfferIds: string[]; canEdit: boolean; busy: boolean;
   version: number; message: string; error: boolean; pending: boolean;
   addProduct: (product: StoreProduct) => void; scan: (code: string) => void;
   scanFailed: (reason: string) => void;
   setQuantity: (productId: string, quantity: number) => void;
+  claimOffer: (offerId: string) => void;
   retry: () => void; reload: () => void;
 };
 const CartContext = createContext<CartContextValue | null>(null);
@@ -88,14 +90,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
         } };
         remember(intent);
       }
-      const data = await cartRequest("/api/cart", { action: "set", ...intent.operation }, lifecycle.current?.signal);
+      const data = intent.kind === "claim"
+        ? await cartRequest("/api/cart", { action: "claim", ...intent.claim }, lifecycle.current?.signal)
+        : await cartRequest("/api/cart", { action: "set", ...intent.operation }, lifecycle.current?.signal);
       if (!mounted.current) return;
       accept(data); remember(null); setMessage("かごを保存しました。");
       updates.current?.postMessage("updated");
     } catch (failure) {
       if (!mounted.current) return;
       const code = (failure as { code?: string }).code;
-      const definitive = ["scan_failed", "cart_changed", "product_not_found", "product_unavailable", "invalid_request", "request_conflict", "visit_ended", "forbidden"].includes(code ?? "");
+      const definitive = ["scan_failed", "cart_changed", "offer_unavailable", "offer_claimed", "trigger_missing", "product_not_found", "product_unavailable", "invalid_request", "request_conflict", "visit_ended", "forbidden"].includes(code ?? "");
       if (definitive) {
         remember(null);
         try { accept(await cartRequest("/api/cart", undefined, lifecycle.current?.signal)); } catch { /* keep the explicit failure */ }
@@ -122,7 +126,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const raw = sessionStorage.getItem(storageKey);
         if (raw) {
           const saved = JSON.parse(raw) as PendingCart;
-          if ((saved.kind === "lookup" && saved.visitId === visitId) || (saved.kind === "set" && saved.operation.visitId === visitId)) {
+          if ((saved.kind === "lookup" && saved.visitId === visitId) || (saved.kind === "set" && saved.operation.visitId === visitId)
+            || (saved.kind === "claim" && saved.claim.visitId === visitId)) {
             operation.current = saved; setPending(true);
           }
         }
@@ -138,8 +143,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [storageKey, visitId]);
 
   const lines = snapshot?.cart ?? [];
+  const subtotal = lines.reduce((n, l) => n + l.quantity * l.price, 0);
+  const discountTotal = snapshot?.discountTotal ?? 0;
   return <CartContext.Provider value={{ lines, itemCount: lines.reduce((n, l) => n + l.quantity, 0),
-    total: lines.reduce((n, l) => n + l.quantity * l.price, 0), version: snapshot?.visit.cart_version ?? 0,
+    subtotal, discountTotal, total: subtotal - discountTotal, claimedOfferIds: snapshot?.claimedOfferIds ?? [],
+    version: snapshot?.visit.cart_version ?? 0,
     canEdit: !!snapshot && !busy && !pending, busy, pending, message, error,
     addProduct: product => lookup({ productId: product.productId }), scan: code => lookup({ code }),
     scanFailed: reason => lookup({ failureReason: reason }),
@@ -147,6 +155,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (!snapshot) return;
       begin({ kind: "set", operation: { visitId, productId, quantity, requestId: crypto.randomUUID(),
         expectedVersion: snapshot.visit.cart_version, source: "manual" } });
+    }, claimOffer: offerId => {
+      if (!snapshot) return;
+      begin({ kind: "claim", claim: { visitId, offerId, requestId: crypto.randomUUID(), expectedVersion: snapshot.visit.cart_version } });
     }, retry: () => { void send(); }, reload: () => { void reload(); },
   }}>{children}</CartContext.Provider>;
 }
