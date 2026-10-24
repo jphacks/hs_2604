@@ -86,9 +86,9 @@ select pg_temp.db02_reject($q$insert into public.store_products(store_id,product
 select pg_temp.db02_reject($q$insert into public.store_products(store_id,product_id,price) values('20000000-0000-4000-8000-000000000001','30000000-0000-4000-8000-000000000099',100)$q$, '23503');
 select pg_temp.db02_reject($q$insert into public.store_members(store_id,user_id,role) values('20000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000002','admin')$q$, '23514');
 select pg_temp.db02_reject($q$insert into public.customer_settings(user_id) values('10000000-0000-4000-8000-000000000099')$q$, '23503');
-select pg_temp.db02_reject($q$delete from public.products where id='30000000-0000-4000-8000-000000000001'$q$, '23001');
-select pg_temp.db02_reject($q$delete from public.stores where id='20000000-0000-4000-8000-000000000001'$q$, '23001');
-select pg_temp.db02_reject($q$delete from auth.users where id='10000000-0000-4000-8000-000000000001'$q$, '23001');
+select pg_temp.db02_reject($q$delete from public.products where id='30000000-0000-4000-8000-000000000001'$q$, case when current_setting('server_version_num')::int >= 170000 then '23001' else '23503' end); -- RESTRICT: 23001 on PostgreSQL 17+, 23503 before
+select pg_temp.db02_reject($q$delete from public.stores where id='20000000-0000-4000-8000-000000000001'$q$, case when current_setting('server_version_num')::int >= 170000 then '23001' else '23503' end); -- RESTRICT: 23001 on PostgreSQL 17+, 23503 before
+select pg_temp.db02_reject($q$delete from auth.users where id='10000000-0000-4000-8000-000000000001'$q$, case when current_setting('server_version_num')::int >= 170000 then '23001' else '23503' end); -- RESTRICT: 23001 on PostgreSQL 17+, 23503 before
 
 -- Contract for future cart/order/selection tables: reference the PAIR, not product_id alone.
 create table public.db02_store_product_reference (
