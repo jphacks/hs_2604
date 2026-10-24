@@ -425,3 +425,7 @@ psql -X -v ON_ERROR_STOP=1 -f supabase/tests/db09.sql
 履歴のversionは`20261024020000`〜`20261024100000`です。[公式CLI v2.54.11の履歴定義](https://github.com/supabase/cli/blob/v2.54.11/pkg/migration/history.go)と同じ列形式を使い、ローカルPostgreSQLでも登録・読取を確認しました。公式CLIによるローカル照合はTLS接続で停止し、実SupabaseへのCLIログイン・接続も未実施です。次回は適用履歴を確認し、未適用かつマージ済みのSQLだけを適用します。履歴が見えない場合も、既存テーブルを作るSQLをまとめて再実行しないでください。
 
 残件：購入時の同時価格変更に対する追加修正[PR #77](https://github.com/jphacks/hs_2604/pull/77)、[画像保存と権限](ad-images.md)、各画面からの実操作・非0件集計の確認。未マージの修正や画像migrationは共有DBへ適用していません。
+
+## INS-08向け商品別販売集計（#84）
+
+`kago_product_sales(p_start,p_end,p_store_id,p_product_ids?,p_bucket?)`を追加します。自店の店舗担当だけに、注文・明細を正本とした商品別の販売数・金額をJSTの日別／時間別、由来別で返します。販売がない区間は行なしです。最初の注文日時を記録開始時刻とみなさず、比較可能な記録範囲が不明な場合は画面で比較不可とします。契約・呼出例・適用上の注意は[商品別販売集計ガイド](product-sales.md)を参照してください。
