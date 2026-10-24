@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { cartRequest, useCart } from "@/features/cart/cart-provider";
 import { useShoppingSession } from "@/features/shopping/session-provider";
 import { productIcon } from "@/lib/product-visuals";
+import { shortProductName } from "@/lib/product-name";
 import { offerKindLabel, type OfferEventType, type SerendipityOffer, type SerendipityResponse } from "./contracts";
 
 const yen = new Intl.NumberFormat("ja-JP", { style: "currency", currency: "JPY" });
@@ -122,7 +123,7 @@ export function SerendipityOffers() {
       style={{ animationIterationCount: 3 }} // a short "pop" to be noticed, then it stays still to be tapped
       aria-label={`ゲリラクーポン：${coupon.product.name} ${coupon.discountLabel}。詳細を開く`}>
       <span className="block text-xs font-black"><span aria-hidden="true">🎉 </span>ゲリラクーポン！</span>
-      <span className="block text-sm font-black leading-tight">{coupon.product.name.replace(/\s.*$/, "")} {coupon.discountLabel}</span>
+      <span className="block text-sm font-black leading-tight">{shortProductName(coupon.product.name)} {coupon.discountLabel}</span>
     </button>}
     {open && <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <button type="button" tabIndex={-1} className="absolute inset-0 bg-slate-950/50" onClick={() => setOpen(null)} aria-label="クーポンを閉じる" />

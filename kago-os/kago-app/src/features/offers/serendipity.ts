@@ -4,6 +4,7 @@
 import type { AssociationRuleSet } from "../recommendations/association";
 import type { OfferList, SerendipityOffer, SerendipityResponse, StoreOffer } from "./contracts";
 import { targetCoupon, type CouponHistory, type CouponDecision } from "./targeting.ts";
+import { shortProductName } from "../../lib/product-name.ts";
 
 const INITIAL_RELATION = 1.5; // curated pairs count as a moderate, explainable relation
 const STORE_TRIGGER = 1.2;    // store said "show when X is in the cart" without a data rule
@@ -11,7 +12,6 @@ const STORE_TRIGGER = 1.2;    // store said "show when X is in the cart" without
 export function discountLabel(offer: Pick<StoreOffer, "discountPercent" | "discountAmount">) {
   return offer.discountPercent !== null ? `${offer.discountPercent}% OFF` : `${offer.discountAmount}円引き`;
 }
-const shortName = (name: string) => name.replace(/\s.*$/, "");
 
 /** Best rule from any cart product to the target (lift = how specific/unexpected the pair is). */
 function relation(rules: AssociationRuleSet, cartCodes: Set<string>, target: string) {
@@ -53,7 +53,7 @@ export function rankSerendipity(list: OfferList, rules: AssociationRuleSet, hist
       sets.push({ ...base, action: offer.productInCart ? "apply" : "add", score: (related?.strength ?? STORE_TRIGGER) * (1 + rate),
         relation: related ? { ruleId: related.ruleId, origin: related.origin, triggeredBy: related.triggeredBy }
           : { ruleId: `store-${offer.offerId}`, origin: "store", triggeredBy: offer.trigger.code },
-        reason: `${shortName(offer.trigger.name)}と${shortName(offer.product.name)}を一緒に買うとお得です` });
+        reason: `${shortProductName(offer.trigger.name)}と${shortProductName(offer.product.name)}を一緒に買うとお得です` });
     }
   }
   const order = (a: SerendipityOffer, b: SerendipityOffer) => b.score - a.score || a.offerId.localeCompare(b.offerId);
