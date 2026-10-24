@@ -1,0 +1,52 @@
+[
+  {
+    "id": "A1",
+    "ad_call_id": "C1",
+    "ad_call_title": "パスタ関連商品の広告募集",
+    "maker_id": "M1",
+    "maker_display_name": "瀬戸内トマト食品",
+    "maker_is_fictional": true,
+    "creative_id": "CR1",
+    "creative_version_id": "CR1-v2",
+    "creative_version": 2,
+    "image_path": "/mock/creatives/cr1-v2.svg",
+    "headline": "トマトパスタソース 298円",
+    "product_id": "P-SAUCE",
+    "product_name": "トマトパスタソース",
+    "product_code": "2900000000162",
+    "channels": ["app", "signage"],
+    "requested_period": {
+      "starts_at": "2026-10-25T00:00:00+09:00",
+      "ends_at": "2026-11-30T23:59:59+09:00"
+    },
+    "status": "submitted",
+    "review_comment": "価格表示を入れてください",
+    "review_comment_is_previous": true,
+    "submitted_at": "2026-10-25T14:20:00+09:00"
+  },
+  {
+    "id": "A2",
+    "ad_call_id": "C1",
+    "ad_call_title": "パスタ関連商品の広告募集",
+    "maker_id": "M1",
+    "maker_display_name": "瀬戸内トマト食品",
+    "maker_is_fictional": true,
+    "creative_id": "CR2",
+    "creative_version_id": "CR2-v1",
+    "creative_version": 1,
+    "image_path": "/mock/creatives/cr2-v1.svg",
+    "headline": "新商品 トマトジュース",
+    "product_id": "P-JUICE",
+    "product_name": "トマトジュース 200ml",
+    "product_code": "2900000000179",
+    "channels": ["app"],
+    "requested_period": {
+      "starts_at": "2026-10-26T00:00:00+09:00",
+      "ends_at": "2026-11-10T23:59:59+09:00"
+    },
+    "status": "submitted",
+    "review_comment": null,
+    "review_comment_is_previous": false,
+    "submitted_at": "2026-10-25T15:05:00+09:00"
+  }
+]

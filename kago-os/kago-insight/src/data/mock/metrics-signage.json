@@ -1,0 +1,38 @@
+[
+  {
+    "store_id": "S1",
+    "device_id": "D1",
+    "hour": "2026-10-25T17:00:00+09:00",
+    "placement_type": "sponsored",
+    "ad_placement_id": "PL1",
+    "promotion_version_id": null,
+    "creative_version_id": "CR1-v2",
+    "mode": "schedule",
+    "data_origin": "operated",
+    "plays": 20,
+    "play_seconds": 300,
+    "measured_plays": 0,
+    "measurement_status": "not_measured",
+    "estimated_viewers": null,
+    "estimated_view_seconds": null,
+    "same_hour_product_sales": 1
+  },
+  {
+    "store_id": "S1",
+    "device_id": "D1",
+    "hour": "2026-10-25T17:00:00+09:00",
+    "placement_type": "store_promo",
+    "ad_placement_id": null,
+    "promotion_version_id": "SP1-v1",
+    "creative_version_id": null,
+    "mode": "schedule",
+    "data_origin": "operated",
+    "plays": 20,
+    "play_seconds": 300,
+    "measured_plays": 0,
+    "measurement_status": "not_measured",
+    "estimated_viewers": null,
+    "estimated_view_seconds": null,
+    "same_hour_product_sales": 0
+  }
+]
