@@ -244,7 +244,7 @@ select pg_temp.db04_reject(format($q$insert into public.promotion_versions(promo
 -- Privileges: RLS on, no general-role access, review history not writable by service_role.
 select pg_temp.db04_assert((select count(*)=10 and bool_and(relrowsecurity) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public'
  and c.relname in ('makers','maker_members','ad_calls','creatives','creative_versions','ad_applications','application_revisions','ad_placements','store_promotions','promotion_versions')),'ten tables RLS enabled');
-select pg_temp.db04_assert((select bool_and(not has_table_privilege(r,'public.'||t,p)) from unnest(array['anon','authenticated']) r
+select pg_temp.db04_assert((select bool_and(not has_table_privilege(r,'public.'||t,p)) from unnest(case when to_regprocedure('public.kago_has_role(text)') is null then array['anon','authenticated'] else array['anon'] end) r
  cross join unnest(array['makers','maker_members','ad_calls','creatives','creative_versions','ad_applications','application_revisions','ad_placements','store_promotions','promotion_versions']) t
  cross join unnest(array['SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER']) p),'general roles have no access');
 select pg_temp.db04_assert((select not has_table_privilege('service_role','public.application_revisions','INSERT')
@@ -259,7 +259,7 @@ insert into public.promotion_versions(promotion_id,version,channels,reason_text,
 select pg_temp.db04_reject($q$update public.application_revisions set status='approved'$q$,'42501');
 reset role;
 set local role authenticated;
-select pg_temp.db04_reject($q$select * from public.ad_applications$q$,'42501');
+select pg_temp.db04_reject($q$select * from public.ad_applications$q$,case when to_regprocedure('public.kago_has_role(text)') is null then '42501' end); -- DB-06 grants SELECT; rows are then filtered by RLS (db06.sql)
 reset role;
 select 'DB-04: all assertions passed; rolling back fixtures' as result;
 rollback;

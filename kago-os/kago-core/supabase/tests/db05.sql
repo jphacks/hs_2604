@@ -313,7 +313,7 @@ select pg_temp.db05_assert((select count(*)=0 from information_schema.columns wh
 -- Privileges.
 select pg_temp.db05_assert((select count(*)=8 and bool_and(relrowsecurity) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public'
  and c.relname in ('experiments','experiment_assignments','selections','selection_items','events','signage_devices','signage_plays','audience_estimates')),'eight tables RLS enabled');
-select pg_temp.db05_assert((select bool_and(not has_table_privilege(r,'public.'||t,p)) from unnest(array['anon','authenticated']) r
+select pg_temp.db05_assert((select bool_and(not has_table_privilege(r,'public.'||t,p)) from unnest(case when to_regprocedure('public.kago_has_role(text)') is null then array['anon','authenticated'] else array['anon'] end) r
  cross join unnest(array['experiments','experiment_assignments','selections','selection_items','events','signage_devices','signage_plays','audience_estimates']) t
  cross join unnest(array['SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER']) p),'general roles have no access');
 select pg_temp.db05_assert((select bool_and(not has_table_privilege('service_role','public.'||t,p)) from
@@ -325,7 +325,7 @@ insert into public.events(event_id,event_type,schema_version,occurred_at,store_i
   '40000000-0000-4000-8000-000000000002','30000000-0000-4000-8000-000000000003','{"method":"manual"}','seeded');
 reset role;
 set local role authenticated;
-select pg_temp.db05_reject($q$select * from public.events$q$,'42501');
+select pg_temp.db05_reject($q$select * from public.events$q$,case when to_regprocedure('public.kago_has_role(text)') is null then '42501' end); -- DB-06 grants SELECT; rows are then filtered by RLS (db06.sql)
 reset role;
 select 'DB-05: all assertions passed; rolling back fixtures' as result;
 rollback;

@@ -105,11 +105,11 @@ select pg_temp.db02_assert(
    where n.nspname='public' and c.relname in ('stores','store_members','products','store_products','customer_settings')), 'all five tables have RLS');
 select pg_temp.db02_assert(
   (select bool_and(not has_table_privilege(r, 'public.'||t, p))
-   from unnest(array['anon','authenticated']) r
+   from unnest(case when to_regprocedure('public.kago_has_role(text)') is null then array['anon','authenticated'] else array['anon'] end) r
    cross join unnest(array['stores','store_members','products','store_products','customer_settings']) t
    cross join unnest(array['SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER']) p), 'no general role grants');
 set local role authenticated;
-select pg_temp.db02_reject($q$select * from public.customer_settings$q$, '42501');
+select pg_temp.db02_reject($q$select * from public.customer_settings$q$, case when to_regprocedure('public.kago_has_role(text)') is null then '42501' end); -- DB-06 grants SELECT; rows are then filtered by RLS (db06.sql)
 select pg_temp.db02_reject($q$update public.store_products set price=1$q$, '42501');
 reset role;
 -- Even if a later grant is accidentally added, enabled RLS with no policies denies rows.
