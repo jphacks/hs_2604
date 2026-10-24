@@ -219,7 +219,7 @@ export function AdsAccess({ children }: { children: ReactNode }) {
   }
   return <Card>
     <h1 className="text-xl font-bold">この操作はDB接続の準備中です</h1>
-    <p className="mt-3 text-sm text-muted">申請内容の保存と素材登録はADS-03で接続します。この画面では保存は行いません。</p>
+    <p className="mt-3 text-sm text-muted">審査（承認・却下）はKAGO/Insightで行います。この画面では保存は行いません。</p>
     <Link className="mt-4 inline-block text-brand underline" href={store ? "/ads/store/calls" : "/ads/portal"}>募集一覧へ戻る</Link>
   </Card>;
 }
