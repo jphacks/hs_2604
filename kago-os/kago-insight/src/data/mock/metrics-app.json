@@ -64,5 +64,27 @@
     "recommendation_removes": 0,
     "post_impression_purchases": 0,
     "post_impression_amount": 0
+  },
+  {
+    "store_id": "S1",
+    "period": {
+      "starts_at": "2026-10-25T00:00:00+09:00",
+      "ends_at": "2026-10-26T00:00:00+09:00"
+    },
+    "channel": "app",
+    "placement_type": "sponsored",
+    "ad_placement_id": "PL2",
+    "promotion_version_id": null,
+    "creative_version_id": "CR2-v1",
+    "rule_version": null,
+    "data_origin": "operated",
+    "selection_items": 2,
+    "impressions": 0,
+    "impression_visits": 0,
+    "clicks": 0,
+    "recommendation_adds": 0,
+    "recommendation_removes": 0,
+    "post_impression_purchases": 0,
+    "post_impression_amount": 0
   }
 ]
