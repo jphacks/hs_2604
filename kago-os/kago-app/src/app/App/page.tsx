@@ -8,6 +8,7 @@ import { cartMessages, type ProductPage, type StoreProduct } from "@/features/ca
 import { BarcodeScanner } from "@/features/scanner/barcode-scanner";
 import { SerendipityOffers } from "@/features/offers/serendipity-offers";
 import { SuggestionCards } from "@/features/recommendations/suggestion-cards";
+import { RegularReminders } from "@/features/recommendations/regular-reminders";
 import { offerKindLabel } from "@/features/offers/contracts";
 import { useShoppingSession } from "@/features/shopping/session-provider";
 import { productIcon } from "@/lib/product-visuals";
@@ -107,6 +108,7 @@ export default function Home() {
         <a href="#manual-products" className="mt-3 block py-2 text-sm font-bold text-emerald-800 underline">読み取れない・バーコードがない商品は一覧から選ぶ ↓</a>
       </section>
       {!cartOpen && status}
+      <RegularReminders />
       <SuggestionCards />
       <SerendipityOffers />
       {(session.demo || process.env.NODE_ENV === "development") && <Link href="/App/demo-offers" className="min-h-11 py-2 text-sm font-bold text-emerald-800 underline">セット割・タイムセールの試し方（デモ）</Link>}

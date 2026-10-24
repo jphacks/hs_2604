@@ -7,9 +7,9 @@ import { relatedProducts, type AssociationRuleSet } from "./association.ts";
 import type { ProductPurchaseSummary } from "./customer.ts";
 import type { Listing, ReasonCode, Selection, SelectionCandidates, SelectionItem } from "./selection-contracts.ts";
 import { shortProductName } from "../../lib/product-name.ts";
+import { cycleRatio, isReplenishmentDue, replenishmentReason } from "./purchase-cycle.ts";
 
 export const MAX_SLOTS = 3;
-export const REPLENISH_RATIO = 0.8; // "due" when 80% of the usual interval has passed
 const INITIAL_STRENGTH = 1.5;
 
 export type SelectionInput = {
@@ -75,10 +75,10 @@ export function selectRecommendations(input: SelectionInput, rules: AssociationR
     .filter(c => byCode.has(c.code)).map(c => organic(byCode.get(c.code)!, "co_purchase", c.reason,
       { ruleId: c.ruleId, ruleOrigin: c.origin, triggeredBy: c.triggeredBy }));
   const replenishment: Draft[] = !settings.usePurchaseHistory ? [] : input.summaries
-    .filter(s => s.purchaseCount >= 2 && s.averageIntervalDays && s.daysSinceLastPurchase / s.averageIntervalDays >= REPLENISH_RATIO && byId.has(s.productId))
-    .map(s => ({ s, ratio: s.daysSinceLastPurchase / s.averageIntervalDays! }))
+    .filter(s => isReplenishmentDue(s) && byId.has(s.productId))
+    .map(s => ({ s, ratio: cycleRatio(s)! }))
     .sort((a, b) => b.ratio - a.ratio || a.s.productId.localeCompare(b.s.productId))
-    .map(({ s, ratio }) => organic(byId.get(s.productId)!, "replenishment", "いつもの購入周期から、そろそろです", { cycleRatio: Number(ratio.toFixed(2)) }));
+    .map(({ s, ratio }) => organic(byId.get(s.productId)!, "replenishment", replenishmentReason(s), { cycleRatio: Number(ratio.toFixed(2)) }));
   const popular: Draft[] = candidates.popular.filter(p => byId.has(p.productId))
     .map(p => organic(byId.get(p.productId)!, "popular", "売れ筋の商品です", { orders: p.orders }));
   const organicSlots = MAX_SLOTS - Number(!!promo) - Number(!!sponsored);
