@@ -10,6 +10,8 @@
     "build": "node scripts/sync-lp.mjs && next build",
     "start": "next start",
     "lint": "eslint",
+    "test:shopping": "node --experimental-strip-types --test tests/shopping.test.ts",
+    "test:shopping:e2e": "node tests/shopping.e2e.mjs",
     "test:backend": "pnpm --filter @kago/backend test",
     "typecheck:backend": "pnpm --filter @kago/backend typecheck",
     "check:backend": "node --experimental-strip-types --env-file=.env.local scripts/check-backend.mts",
@@ -32,6 +34,7 @@
     "bwip-js": "^4.11.4",
     "eslint": "^9",
     "eslint-config-next": "16.3.8",
+    "playwright": "1.62.1",
     "sharp": "^0.35.5",
     "tailwindcss": "^4",
     "typescript": "^5"

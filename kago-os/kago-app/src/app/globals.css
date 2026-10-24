@@ -42,6 +42,11 @@ button {
   }
 }
 
+.shopping-readonly button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
 .scan-line {
   animation: scan 2s ease-in-out infinite;
 }

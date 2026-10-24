@@ -44,6 +44,8 @@ next-env.d.ts
 # Local agent instructions and internal working material
 /AGENTS.md
 /CLAUDE.md
+/kago-os/kago-app/AGENTS.md
+/kago-os/kago-app/CLAUDE.md
 /.agents/
 /.codex/
 /internal/
