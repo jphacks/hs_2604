@@ -1,0 +1,12 @@
+{
+  "name": "kago-lp",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=22.13.0 <23"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs"
+  },
+  "packageManager": "pnpm@11.19.0"
+}

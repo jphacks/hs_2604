@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+:root {
+  --surface: #f4f7f5;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--surface);
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background: var(--surface);
+  font-family:
+    Arial,
+    "Hiragino Kaku Gothic ProN",
+    "Yu Gothic",
+    sans-serif;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+@keyframes scan {
+  0%,
+  100% {
+    transform: translateY(-42px);
+  }
+  50% {
+    transform: translateY(42px);
+  }
+}
+
+.scan-line {
+  animation: scan 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scan-line {
+    animation: none;
+  }
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+}

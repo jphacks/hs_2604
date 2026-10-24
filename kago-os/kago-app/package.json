@@ -1,0 +1,36 @@
+{
+  "name": "kago-app",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=22.13.0 <23"
+  },
+  "scripts": {
+    "dev": "node scripts/sync-lp.mjs && next dev",
+    "build": "node scripts/sync-lp.mjs && next build",
+    "start": "next start",
+    "lint": "eslint",
+    "generate:barcodes": "node scripts/generate-barcodes.mjs",
+    "generate:icons": "node scripts/generate-icons.mjs",
+    "sync:lp": "node scripts/sync-lp.mjs"
+  },
+  "dependencies": {
+    "@zxing/browser": "^0.2.1",
+    "next": "16.3.8",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "bwip-js": "^4.11.4",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.8",
+    "sharp": "^0.35.5",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  },
+  "packageManager": "pnpm@11.19.0"
+}
