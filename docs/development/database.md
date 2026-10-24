@@ -139,3 +139,35 @@ psql -X -v ON_ERROR_STOP=1 -f supabase/tests/db04.sql
 - service_roleでの版の追加・販促版の追加、DB-06想定（authenticatedへ対象表の権限と許可ポリシーだけを付与）での版・申請・承認・配信の作成を別途確認。
 - `supabase/tests/db02.sql`〜`db04.sql`を各2回成功し、各回ロールバック後の店舗件数0を確認。
 - 実Supabase、複数接続の同時実行、DB-06の本人・所属ごとの許可は未検証。
+
+## DB-05：選定・行動・実験・Signage計測
+
+DB-04の後に`20261024060000_selections_events_signage.sql`を適用する。`experiments`・`experiment_assignments`・`selections`・`selection_items`・`events`・`signage_devices`・`signage_plays`・`audience_estimates`の8表を作成し、`visits`に`assignment_id`・`experiment_arm`を追加する。
+
+```sh
+# kago-os/kago-core/から、所有者権限の破棄可能な検証DBに対して実行
+psql -X -v ON_ERROR_STOP=1 -f supabase/tests/db05.sql
+```
+
+成功時は`DB-05: all assertions passed; rolling back fixtures`を返す。広告・販促は2026-01-01〜2099-01-01の固定期間で作り、現在時刻で配信可能な状態にする。共有・本番DBでテストを実行しない。
+
+### 保存形式と保証範囲
+
+| 対象 | DB-05で保証すること | 後続Issueの範囲 |
+| --- | --- | --- |
+| 選定 | active来店の現在のcart_versionに対してだけ保存。枠1〜3、同じ商品は1枠、広告・販促は各1枠まで。organicは参照なし、sponsoredは配信対象、store_promoは販促版が必須。対象は来店店舗で取扱中、広告はactive・App媒体・期間内で対象商品が一致、販促はactive・App媒体・期間内・時間帯内で対象商品が一致。`sponsored_*`／`store_*`の理由は該当種別だけ。履歴利用OFFの利用者に`replenishment`を保存しない。追加のみ | 候補の計算・優先順・かご内商品の除外はAPP-05、作成者の限定（Appサーバーのみ）はDB-06 |
+| イベント | 共通仕様8.2の10種類。種類ごとのpayload（method・source・quantity・quantity_delta・cart_version・visible_ms≧1000・target・product_ids・削除理由）、提案操作の枠・商品の必須、`source=recommendation`と枠の一致をCHECKで検査。枠は同じ来店・同じ商品のもの、比較商品は店舗の取扱商品、削除理由は同じ来店の削除イベントを参照。来店終了後の遅延再送も受け付ける。追記のみ | かご更新・版の加算・かごイベントを同時に保存する処理はAPP-02、送信はAPP-07、本人だけの記録はDB-06 |
+| 再送 | イベントID・選定ID・枠ID・再生ID・推定のplay_idは、同じ内容なら無操作、違う内容なら23505。同じIDの同時送信はアドバイザリロックで直列化する。実表示は枠ごとに最初の1件だけ保存し、2件目以降は無操作 | 集計の重複除外（来店・商品・種別）はDB-09 |
+| 実験 | App実験はunit=`user`、Signage実験は`device_time_window`。2群以上。割当はApp実験の群だけで1利用者1件、変更不可。来店の群は割当と利用者・群を複合FKで一致させ、店舗・期間も検査し、一度付けたら変更不可 | 割当の作成はAPP-10、Signageの時間窓割当表は未実装（比較を実施する場合に追加） |
+| Signage | 端末の店舗は固定。再生は終了後に1回送信（ended_at必須）。広告は同店舗・signage媒体・期間内・承認素材版と一致、販促は同店舗・signage媒体・期間内。案内（fallback）は参照なし。配信停止後に届いた再生も記録する。user_id・visit_idの列を持たない | 端末本人の記録だけの許可はDB-06、再生回数の数え方（3秒・動画の完了）はDB-09 |
+| 推定視認 | 再生1件に1件。measuredは人数・秒数が0以上で必須、not_measured／errorはNULL（0人として保存しない）。由来は再生と同じか`synthetic` | カメラ処理はSIG-05 |
+
+### DB-05の検証記録（2026-10-24）
+
+- 空のPGlite 0.5.11へCOM-02→DB-02→DB-03→APP-01→DB-04→DB-05を適用成功。
+- 選定3枠（通常・広告・販促）→保存直後の実表示0件→実表示（同じIDの再送・枠の2件目は無操作、異内容は拒否）→クリック→提案経由の追加→全数量削除と削除理由→スキャンで再追加→注文→来店終了後の遅延再送までを保存し、1つの組として追跡できることを確認。
+- 他店・他来店・他利用者の参照、取扱外商品、古いかご版・終了済み来店への選定、時間帯外の販促、商品と一致しない広告、種別と合わない理由、履歴OFFの補充提案、不正なpayload（欠落・型違い・不正UUID）、イベントの変更・削除を拒否。
+- 実験の群の固定・他店・他利用者の割当を拒否。Signageの再生・推定で、他店の配信、素材版違い、期間外、未計測の0、由来の不一致を拒否し、実測0と未計測を区別できることを確認。
+- service_roleでの投入、DB-06想定（authenticatedへ対象表の権限と許可ポリシーだけを付与）でのイベント・再生・推定の保存、APP-01の`app_start_visit`と同じトランザクションでの選定保存を別途確認。kago-appの`visit-database.test.mts`を全migration適用で実行し9件成功。
+- `supabase/tests/db02.sql`〜`db05.sql`を各2回成功し、各回ロールバック後の店舗件数0を確認。
+- 実Supabase、複数接続の同時実行、DB-06の本人・所属ごとの許可は未検証。
