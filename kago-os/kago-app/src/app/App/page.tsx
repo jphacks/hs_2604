@@ -109,6 +109,7 @@ export default function Home() {
       {!cartOpen && status}
       <SuggestionCards />
       <SerendipityOffers />
+      {(session.demo || process.env.NODE_ENV === "development") && <Link href="/App/demo-offers" className="min-h-11 py-2 text-sm font-bold text-emerald-800 underline">セット割・タイムセールの試し方（デモ）</Link>}
       <section id="manual-products" className="scroll-mt-24" aria-labelledby="products-heading">
         <p className="text-xs font-black tracking-wider text-emerald-700">PRODUCT MENU</p>
         <h2 id="products-heading" className="text-2xl font-black">商品から選ぶ</h2>
