@@ -101,13 +101,13 @@ Ads が扱うのは `sponsored`（メーカー広告）だけです。`organic`�
 | `title` | text | 募集名 | 確定 |
 | `categories` | text[] | 対象カテゴリ（1つ以上）。`products.category` の値 | 確定 |
 | `channels` | text[] | 募集する掲載先（1つ以上） | 確定 |
-| `starts_at` / `ends_at` | timestamptz | 掲載期間 | 確定。終わりの扱いは要確認（下記） |
+| `starts_at` / `ends_at` | timestamptz | 掲載期間。`[starts_at, ends_at)`（終わりを含まない） | 確定（下記） |
 | `status` | AdCallStatus | 募集の状態。作成時は `draft` | 確定 |
 | `disclosure_scope` | text[] | メーカーに公開する指標の組。空なら成果を公開しない | 確定 |
 | `description` | text | 案内文（売り場の様子・求める広告）。issues.md の ADS-02 にあり、共通仕様書の列にない | 提案 |
 | `created_at` / `updated_at` | timestamptz | 作成・更新日時 | 確定 |
 
-**期間の終わり（要確認）**：画面では日付で入力し、今の試作は `starts_at = その日の 00:00:00+09:00`、`ends_at = 最終日の 23:59:59+09:00` で保存しています。共通仕様書 9.1.1 は期間を `[開始, 終了)`（終わりを含まない）としているので、それに合わせるなら `ends_at = 最終日の翌日 00:00:00+09:00` にします。DB-01 と合わせて決めます。
+**期間の終わり**：DB 設計（`docs/specs/database-design.md`、DB-01）に合わせ、期間は `[starts_at, ends_at)`（終わりを含まない）とします。画面では日付で入力し、`starts_at = その日の 00:00:00+09:00`、`ends_at = 最終日の翌日 00:00:00+09:00` で保存します。画面の表示と日付の入力欄には、`ends_at` の直前の日付（最終日）を出します。終わりの時刻ちょうどからは期間外（募集は「期間終了」、配信対象は配信しない）です。以前の形（最終日の `23:59:59+09:00`）で保存された値も、同じ最終日として表示します。
 
 ## 3. creatives｜広告素材、creative_versions｜素材の版（ADS-03 が書く）
 
@@ -154,7 +154,7 @@ Ads が扱うのは `sponsored`（メーカー広告）だけです。`organic`�
 | `creative_id` | uuid | どの素材か。同じ募集に同じ素材は1件まで | 提案 |
 | `creative_version_id` | uuid | 最新の回で申請した版 | 確定 |
 | `channels` | text[] | 最新の回で申請した掲載先（募集の `channels` の一部） | 確定 |
-| `requested_start` / `requested_end` | timestamptz | 希望期間（募集の期間の中）。共通仕様書は範囲型 `requested_period` | 要確認（DB-01） |
+| `requested_start` / `requested_end` | timestamptz | 希望期間（募集の期間の中）。`[開始, 終了)`。DB は範囲型 `requested_period` の1列で持ち、画面の2つの値は境界で変換する（DB-01） | 確定 |
 | `status` | ApplicationStatus | 現在の状態 | 確定 |
 | `review_comment` | text | 却下の理由（最新の回） | 確定 |
 | `created_at` / `updated_at` | timestamptz | 作成・更新日時 | 確定 |
@@ -279,13 +279,13 @@ No.3 の却下理由の例「価格表示を入れてください」は、価格
 
 | # | 項目 | 関係 Issue | 決める相手 |
 | --- | --- | --- | --- |
-| 1 | 期間の終わりを含むか（`[開始, 終了)` に合わせるか） | ADS-02・ADS-03・DB-01 | Core |
-| 2 | 希望期間を範囲型にするか2列にするか | ADS-03・DB-01 | Core |
+| 1 | （解決）期間の終わりは含まない `[開始, 終了)`。最終日は翌日0時で保存する（DB-01） | ― | ― |
+| 2 | （解決）希望期間は DB では範囲型 `requested_period` の1列、画面では2つの値（DB-01） | ― | ― |
 | 3 | 承認時に掲載先を絞る `channels` 引数 | INS-01・DB-08 | Insight・Core |
 | 4 | `application_revisions`・`creative_versions.assets`・`ad_calls.description` を共通仕様書に入れるか | COM-01 | 共通仕様書の取りまとめ |
 | 5 | （解決）店舗の役割は `store_staff` の1つ（共通の認証に合わせた） | ― | ― |
 | 6 | 素材の容量上限と画像の保存・署名付き URL の期限 | COM-03 | 画像保存の担当 |
-| 7 | `expired` を保存するか、期間から判定するか | DB-04・DB-08 | Core |
+| 7 | （解決）`expired` は状態として持つが、更新が遅れても期間の条件で配信から外す（DB-01）。画面は期間から判定する | ― | ― |
 
 ## 14. 改訂履歴
 
@@ -293,3 +293,4 @@ No.3 の却下理由の例「価格表示を入れてください」は、価格
 | --- | --- | --- |
 | v0.1 | 2026-10-24 | 初版（案）。共通仕様書 v0.2 に合わせ、ADS-01〜05 の項目・状態・入力チェック・権限・素材の仕様・Insight との取り決めをまとめた |
 | v0.1.1 | 2026-10-24 | 役割を共通の認証（COM-02・#53）の `store_staff`・`maker_staff` に合わせた |
+| v0.1.2 | 2026-10-24 | DB 設計（DB-01・#55）に合わせ、期間を `[開始, 終了)`・最終日は翌日0時で保存するとした。未決事項 #1・#2・#7 を解決にした |

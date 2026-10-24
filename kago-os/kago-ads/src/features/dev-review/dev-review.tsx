@@ -3,7 +3,7 @@
 // 本番の審査は KAGO/Insight で行う。この画面は Insight ができたら削除する
 import { useState } from "react";
 import { getRepository } from "@/lib/data";
-import { dateOf, dayEnd, dayStart, latestRevision, storeLabel } from "@/lib/domain/rules";
+import { dateOf, dayEnd, dayStart, endDateOf, latestRevision, storeLabel } from "@/lib/domain/rules";
 import { CHANNEL_LABEL, type AdApplication, type AdPlacement, type Channel } from "@/lib/domain/types";
 import { useSession } from "@/lib/session";
 import { StatusBadge } from "@/components/badges";
@@ -94,7 +94,7 @@ function ReviewCard({
   // 承認時に絞れる掲載先と配信期間（初期値は申請どおり）
   const [channels, setChannels] = useState<Channel[]>(app.channels);
   const [start, setStart] = useState(dateOf(app.requested_start));
-  const [end, setEnd] = useState(dateOf(app.requested_end));
+  const [end, setEnd] = useState(endDateOf(app.requested_end));
   const [comment, setComment] = useState("");
   const active = placements.filter((p) => p.status === "active");
 
