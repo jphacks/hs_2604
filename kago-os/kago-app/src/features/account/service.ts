@@ -75,25 +75,28 @@ function decodeCursor(cursor: string | null): { at: string; id: string } | null 
     return parsed;
   } catch { throw new AccountError("invalid_request"); }
 }
-export async function historyForScope(client: Client, scope: AccountScope, cursor: string | null = null, limit = 10): Promise<PurchaseHistory> {
+export async function historyForScope(client: Client, scope: AccountScope, cursor: string | null = null, limit = 10, storeId: string | null = scope.storeId): Promise<PurchaseHistory> {
   const before = decodeCursor(cursor);
   let query = client.from("orders")
-    .select("id,ordered_at,total,data_origin,order_items(product_id,product_name,unit_price,quantity)")
-    .eq("user_id", scope.userId).eq("store_id", scope.storeId).lt("ordered_at", scope.asOf)
+    .select("id,store_id,ordered_at,total,data_origin,order_items(product_id,product_name,unit_price,quantity)")
+    .eq("user_id", scope.userId).lt("ordered_at", scope.asOf)
     .order("ordered_at", { ascending: false }).order("id", { ascending: false }).limit(limit + 1);
+  if (storeId !== null) query = query.eq("store_id", storeId);
   if (before) query = query.or(`ordered_at.lt.${before.at},and(ordered_at.eq.${before.at},id.lt.${before.id})`);
   const { data, error } = await query;
   if (error) throw error;
   const rows = (data ?? []).slice(0, limit);
   const orders: PurchaseOrder[] = rows.map(row => ({
-    id: row.id, orderedAt: row.ordered_at, total: row.total, dataOrigin: row.data_origin,
+    id: row.id, storeId: row.store_id, orderedAt: row.ordered_at, total: row.total, dataOrigin: row.data_origin,
     items: row.order_items.map(item => ({ productId: item.product_id, name: item.product_name, unitPrice: item.unit_price, quantity: item.quantity })),
   }));
   const last = rows.at(-1);
   return { orders, nextCursor: data && data.length > limit && last
     ? Buffer.from(JSON.stringify({ at: last.ordered_at, id: last.id })).toString("base64url") : null };
 }
-export async function loadPurchaseHistory(client: Client, selectedVisit: unknown, cursor: string | null = null) {
+export async function loadPurchaseHistory(client: Client, selectedVisit: unknown, cursor: string | null = null, storeFilter?: string | null) {
   const scope = await accountScope(client, selectedVisit);
-  return { scope, ...await historyForScope(client, scope, cursor) };
+  if (storeFilter != null && storeFilter !== "all" && !isUuid(storeFilter)) throw new AccountError("invalid_request");
+  const storeId=storeFilter === "all" ? null : storeFilter ?? scope.storeId;
+  return { scope, ...await historyForScope(client, scope, cursor, 10, storeId) };
 }

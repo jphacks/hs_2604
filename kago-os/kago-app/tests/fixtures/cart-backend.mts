@@ -71,11 +71,11 @@ export async function createCartBackend({ accountHistory = false, offers = false
           const cursor=url.searchParams.get("or");
           const match=cursor?.match(/^\(ordered_at\.lt\.([^,]+),and\(ordered_at\.eq\.([^,]+),id\.lt\.([\w-]+)\)\)$/);
           if(cursor&&!match)throw Error("Unexpected history cursor");
-          return (await database.db.query(`select o.id,to_char(o.ordered_at at time zone 'UTC','YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') as ordered_at,o.total,o.data_origin,
+          return (await database.db.query(`select o.id,o.store_id,to_char(o.ordered_at at time zone 'UTC','YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') as ordered_at,o.total,o.data_origin,
             (select coalesce(jsonb_agg(jsonb_build_object('product_id',i.product_id,'product_name',i.product_name,'unit_price',i.unit_price,'quantity',i.quantity)), '[]'::jsonb) from order_items i where i.order_id=o.id) as order_items
-            from orders o where o.user_id=$1 and o.store_id=$2 and o.ordered_at<$3::timestamptz
+            from orders o where o.user_id=$1 and ($2::uuid is null or o.store_id=$2) and o.ordered_at<$3::timestamptz
             and ($4::timestamptz is null or (o.ordered_at,o.id)<($4::timestamptz,$5::uuid))
-            order by o.ordered_at desc,o.id desc limit $6`,[url.searchParams.get("user_id")?.slice(3),url.searchParams.get("store_id")?.slice(3),url.searchParams.get("ordered_at")?.slice(3),match?.[1]??null,match?.[3]??null,Number(url.searchParams.get("limit")??11)])).rows;
+            order by o.ordered_at desc,o.id desc limit $6`,[url.searchParams.get("user_id")?.slice(3),url.searchParams.get("store_id")?.slice(3)??null,url.searchParams.get("ordered_at")?.slice(3),match?.[1]??null,match?.[3]??null,Number(url.searchParams.get("limit")??11)])).rows;
         }
         if(name==="selection_items")return (await database.db.query("select id,slot,product_id,selection_id from selection_items where ($1::uuid is null or selection_id=$1) and ($2::uuid is null or id=$2) order by slot",[url.searchParams.get("selection_id")?.slice(3)??null,url.searchParams.get("id")?.slice(3)??null])).rows;
         if(name==="selections")return (await database.db.query("select id,visit_id from selections where id=$1",[url.searchParams.get("id")?.slice(3)])).rows;

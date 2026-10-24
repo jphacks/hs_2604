@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { CouponDetail } from "./coupon-detail";
+import { CouponArrival } from "./coupon-arrival";
 import { cartRequest, useCart } from "@/features/cart/cart-provider";
 import { useShoppingSession } from "@/features/shopping/session-provider";
 import { productIcon } from "@/lib/product-visuals";
-import { offerKindLabel, type OfferEventType, type SerendipityOffer, type SerendipityResponse } from "./contracts";
+import { type OfferEventType, type SerendipityOffer, type SerendipityResponse } from "./contracts";
 
 const yen = new Intl.NumberFormat("ja-JP", { style: "currency", currency: "JPY" });
 const clockFormat = new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", hour: "2-digit", minute: "2-digit" });
@@ -117,27 +119,8 @@ export function SerendipityOffers() {
         <button type="button" disabled={!cart.canEdit} onClick={() => claim(offer)} className={`${button} mt-3 w-full bg-emerald-700 text-white`}>{offer.action === "apply" ? "セット割を適用" : `セットでかごに追加（${offer.product.name}を追加）`}</button>
       </article>)}
     </section>}
-    {coupon && !open && <button type="button" onClick={() => { setOpen(coupon); record(coupon.offerId, "offer_opened"); }}
-      className="fixed bottom-24 right-4 z-40 max-w-[11rem] -rotate-6 rounded-2xl border-4 border-white bg-gradient-to-br from-pink-500 to-orange-400 px-3 py-2 text-left text-white shadow-xl motion-safe:animate-bounce"
-      style={{ animationIterationCount: 3 }} // a short "pop" to be noticed, then it stays still to be tapped
-      aria-label={`ゲリラクーポン：${coupon.product.name} ${coupon.discountLabel}。詳細を開く`}>
-      <span className="block text-xs font-black"><span aria-hidden="true">🎉 </span>ゲリラクーポン！</span>
-      <span className="block text-sm font-black leading-tight">{coupon.product.name.replace(/\s.*$/, "")} {coupon.discountLabel}</span>
-    </button>}
-    {open && <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-      <button type="button" tabIndex={-1} className="absolute inset-0 bg-slate-950/50" onClick={() => setOpen(null)} aria-label="クーポンを閉じる" />
-      <section role="dialog" aria-modal="true" aria-labelledby="coupon-heading" className="relative w-full max-w-md rounded-t-3xl bg-white p-6 shadow-2xl sm:rounded-3xl">
-        <div className="flex items-start justify-between gap-3"><div><p className="text-xs font-black text-pink-600">{offerKindLabel[open.kind]}・店舗のお得情報</p>
-          <h2 id="coupon-heading" className="mt-1 text-2xl font-black">{open.headline}</h2></div>
-          <button ref={closeButton} type="button" onClick={() => setOpen(null)} className="size-11 shrink-0 rounded-full bg-slate-100 text-xl" aria-label="閉じる">×</button></div>
-        <div className="mt-4 flex items-center gap-3 rounded-2xl bg-pink-50 p-4"><span className="grid size-14 place-items-center rounded-xl bg-white text-3xl" aria-hidden="true">{productIcon(open.product)}</span>
-          <div><p className="font-bold">{open.product.name}</p>
-            <p className="mt-1"><span className="text-sm text-slate-500 line-through">{yen.format(open.product.price)}</span> <span className="text-xl font-black text-pink-700">{yen.format(open.product.price - open.unitDiscount)}</span></p>
-            <p className="text-xs text-slate-600">1点まで{open.discountLabel}・{clock.format(new Date(open.endsAt))}まで</p></div></div>
-        <p className="mt-3 text-sm text-slate-700">{open.reason}</p>
-        <button type="button" disabled={!cart.canEdit} onClick={() => claim(open)} className={`${button} mt-4 w-full bg-pink-600 text-white`}>割引付きでかごに追加</button>
-        <button type="button" onClick={() => dismiss(open)} className="mt-2 min-h-11 w-full text-sm text-slate-600 underline">今回は見送る</button>
-      </section>
-    </div>}
+    {coupon && !open && <CouponArrival name={coupon.product.name} discount={coupon.discountLabel} onDismiss={()=>dismiss(coupon)} onOpen={()=>{setOpen(coupon);record(coupon.offerId,"offer_opened");}}/>}
+    {open && <CouponDetail offer={open} disabled={!cart.canEdit} closeButtonRef={closeButton} onClose={()=>setOpen(null)} onClaim={()=>claim(open)} onDismiss={()=>dismiss(open)}/>}
+
   </>;
 }

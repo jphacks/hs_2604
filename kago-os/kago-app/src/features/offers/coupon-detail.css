@@ -1,0 +1,130 @@
+
+.coupon-detail-overlay,.coupon-detail-overlay *,.coupon-arrival,.coupon-arrival *{box-sizing:border-box}
+:where(.coupon-detail-overlay button,.coupon-arrival){border:0;cursor:pointer;font-family:inherit}
+:where(.coupon-detail-overlay p,.coupon-detail-overlay h2,.coupon-detail-overlay h3){margin:0}
+.coupon-detail-overlay{position:fixed;inset:0;z-index:85;display:flex;align-items:flex-end;justify-content:center;padding-top:15px;background:#07192769;backdrop-filter:blur(4px);font-family:Arial,"Noto Sans JP",sans-serif;color:#262B33}
+.coupon-detail-backdrop{position:absolute;inset:0;width:100%;height:100%;background:transparent}
+.coupon-detail-group{position:relative;width:100%;max-width:520px}
+.coupon-detail-sheet{height:min(610px,calc(100dvh - 115px));display:flex;flex-direction:column;min-height:0;background:#fff;border-radius:28px 28px 0 0;overflow:hidden;box-shadow:0 -6px 32px #07192726}
+.coupon-detail-handle{flex:none;width:38px;height:5px;margin:10px auto 0;border-radius:8px;background:#E2E8ED}
+.coupon-detail-header{display:flex;align-items:center;justify-content:space-between;padding:11px 20px 13px;gap:10px;flex:none}
+.coupon-detail-header>span{display:flex;align-items:center;gap:7px;border-radius:20px;padding:6px 10px;background:#FFEEE8;color:#bb4b32;font-size:12px;font-weight:750}
+.coupon-detail-header>span svg{width:18px;height:18px}
+.coupon-detail-header>button{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:#F2F5F6;color:#5C6C7A;font-size:26px;line-height:1}
+.coupon-detail-body{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;display:flex;flex-direction:column;justify-content:center;gap:16px;padding:0 20px 14px}
+.coupon-detail-discount{text-align:center;padding:13px 12px 15px;background:#FFEEE8;border-radius:20px}
+.coupon-detail-discount>p{font-size:12px;color:#ab4a35}
+.coupon-detail-discount>strong{display:block;font-size:clamp(32px,8vw,43px);line-height:1.4;font-weight:850;color:#FF6B4A;margin-top:4px}
+.coupon-detail-discount h2{font-size:15px;line-height:1.7;font-weight:750;color:#0E2841;margin-top:3px}
+.coupon-detail-product{display:flex;align-items:center;gap:14px}
+.coupon-detail-photo{position:relative;flex:none;display:grid;place-items:center;width:94px;height:91px;border-radius:17px;background:#F7F9F8;overflow:hidden}
+.coupon-detail-photo img{object-fit:contain;padding:6px}
+.coupon-detail-photo>span{font-size:48px}
+.coupon-detail-product-copy{min-width:0}
+.coupon-detail-product-copy>p{font-size:11px;color:#5C6C7A}
+.coupon-detail-product-copy h3{font-size:17px;font-weight:800;line-height:1.5;color:#071927;margin-top:4px;overflow-wrap:anywhere}
+.coupon-detail-price{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:5px}
+.coupon-detail-price del{font-size:13px;color:#5C6C7A}
+.coupon-detail-price>span{font-size:12px;color:#8b9aa3}
+.coupon-detail-price strong{font-size:26px;font-weight:800;color:#07576B}
+.coupon-detail-reason{padding:13px 14px;border-radius:17px;background:#E6F6F5}
+.coupon-detail-reason h3{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:750;color:#07576B}
+.coupon-detail-reason h3 svg{width:17px;height:17px}
+.coupon-detail-reason p{font-size:13px;line-height:1.8;color:#36505b;margin-top:6px}
+.coupon-detail-deadline{display:flex;justify-content:center;align-items:center;gap:6px;font-size:11px;line-height:1.6;color:#5C6C7A}
+.coupon-detail-deadline svg{width:15px;height:15px;flex:none}
+.coupon-detail-footer{flex:none;padding:11px 20px max(12px,env(safe-area-inset-bottom));border-top:1px solid #E2E8ED}
+.coupon-detail-claim{display:flex;align-items:center;justify-content:center;gap:9px;min-height:50px;width:100%;border-radius:28px;background:linear-gradient(105deg,#07576B,#006575);color:#fff;font-size:16px;font-weight:750}
+.coupon-detail-claim svg{width:23px;height:23px}
+.coupon-detail-claim:disabled{opacity:.4}
+.coupon-detail-dismiss{display:block;min-height:37px;margin:6px auto 0;padding:7px 20px;border-radius:22px;background:transparent;color:#5C6C7A;font-size:12px}
+.coupon-arrival{position:fixed;z-index:45;right:max(16px,calc((100vw - 490px)/2));bottom:145px;display:flex;align-items:center;gap:10px;max-width:calc(100vw - 32px);border-radius:20px;padding:12px 14px;background:#fff;color:#0E2841;box-shadow:0 5px 24px #0719272b;text-align:left;animation:coupon-pop .35s ease-out}
+.coupon-arrival-icon{display:grid;place-items:center;width:40px;height:44px;flex:none;border-radius:13px;background:#FFEEE8;color:#FF6B4A}
+.coupon-arrival-icon svg{width:25px;height:25px}
+.coupon-arrival strong{display:block;font-size:12px;color:#07576B;font-weight:750}
+.coupon-arrival small{display:block;margin-top:4px;font-size:13px;font-weight:750;line-height:1.5;color:#262B33}
+.coupon-arrival>svg{width:10px;height:15px;color:#019FA3;margin-left:3px;flex:none}
+.coupon-detail-preview-controls{display:flex;justify-content:center;gap:7px;padding:0 12px 10px}
+.coupon-detail-preview-controls button{border:0;border-radius:22px;padding:9px 13px;background:#fff;color:#07576B;font-size:12px;font-weight:700}
+.coupon-detail-preview-controls [aria-pressed=true]{background:#07576B;color:#fff}
+html:has(.coupon-preview),body:has(.coupon-preview){height:100%;margin:0;overflow:hidden;background:#F2F5F6}
+@keyframes coupon-pop{from{opacity:0;transform:translateY(10px) scale(.96)}to{opacity:1;transform:none}}
+@media(max-height:650px){.coupon-detail-sheet{height:calc(100dvh - 85px)}.coupon-detail-body{gap:10px;padding-bottom:10px}.coupon-detail-header{padding-block:8px}.coupon-detail-discount{padding-block:8px}.coupon-detail-discount>strong{font-size:32px}.coupon-detail-discount h2{font-size:14px}.coupon-detail-photo{width:77px;height:73px}.coupon-detail-product-copy h3{font-size:16px}.coupon-detail-price strong{font-size:23px}.coupon-detail-reason{padding:10px 12px}.coupon-detail-reason p{font-size:12px;line-height:1.65}.coupon-detail-footer{padding-block:9px}.coupon-detail-claim{min-height:45px;font-size:15px}.coupon-detail-dismiss{min-height:32px;margin-top:3px}}
+@media(prefers-reduced-motion:reduce){.coupon-arrival{animation:none}}
+
+/* A surprise ticket peeks in from the left edge of the shopping screen. */
+.coupon-arrival.coupon-arrival-guerrilla{
+ left:max(-14px,calc((100vw - 520px)/2 - 14px));right:auto;top:49%;bottom:auto;
+ width:105px;max-width:none;display:block;padding:0;border:0;border-radius:0;background:transparent;
+ box-shadow:none;transform:rotate(-7deg);transform-origin:left center;animation:coupon-ticket-enter .55s cubic-bezier(.2,.9,.3,1.12) both
+}
+.coupon-ticket{position:relative;display:flex;align-items:center;flex-direction:column;min-height:223px;padding:17px 9px 12px 16px;border:2px solid #FF8B73;border-radius:0 25px 25px 0;background:linear-gradient(164deg,#fffaf6 0%,#fff2eb 72%,#FF6B4A 72.5%);color:#FF6B4A;box-shadow:0 5px 16px #0e284124;mask:radial-gradient(circle at right 55%,transparent 7px,#000 7.8px)}
+.coupon-ticket-icon{width:29px;height:29px;flex:none;color:#FF6B4A;transform:rotate(-6deg);stroke-width:1.9}
+.coupon-ticket .coupon-ticket-title{display:block;margin-top:8px;color:#071927;font-size:13px;font-weight:800;line-height:1.45;text-align:center}
+.coupon-ticket .coupon-ticket-value{display:block;margin-top:9px;color:#FF6B4A;font-size:29px;font-weight:850;line-height:1.1;letter-spacing:-.055em;white-space:nowrap}
+.coupon-ticket-off{font-size:23px;line-height:1.2;font-weight:850;margin-top:1px}
+.coupon-ticket-perforation{align-self:stretch;border-top:3px dotted #ffc2af;margin:9px 1px 8px}
+.coupon-ticket-open{width:39px;height:39px;display:grid;place-items:center;border:2px solid #fff;border-radius:50%;background:#FF6B4A;color:#fff;box-shadow:0 2px 5px #bf49332b}
+.coupon-ticket-open svg{width:17px;height:22px;stroke-width:2.6}
+.coupon-ticket-sparks{position:absolute;inset:-16px -10px -7px 0;pointer-events:none}
+.coupon-ticket-sparks i{position:absolute;display:block;width:4px;height:15px;border-radius:6px;background:#FDC94E;right:15px;top:-1px;transform:rotate(12deg)}
+.coupon-ticket-sparks i:nth-child(2){right:0;top:8px;transform:rotate(48deg)}
+.coupon-ticket-sparks i:nth-child(3){right:30px;top:3px;transform:rotate(-25deg);height:11px}
+.coupon-ticket-sparks i:nth-child(4){right:-4px;top:auto;bottom:32px;transform:rotate(88deg)}
+.coupon-ticket-sparks i:nth-child(5){right:0;top:auto;bottom:14px;transform:rotate(42deg);height:12px}
+.coupon-arrival-guerrilla:focus-visible{outline:3px solid #019FA3;outline-offset:6px}
+.coupon-arrival-guerrilla:hover{transform:rotate(-4deg)}
+@keyframes coupon-ticket-enter{from{opacity:0;transform:translateX(-120%) rotate(-16deg)}to{opacity:1;transform:translateX(0) rotate(-7deg)}}
+.coupon-detail-deadline{font-size:12.5px}
+.coupon-detail-deadline svg{width:17px;height:17px}
+.coupon-detail-guerrilla .coupon-detail-header>span{background:#FFEEE8;color:#d95639;transform:rotate(-2deg)}
+.coupon-detail-guerrilla .coupon-detail-discount{position:relative;isolation:isolate;border:1.5px solid #ffac95;background:linear-gradient(135deg,#fff8ed,#FFEEE8);border-radius:19px;overflow:visible}
+.coupon-detail-guerrilla .coupon-detail-discount:before,.coupon-detail-guerrilla .coupon-detail-discount:after{content:"";position:absolute;top:56%;width:16px;height:16px;border-radius:50%;background:#fff}
+.coupon-detail-guerrilla .coupon-detail-discount:before{left:-9px;border-right:1.5px solid #ffac95}
+.coupon-detail-guerrilla .coupon-detail-discount:after{right:-9px;border-left:1.5px solid #ffac95}
+.coupon-detail-guerrilla .coupon-detail-discount>strong{transform:rotate(-2deg);letter-spacing:-.025em;text-shadow:0 2px 0 #fff}
+.coupon-detail-guerrilla .coupon-detail-discount>p{display:inline-block;position:relative;color:#b54b32}
+.coupon-detail-guerrilla .coupon-detail-discount>p:before,.coupon-detail-guerrilla .coupon-detail-discount>p:after{content:"";position:absolute;top:2px;width:3px;height:13px;border-radius:3px;background:#FDC94E}
+.coupon-detail-guerrilla .coupon-detail-discount>p:before{left:-15px;transform:rotate(-28deg)}
+.coupon-detail-guerrilla .coupon-detail-discount>p:after{right:-15px;transform:rotate(28deg)}
+.coupon-preview-variant{position:fixed;z-index:96;top:15px;right:12px;display:flex;gap:4px;padding:4px;background:#ffffffed;border-radius:20px}
+.coupon-preview-variant button{border:0;border-radius:17px;padding:7px 9px;font-size:11px;color:#07576B;background:transparent;cursor:pointer}
+.coupon-preview-variant [aria-pressed=true]{background:#E6F6F5}
+@media(max-height:650px){.coupon-arrival.coupon-arrival-guerrilla{top:43%;width:96px}.coupon-ticket{min-height:200px;padding-top:13px}.coupon-ticket .coupon-ticket-value{font-size:26px}.coupon-ticket .coupon-ticket-title{font-size:12px;margin-top:6px}.coupon-ticket-off{font-size:21px}.coupon-ticket-open{width:35px;height:35px}.coupon-ticket-perforation{margin-block:7px}.coupon-detail-deadline{font-size:12px}}
+@media(prefers-reduced-motion:reduce){.coupon-arrival.coupon-arrival-guerrilla{animation:none}}
+
+.coupon-detail-guerrilla .coupon-detail-header>span,.coupon-detail-guerrilla .coupon-detail-discount>strong{transform:none}
+.coupon-arrival.coupon-arrival-guerrilla{width:98px}
+.coupon-ticket{min-height:208px;padding:14px 8px 11px 15px}
+.coupon-ticket-main{display:flex;flex-direction:column;align-items:center;width:100%;border:0;padding:0;background:transparent;cursor:pointer;font-family:inherit}
+.coupon-ticket-main:focus-visible,.coupon-ticket-open:focus-visible{outline:3px solid #019FA3;outline-offset:4px}
+.coupon-ticket .coupon-ticket-icon{width:26px;height:26px}
+.coupon-ticket .coupon-ticket-title{font-size:12px;margin-top:6px}
+.coupon-ticket .coupon-ticket-value{font-size:27px;margin-top:7px}
+.coupon-ticket-off{font-size:21px}
+.coupon-ticket-perforation{margin:8px 1px 7px}
+.coupon-ticket .coupon-ticket-open{width:35px;height:35px;flex:none;border:2px solid #fff;padding:0;cursor:pointer}
+.coupon-ticket-open svg{width:16px;height:20px}
+.coupon-hide-overlay,.coupon-hide-overlay *{box-sizing:border-box}
+.coupon-hide-overlay{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:22px;background:#07192770;backdrop-filter:blur(5px);font-family:Arial,"Noto Sans JP",sans-serif}
+.coupon-hide-backdrop{position:absolute;inset:0;width:100%;height:100%;border:0;background:transparent}
+.coupon-hide-dialog{position:relative;width:100%;max-width:370px;padding:25px 21px 21px;border-radius:25px;background:#fff;text-align:center;box-shadow:0 12px 45px #07192730;color:#0E2841}
+.coupon-hide-symbol{display:grid;place-items:center;width:49px;height:49px;margin:auto;border-radius:17px;background:#FFEEE8;color:#FF6B4A}
+.coupon-hide-symbol svg{width:27px;height:27px}
+.coupon-hide-dialog h2{font-size:20px;line-height:1.5;font-weight:800;margin:16px 0 11px}
+.coupon-hide-dialog p{font-size:13px;line-height:1.9;margin:0 0 20px;color:#5C6C7A}
+.coupon-hide-dialog>button{display:block;width:100%;min-height:45px;border:0;border-radius:25px;padding:10px;font-size:14px;font-weight:750;cursor:pointer;font-family:inherit}
+.coupon-hide-cancel{background:linear-gradient(105deg,#07576B,#006575);color:#fff}
+.coupon-hide-confirm{background:#FFEEE8;color:#bd4c34;margin-top:9px}
+.coupon-hide-dialog :focus-visible{outline:3px solid #019FA3;outline-offset:3px}
+@media(max-height:650px){.coupon-arrival.coupon-arrival-guerrilla{width:91px}.coupon-ticket{min-height:193px;padding-top:12px}.coupon-ticket .coupon-ticket-value{font-size:25px}.coupon-ticket .coupon-ticket-title{font-size:11px}.coupon-ticket-off{font-size:20px}.coupon-ticket .coupon-ticket-open{width:32px;height:32px}}
+
+.coupon-scan-guidance{font-size:12px;line-height:1.7;color:#5C6C7A;text-align:center;margin:0 0 10px}
+
+.coupon-detail-footer .coupon-scan-guidance{font-size:13px;font-weight:750;line-height:1.8;color:#07576B;background:#E6F6F5;border-radius:13px;padding:10px 12px;margin:0 0 11px;text-align:center}
+
+.coupon-ticket-sparks i:nth-child(4),.coupon-ticket-sparks i:nth-child(5){display:none}
+
+/* Lower accents follow the ticket edge instead of floating beside it. */
+.coupon-ticket-sparks i:nth-child(4){display:block;right:10px;top:auto;bottom:24px;width:3px;height:10px;transform:rotate(48deg)}
+.coupon-ticket-sparks i:nth-child(5){display:block;right:22px;top:auto;bottom:15px;width:3px;height:8px;transform:rotate(12deg)}

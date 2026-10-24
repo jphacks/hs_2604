@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { UtilityShell } from "@/components/utility-shell";
 
 import { BarcodeImageCheck } from "@/components/demo/barcode-image-check";
 import { DEMO_PRODUCT_LIST } from "@/lib/products";
@@ -11,9 +12,9 @@ const yen = new Intl.NumberFormat("ja-JP", {
 
 export default function DemoBarcodesPage() {
   return (
-    <main className="min-h-screen bg-slate-100 px-4 py-6 text-slate-950 print:bg-white print:p-0">
+    <UtilityShell kind="barcodes"><main className="min-h-screen bg-slate-100 px-4 py-6 text-slate-950 print:bg-white print:p-0">
       <div className="mx-auto max-w-5xl">
-        <header className="mb-6 rounded-3xl bg-slate-950 p-6 text-white print:mb-4 print:rounded-none print:bg-white print:p-0 print:text-black">
+        <header className="utility-barcode-heading mb-6 rounded-3xl bg-slate-950 p-6 text-white print:mb-4 print:rounded-none print:bg-white print:p-0 print:text-black">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-xs font-bold tracking-[0.22em] text-emerald-400 print:text-black">
@@ -80,6 +81,6 @@ export default function DemoBarcodesPage() {
           ))}
         </section>
       </div>
-    </main>
+    </main></UtilityShell>
   );
 }

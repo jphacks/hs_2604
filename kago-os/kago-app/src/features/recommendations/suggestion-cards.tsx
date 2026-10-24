@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { SuggestionDetail } from "./suggestion-detail";
 import { useEffect, useRef, useState } from "react";
 import { useCart } from "@/features/cart/cart-provider";
 import { useAppEvents } from "@/features/events/event-provider";
@@ -153,26 +154,7 @@ function SuggestionCarousel({ selection, paused, onPauseChange }: { selection: S
         </div>
       </div>}
     </div>
-    {detail && <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-      <button type="button" tabIndex={-1} className="absolute inset-0 bg-slate-950/50" onClick={() => setDetail(null)} aria-label="詳細を閉じる" />
-      <section role="dialog" aria-modal="true" aria-labelledby="suggestion-detail-heading" className="relative max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-white p-6 shadow-2xl sm:rounded-3xl">
-        <div className="flex items-start justify-between gap-3">
-          <span className={`rounded-full px-3 py-1 text-xs font-black ${tone[detail.placementType].badge}`}>{suggestionLabel(detail)}</span>
-          <button ref={closeButton} type="button" onClick={() => setDetail(null)} className="size-11 shrink-0 rounded-full bg-slate-100 text-xl" aria-label="閉じる">×</button>
-        </div>
-        <div className="mt-4 flex items-center gap-4"><ProductArt item={detail} size="detail" />
-          <div className="min-w-0"><p className="text-xs text-slate-500">{detail.product.category}</p>
-            <h2 id="suggestion-detail-heading" className="break-words text-xl font-black">{detail.product.name}</h2>
-            <p className="mt-1 text-lg font-black text-emerald-800">{yen.format(detail.product.price)}</p></div></div>
-        {detail.sponsor && <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm">
-          <p className="font-black">{detail.sponsor.headline}</p>
-          <p className="mt-1 text-xs text-slate-600">この枠は広告です。提供：{detail.sponsor.makerName}（店舗が承認した広告）</p>
-        </div>}
-        {detail.placementType === "store_promo" && <p className="mt-4 rounded-2xl bg-amber-50 p-4 text-xs text-amber-950">店舗が選んだおすすめ商品です。</p>}
-        <p className="mt-4 text-sm leading-6 text-slate-700"><span className="font-bold">おすすめの理由：</span>{detail.reasonText}</p>
-        <button type="button" disabled={!cart.canEdit || inCart.has(detail.product.productId)} onClick={() => add(detail)} className="mt-5 min-h-12 w-full rounded-xl bg-emerald-700 px-4 text-sm font-black text-white disabled:opacity-40">
-          {inCart.has(detail.product.productId) ? "かごに追加済み" : "かごに追加"}</button>
-      </section>
-    </div>}
+    {detail && <SuggestionDetail item={detail} label={suggestionLabel(detail)} added={inCart.has(detail.product.productId)} disabled={!cart.canEdit} closeButtonRef={closeButton} onClose={()=>setDetail(null)} onAdd={()=>add(detail)}/>}
+
   </>;
 }

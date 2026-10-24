@@ -1,0 +1,45 @@
+body:has(.session-screen){margin:0}
+.session-screen,.session-screen *{box-sizing:border-box}
+.session-screen{font-family:Arial,"Noto Sans JP",sans-serif}
+:where(.session-screen h1,.session-screen p){margin:0}
+:where(.session-screen button){border:0;cursor:pointer;font-family:inherit}
+.session-screen-header img{display:block}
+
+html:has(.session-screen),body:has(.session-screen){height:100%;overflow:hidden;background:#F2F5F6}
+.session-screen{height:100dvh;width:100%;max-width:520px;margin:auto;display:flex;flex-direction:column;overflow:hidden;background:radial-gradient(ellipse at 20% 100%,#d9f2ed88,transparent 45%),#F2F5F6;color:#262B33}
+.session-screen-header{display:flex;align-items:center;min-height:clamp(60px,9dvh,78px);padding:8px 18px;flex:none}
+.session-screen-header img{width:clamp(160px,48vw,220px);height:auto}
+.session-screen-content{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:10px 18px max(25px,env(safe-area-inset-bottom))}
+.session-screen-card{width:100%;padding:27px 24px 24px;border-radius:27px;background:#fff;box-shadow:0 7px 28px #0E284109;text-align:center}
+.session-screen-symbol{display:grid;place-items:center;width:62px;height:62px;margin:0 auto 18px;border-radius:22px;background:#E6F6F5;color:#019FA3}
+.session-screen-symbol svg{width:33px;height:33px}
+.session-screen-symbol-error{background:#FFEEE8;color:#FF6B4A}
+.session-screen h1{font-size:clamp(22px,5.5vw,27px);font-weight:800;line-height:1.55;letter-spacing:.01em;color:#071927}
+.session-screen-lead{font-size:13px;line-height:1.9;color:#5C6C7A;margin-top:9px}
+.session-screen-form{display:flex;flex-direction:column;text-align:left;margin-top:25px}
+.session-screen-form>label{font-size:13px;font-weight:700;color:#0E2841;margin-bottom:8px}
+.session-screen-form>label:not(:first-child){margin-top:20px}
+.session-screen-form input{width:100%;min-height:49px;border:1px solid #E2E8ED;border-radius:14px;background:#F7F9FA;padding:12px 13px;font-size:16px;color:#262B33;outline:none}
+.session-screen-form input::placeholder{font-size:13px;color:#8c989f}
+.session-screen-form input:focus{border-color:#019FA3;background:white;box-shadow:0 0 0 3px #019fa315}
+.session-screen-password{position:relative}
+.session-screen-password input{padding-right:49px}
+.session-screen-password button{position:absolute;right:4px;top:4px;width:41px;height:41px;display:grid;place-items:center;border-radius:11px;color:#5C6C7A}
+.session-screen-password svg{width:21px;height:21px}
+.session-screen-primary{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;min-height:49px;padding:11px 18px;margin:24px auto 0;border-radius:28px;background:linear-gradient(105deg,#07576B,#006575);color:white;font-size:16px;font-weight:750}
+.session-screen-primary svg{width:12px;height:15px}
+.session-screen-secondary{display:block;width:100%;min-height:45px;margin:11px auto 0;padding:10px;border-radius:25px;background:#E6F6F5;color:#07576B;font-size:13px;font-weight:700}
+.session-screen-footnote{font-size:11px;color:#5C6C7A;line-height:1.9;margin-top:19px}
+.session-screen-notice{padding:11px 13px;border-radius:14px;background:#FFEEE8;color:#9a3524;font-size:12px;line-height:1.8;text-align:left;margin-top:17px}
+.session-screen-error-message{font-size:14px;line-height:1.9;color:#0E2841;margin:18px auto 0;overflow-wrap:anywhere}
+.session-screen-error .session-screen-lead{font-size:12px;margin-top:15px}
+.session-screen-error .session-screen-primary{margin-top:25px}
+.session-screen-spinner{display:block;width:25px;height:25px;border:3px solid #E6F6F5;border-top-color:#019FA3;border-radius:50%;margin:25px auto 15px;animation:session-screen-turn .9s linear infinite}
+.session-screen :focus-visible{outline:3px solid #019FA3;outline-offset:3px}
+@keyframes session-screen-turn{to{transform:rotate(360deg)}}
+@media(max-height:690px){.session-screen-content{padding:5px 16px 16px}.session-screen-card{padding:20px 21px}.session-screen-symbol{width:49px;height:49px;border-radius:18px;margin-bottom:12px}.session-screen-symbol svg{width:28px;height:28px}.session-screen h1{font-size:22px}.session-screen-lead{font-size:12px;margin-top:6px}.session-screen-form{margin-top:18px}.session-screen-form>label:not(:first-child){margin-top:14px}.session-screen-form>label{margin-bottom:6px}.session-screen-form input{min-height:45px;padding-block:10px}.session-screen-primary{margin-top:19px;min-height:45px}.session-screen-footnote{margin-top:13px}}
+@media(prefers-reduced-motion:reduce){.session-screen-spinner{animation:none}}
+
+.session-screen-error-message>span{display:block}.session-screen-error .session-screen-lead{font-size:clamp(10px,2.65vw,12px);white-space:nowrap}
+
+.session-screen-error-message>span{font-size:clamp(11px,3vw,14px)}
