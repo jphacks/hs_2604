@@ -110,7 +110,7 @@ E2Eはローカル限定の検証用Supabase HTTP応答とNext.jsの実API、Chr
 
 `test:shopping:database`はPGliteへCOM-02→DB-02→DB-03→来店開始関数→DB-04→DB-05→DB-06の実SQLを適用して検証します。検証だけのGRANTやポリシーは追加せず、正式なDB-06の権限で、関数経由の来店開始と直接書込み拒否、本人だけのかご復元を確認します。DB-02〜DB-06付属の検証SQLも実行します。Authの署名検証・共有Supabaseへの適用確認・複数接続の同時実行の検証ではありません。
 
-共有Supabaseでの残件は[2利用者の実接続確認手順](../development/app-session-check.md)に従い、`pnpm check:shopping`と実ブラウザで検証します。作業場にGit管理外の`.env.local`・`.env.shopping-check.local`の入力用ひな形を配置済みですが、接続先・検証用アカウント等の実値は未設定です。
+共有Supabaseでの確認は[実接続確認手順・実行記録](../development/app-session-check.md)にまとめています。当初は接続設定待ちでしたが、管理者の環境準備後に、担当者が指定した1利用者でログイン・店舗選択・来店開始／再開・空のかごの再読込・ログアウトが成功しました。商品入りのかご復元・実環境の2利用者確認は残っています。接続情報はGit管理外に保持し、この仕様書へ記載しません。
 
 ### 2026-10-24の検証記録
 
