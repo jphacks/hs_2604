@@ -16,7 +16,7 @@
     "test:shopping:e2e": "node tests/shopping.e2e.mjs",
     "test:cart": "node --experimental-strip-types --test tests/cart-database.test.mts",
     "test:cart:e2e": "node --experimental-strip-types tests/cart.e2e.mts",
-    "test:demo-data": "node --experimental-strip-types --test tests/demo-data.test.mts",
+    "test:demo-data": "node --experimental-strip-types --test tests/demo-data.test.mts tests/demo152-data.test.mts",
     "generate:demo-responses": "node --experimental-strip-types scripts/generate-demo-responses.mts",
     "check:cart": "node --experimental-strip-types --env-file=.env.shopping-check.local scripts/check-cart.mts",
     "test:account": "node --experimental-strip-types --test tests/account.test.mts",
