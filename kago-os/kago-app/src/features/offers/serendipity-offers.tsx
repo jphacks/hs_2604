@@ -63,7 +63,12 @@ export function SerendipityOffers() {
     }
   };
   useEffect(() => {
-    const boot = window.setTimeout(() => { setDismissed(readList(dismissedKey)); setOpened(readList(openedKey)); void load(); }, 0);
+    const boot = window.setTimeout(() => {
+      setDismissed(readList(dismissedKey));
+      // Keep the in-memory choice when storage is unavailable during a cart refresh.
+      setOpened(previous => [...new Set([...previous, ...readList(openedKey)])]);
+      void load();
+    }, 0);
     return () => { window.clearTimeout(boot); request.current?.abort(); if (timer.current) window.clearTimeout(timer.current); };
     // Reload whenever the saved cart changes (scan, removal, claim) or a cart/claim request is refused
     // (e.g. the offer just ended); the visit boundary unmounts this tree.
