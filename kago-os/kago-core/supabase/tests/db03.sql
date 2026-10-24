@@ -84,9 +84,9 @@ update public.store_products set is_active=false where product_id='30000000-0000
 select pg_temp.db03_reject($q$insert into public.cart_items(visit_id,product_id,quantity) values('40000000-0000-4000-8000-000000000003','30000000-0000-4000-8000-000000000001',1)$q$, '23503');
 select pg_temp.db03_assert((select bool_and(unit_price=248) from public.order_items),'inactive listing preserves history');
 select pg_temp.db03_assert((select count(*)=4 and bool_and(relrowsecurity) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname in ('visits','cart_items','orders','order_items')),'four tables RLS enabled');
-select pg_temp.db03_assert((select bool_and(not has_table_privilege(r,'public.'||t,p)) from unnest(array['anon','authenticated']) r cross join unnest(array['visits','cart_items','orders','order_items']) t cross join unnest(array['SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER']) p),'general roles have no access');
+select pg_temp.db03_assert((select bool_and(not has_table_privilege(r,'public.'||t,p)) from unnest(case when to_regprocedure('public.kago_has_role(text)') is null then array['anon','authenticated'] else array['anon'] end) r cross join unnest(array['visits','cart_items','orders','order_items']) t cross join unnest(array['SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER']) p),'general roles have no access');
 set local role authenticated;
-select pg_temp.db03_reject($q$select * from public.orders$q$, '42501');
+select pg_temp.db03_reject($q$select * from public.orders$q$, case when to_regprocedure('public.kago_has_role(text)') is null then '42501' end); -- DB-06 grants SELECT; rows are then filtered by RLS (db06.sql)
 reset role;
 select 'DB-03: all assertions passed; rolling back fixtures' as result;
 rollback;

@@ -171,3 +171,62 @@ psql -X -v ON_ERROR_STOP=1 -f supabase/tests/db05.sql
 - service_roleでの投入、DB-06想定（authenticatedへ対象表の権限と許可ポリシーだけを付与）でのイベント・再生・推定の保存、APP-01の`app_start_visit`と同じトランザクションでの選定保存を別途確認。kago-appの`visit-database.test.mts`を全migration適用で実行し9件成功。
 - `supabase/tests/db02.sql`〜`db05.sql`を各2回成功し、各回ロールバック後の店舗件数0を確認。
 - 実Supabase、複数接続の同時実行、DB-06の本人・所属ごとの許可は未検証。
+
+## DB-06：役割ごとの読み書き権限
+
+DB-05の後に`20261024070000_access_policies.sql`を適用する。全業務表のRLSは有効のまま、`authenticated`へ必要な操作だけを付与し、行を本人・自店・自社・自端末に絞るポリシーを作る。`anon`には何も付与しない。
+
+```sh
+# kago-os/kago-core/から、所有者権限の破棄可能な検証DBに対して実行
+psql -X -v ON_ERROR_STOP=1 -f supabase/tests/db06.sql
+```
+
+成功時は`DB-06: all assertions passed; rolling back fixtures`を返す。JWTの`sub`・`app_metadata.kago`を`request.jwt.claim.sub`／`request.jwt.claims`で模擬し、各役割に切り替えて確認する。`db02.sql`〜`db05.sql`もDB-06適用後に実行でき、一般ロールの権限確認はDB-06の有無で切り替わる。
+
+### 判定の仕組み
+
+- 役割は`app_metadata.kago.roles`（管理者のみ設定）で判定し、行は必ず`store_members`・`maker_members`・`signage_devices`・`auth.uid()`で絞る。役割だけでは何も読めない（所属のない`store_staff`は0件）。
+- 端末は`signage_devices.auth_user_id = auth.uid()`かつ`is_active`かつJWTの`device_id`・`store_id`が行と一致する場合だけ自端末として扱う。主張を書き換えたJWT、停止した端末は0件。
+- 判定用の関数（`kago_has_role`・`kago_my_store_ids`・`kago_my_maker_ids`・`kago_my_device_id`など）はSECURITY DEFINER・`search_path`空で、呼出し元自身についてだけ答える。ポリシー内では`(select …)`で包み、1文につき1回だけ評価する（2万行の再生記録で店舗担当の件数取得が約0.9秒→約15ms）。
+
+### 役割ごとの範囲
+
+| データ | customer | store_staff（所属店舗） | maker_staff（所属メーカー） | signage（自端末） |
+| --- | --- | --- | --- | --- |
+| 店舗・商品・店舗別価格・メーカー | 全件R | 自店R | 全件R | 自店R |
+| 利用者設定 | 本人CRU | － | － | － |
+| 来店・かご・注文・明細 | 本人R（書込みは関数のみ） | － | － | － |
+| 募集 | － | 自店CRUD（削除はdraftのみ） | draft以外R | － |
+| 素材・版 | 配信中の版R | 自店へ申請された分R | 自社CR | 自店で配信中の版R |
+| 申請・審査履歴 | － | 自店宛R（審査はDB-08） | 自社CR、再申請のみU | － |
+| 配信対象 | activeR | 自店R | 自社申請分R | 自店activeR |
+| 販促・版 | active版R | 自店CR、active→inactiveのU | － | 自店R（版はactiveのみ） |
+| 実験・割当 | 条件R、本人の割当R | 自店の実験CR | － | 自店の実験R |
+| 選定・枠 | 本人R（保存は`kago_save_selection`） | － | － | － |
+| イベント | 本人C・R（かご操作イベント以外、`operated`のみ、来店時間内） | － | － | － |
+| 端末・再生・推定 | － | 自店R | 稼働中の端末の所在地R（`auth_user_id`は不可） | 自端末C・R |
+
+`－`は0件（SELECT権限がある表）または権限エラー。店舗担当・メーカー・端末からは来店・かご・注文・明細・イベント・選定・利用者設定を1行も読めない。集計はDB-09のビューで渡す。
+
+### 所有者権限の書込み経路
+
+| 関数 | 呼べる人 | 内容 |
+| --- | --- | --- |
+| `app_start_visit`（APP-01） | customer | DB-06でSECURITY DEFINERへ変更。利用者は`auth.uid()`、来店の開始・再開・明示的な新規来店だけを行う。visitsへの直接INSERT／UPDATEは付与しない |
+| `kago_save_selection(visit_id, cart_version, rule_version, items, selection_id)` | customer | 本人の来店に1〜3枠の選定を保存。DB-05のトリガーが版・店舗・種別・配信可否を再検査。同じ`selection_id`の再送は無操作 |
+| かご更新（APP-02）・購入確定（DB-07）・承認／停止（DB-08）・実験割当（APP-10） | 各Issueで作成 | DB-06では直接書込みを付与しない。作成時はSECURITY DEFINER・`auth.uid()`・所属確認・`search_path`空で実装し、`authenticated`へEXECUTEだけを付与する |
+
+APP-01の`kago-app/tests/visit-database.test.mts`は関数がSECURITY INVOKERであることを確認しているため、DB-06のmigrationを取り込む際にその確認を更新する（APP-01担当へ連絡）。
+
+### 既知の制限
+
+- 消費者は自分の来店に任意の選定を保存し、実表示イベントを送れる。生の行は増えるが、共通仕様9.1の集計は(来店・商品・種別)で1件に数えるため、1来店で水増しできるのは1件まで。複数来店を使った水増しは集計・監視側で扱う。
+- トリガーがRLSより先に動くため、他テナントのUUIDを知っていると存在や版数がエラーコード（23505・23514）から推測できる。行の内容は返らない。
+- 画像保存先（Supabase Storage）の権限はCOM-03で設定する。
+
+### DB-06の検証記録（2026-10-24）
+
+- 空のPGlite 0.5.11へ全migrationを適用し、`db02.sql`〜`db06.sql`を各2回成功（DB-06なしでも`db02`〜`db05`が成功）。
+- anon・役割なし・customer 2名・store_staff 2名と所属なし1名・maker_staff 2名・signage 2台で、許可／拒否とID書換え（他人の来店ID・利用者ID・店舗ID・メーカーID・端末ID、JWTの端末主張の書換え、停止端末）を確認。
+- kago-appの来店・かご取得処理（`loadShoppingContext`・`startShoppingVisit`）を、テスト用の許可なしでDB-06の権限だけで実行し10件成功。
+- 実Supabaseでの適用、実JWTでの確認、複数接続の同時実行は未検証。
