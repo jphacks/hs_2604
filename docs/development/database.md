@@ -413,3 +413,19 @@ psql -X -v ON_ERROR_STOP=1 -f supabase/tests/db09.sql
 - M1のoperated Signageは3再生・45秒。実測0人・エラー1・疑似計測1（5人・10秒）を分け、3秒未満とfallbackを除外。17:59:50〜18:00:05を17時台だけに計上。
 - 自店／自社だけの取得、公開範囲の変更、個人列なし、内部ビュー拒否、customer・端末・anon拒否を確認。
 - 実PostgreSQLサーバー・実Supabaseへの適用、実JWT、画面からの確認は今回未実施。UIのグラフ・率はINS-03／ADS-04で実装する。
+
+## 共有開発DBの確認記録（2026-10-24）
+
+コードのローカル検証とは別に、開発用SupabaseでCOM-02、DB-02〜08、APP-01来店開始関数とDB-09の定義を確認しました。publicの業務テーブル28個はすべてRLSが有効で、ポリシーは42件です。適用済みのSQLを再実行してはいけません。
+
+既存の検証用店舗担当・Signageアカウントを検証店舗へ紐付けた後、新しい本人セッションで、自店1件・自端末1件の読取を確認しました。4役割でDB-09の`kago_app_metrics_view`・`kago_signage_metrics_view`・`kago_selection_counts`へ接続でき、内部の`kago_app_cohorts_internal`は拒否されます。未ログインの集計参照も拒否されました。メーカーとSignageから個人の来店・注文は取得されませんでした。集計元は0件のため、実データの集計値・複数メーカーの公開範囲を実環境で確認した意味ではありません。
+
+手動適用したCOM-02〜DB-09の10ファイルについて、管理者のmanifestに記録したハッシュとmainのファイルを照合し、`supabase_migrations.schema_migrations`へ適用済みとして登録しました。業務SQLの再実行はしていません。10件のversion・nameと290件のSQL文を保存し、履歴表のコメントに元ファイルのハッシュと参照コミットを残しています。履歴表でもRLSを有効にし、anon/authenticatedからスキーマへアクセスできないことを確認しました。
+
+履歴のversionは`20261024020000`〜`20261024100000`です。[公式CLI v2.54.11の履歴定義](https://github.com/supabase/cli/blob/v2.54.11/pkg/migration/history.go)と同じ列形式を使い、ローカルPostgreSQLでも登録・読取を確認しました。公式CLIによるローカル照合はTLS接続で停止し、実SupabaseへのCLIログイン・接続も未実施です。次回は適用履歴を確認し、未適用かつマージ済みのSQLだけを適用します。履歴が見えない場合も、既存テーブルを作るSQLをまとめて再実行しないでください。
+
+残件：購入時の同時価格変更に対する追加修正[PR #77](https://github.com/jphacks/hs_2604/pull/77)、[画像保存と権限](ad-images.md)、各画面からの実操作・非0件集計の確認。未マージの修正や画像migrationは共有DBへ適用していません。
+
+## INS-08向け商品別販売集計（#84）
+
+`kago_product_sales(p_start,p_end,p_store_id,p_product_ids?,p_bucket?)`を追加します。自店の店舗担当だけに、注文・明細を正本とした商品別の販売数・金額をJSTの日別／時間別、由来別で返します。販売がない区間は行なしです。最初の注文日時を記録開始時刻とみなさず、比較可能な記録範囲が不明な場合は画面で比較不可とします。契約・呼出例・適用上の注意は[商品別販売集計ガイド](product-sales.md)を参照してください。
