@@ -97,7 +97,7 @@ erDiagram
 
 DB-07は来店行をロックし、本人・active・期待cart_version・非空かご・取扱状態・現価格を確認して、注文・明細・来店終了を1トランザクションで保存する。totalは明細のunit_price×quantityの合計（integer上限超過は拒否）。再送時は既存注文を返す前に本人・来店・確定時cart_versionの一致を確認する。終了後の再送を新規注文にしない。かご更新も来店行をロックし、更新・cart_version加算・イベントを原子的に保存する。同じevent_idの再送では更新しない。3時間放棄は共通仕様Q-07の案であり閾値の担当確認待ち。
 
-購入確定は`kago_checkout`としてDB-07で実装した。DB-03〜DB-07の実装・適用手順は[共通DBガイド](../development/database.md)を参照。実験のassignment_id／experiment_armはDB-05で追加した。かごと明細の同店舗商品検査はvisit／orderの店舗を使うトリガー、注文の利用者・店舗一致は複合FKで保証する。購入確定時の合計・版・時刻検証と原子的保存はDB-07で実装する。
+購入確定は`kago_checkout`としてDB-07で実装した。DB-03〜DB-08の実装・適用手順は[共通DBガイド](../development/database.md)を参照。実験のassignment_id／experiment_armはDB-05で追加した。かごと明細の同店舗商品検査はvisit／orderの店舗を使うトリガー、注文の利用者・店舗一致は複合FKで保証する。購入確定時の合計・版・時刻検証と原子的保存はDB-07で実装する。
 
 ### 広告・申請・販促（DB-04・DB-08）
 
@@ -116,7 +116,7 @@ DB-07は来店行をロックし、本人・active・期待cart_version・非空
 
 `time_windows`は`[{"weekdays":[1,2,3,4,5,6,7],"start":"16:00","end":"19:00"}]`（ISO曜日、店舗時間帯）。空配列は終日。時刻はHH:mm（endのみ24:00可）、start＜end、日跨ぎは2窓に分割し、窓内の重複曜日と同じ曜日で重なる窓を拒否する。DB-04でJSON構造を検査する。販促の版と行IDを分け、参照列は常に`promotion_version_id`とする。
 
-`requested_period`は共通仕様の単一範囲列を採用する設計案。Adsの画面入力`requested_start/requested_end`は境界でこの範囲に変換する。`expired`は共通仕様どおり保持するが、失効状態の更新が遅れても期間条件で配信から除外する。再申請で申請の状態を戻しても、旧配信対象に保存した承認版を変更しない。承認切替はDB-08で同じ申請をロックし旧activeをsupersededにして新activeを作る。停止・再審査では承認者の自店所属を再検証する。
+`requested_period`は共通仕様の単一範囲列を採用する設計案。Adsの画面入力`requested_start/requested_end`は境界でこの範囲に変換する。`expired`は共通仕様どおり保持するが、失効状態の更新が遅れても期間条件で配信から除外する。再申請で申請の状態を戻しても、旧配信対象に保存した承認版を変更しない。承認切替はDB-08で同じ申請をロックし旧activeをsupersededにして新activeを作る。停止・再審査では承認者の自店所属を再検証する。DB-08で`kago_approve_application`・`kago_reject_application`・`kago_suspend_placement`と操作履歴`ad_operation_logs`として実装した。
 
 ### 選定・行動・実験・端末（DB-05）
 
