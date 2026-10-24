@@ -11,6 +11,7 @@ import { useSession } from "@/lib/session";
 import type { Session } from "@/lib/domain/types";
 import { getAdsIdentity, type AdsIdentity, type AdsRole } from "@/lib/backend/ads-identity";
 import { createSupabaseStoreCallsRepository, type StoreCallsRepository } from "@/lib/backend/store-calls";
+import { createSupabaseMakerRepository, type MakerRepository } from "@/lib/backend/maker";
 import { storeLabel } from "@/lib/domain/rules";
 
 type State = { status: "loading" } | { status: "guest"; error?: string }
@@ -134,6 +135,15 @@ export function usePortalRepository(): () => PortalRepository {
   };
 }
 
+export function useMakerRepository(): () => MakerRepository {
+  const { source, state, client } = useAdsRuntime();
+  return () => {
+    if (source === "mock") return getRepository();
+    if (!client || state.status !== "ready" || state.identity.role !== "maker_staff") throw new BackendError("forbidden");
+    return createSupabaseMakerRepository(client);
+  };
+}
+
 export function useStoreSession(): Session {
   const demo = useSession();
   const { source, state, storeId } = useAdsRuntime();
@@ -203,6 +213,10 @@ export function AdsAccess({ children }: { children: ReactNode }) {
     if (!store) return <Card><p>この画面は店舗担当者向けです。店舗担当者のアカウントでログインし直してください。</p><ButtonLink href="/ads/portal">募集一覧へ戻る</ButtonLink></Card>;
     return <div key={state.identity.userId + ":" + storeId}>{children}</div>;
   }
+  if (["/ads/maker/creatives", "/ads/maker/creatives/new", "/ads/maker/creative", "/ads/maker/applications", "/ads/maker/applications/new", "/ads/maker/application"].includes(pathname)) {
+    if (state.identity.role !== "maker_staff") return <Card><p>メーカーとしてログインしてください。</p><ButtonLink href="/ads/store/calls">自店の募集へ戻る</ButtonLink></Card>;
+    return <div key={state.identity.userId + ":" + state.identity.makerIds[0]}>{children}</div>;
+  }
   return <Card>
     <h1 className="text-xl font-bold">この操作はDB接続の準備中です</h1>
     <p className="mt-3 text-sm text-muted">申請内容の保存と素材登録はADS-03で接続します。この画面では保存は行いません。</p>
@@ -220,6 +234,7 @@ export function ConnectedAdsHeader() {
       {store ? <Link href="/ads/store/calls" className="text-sm text-brand">自店の募集</Link> : <>
         <Link href="/ads/portal" className="text-sm text-brand">募集を探す</Link>
         <Link href="/ads/portal/stores" className="text-sm text-brand">店舗一覧</Link>
+        {identity && <><Link href="/ads/maker/creatives" className="text-sm text-brand">広告素材</Link><Link href="/ads/maker/applications" className="text-sm text-brand">申請一覧</Link></>}
       </>}
       <span className="ml-auto text-xs text-muted">{identity ? (store ? "店舗担当者としてログイン中" : "メーカーとしてログイン中") : "募集ポータル"}</span>
       {store && <label className="flex items-center gap-2 text-sm">操作する店舗
@@ -237,6 +252,6 @@ export function AdsFooter() {
   return <footer className="border-t border-line px-6 py-4 text-center text-xs text-muted">
     {source === "mock"
       ? "仮データで動いています。店舗・メーカー・商品はデモ用の架空のものです。"
-      : "募集の閲覧・作成・公開・終了は共有DBへ接続しています。申請の保存は接続準備中です。"}
+      : "募集・広告素材・申請は共有DBへ保存します。掲載には店舗の承認が必要です。"}
   </footer>;
 }

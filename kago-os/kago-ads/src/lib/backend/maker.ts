@@ -4,7 +4,7 @@ import { canResubmit, validateApplication } from "../domain/rules.ts";
 import { CHANNELS, type AdApplication, type AdPlacement, type ApplicationRevision, type Creative, type CreativeVersion, type MediaAsset, type Session } from "../domain/types.ts";
 import { createSupabasePortalRepository, portalError, requireMaker, type PortalClient } from "./portal.ts";
 
-export type MakerRepository = Pick<AdsRepository, "listStores" | "listMakers" | "listProducts" | "getAdCall" | "listMyCreatives" | "listMyApplications" | "getApplication" | "listPlacements"> & {
+export type MakerRepository = Pick<AdsRepository, "listPublicAdCalls" | "listStores" | "listMakers" | "listProducts" | "getAdCall" | "listMyCreatives" | "listMyApplications" | "getApplication" | "listPlacements"> & {
   createCreative(session: Session, input: CreativeInput, requestId?: string): Promise<CreativeWithVersions>;
   addCreativeVersion(session: Session, id: string, input: CreativeVersionInput, requestId?: string): Promise<CreativeVersion>;
   submitApplication(session: Session, callId: string, input: ApplicationInput): Promise<AdApplication>;
@@ -71,6 +71,11 @@ export function createSupabaseMakerRepository(client: PortalClient): MakerReposi
     if(session.role!=="maker_staff" || !identity.makerIds.includes(session.makerId))throw new BackendError("forbidden");
     return session.makerId;
   }
+  async function ensureStorage() {
+    const value="00000000-0000-4000-8000-000000000011/00000000-0000-4000-8000-000000000051/00000000-0000-4000-8000-000000000053.png";
+    const {data,error}=await client.rpc("kago_ad_image_path_valid",{p_path:value});
+    if(error || data!==true)throw new Error("広告画像のDB設定を確認できません。COM-03の適用・APIへの反映・接続状態を確認してください。");
+  }
   async function creativeOf(session:Session,id:string) {
     const maker=await makerOf(session);
     if(!uuid.test(id))throw new BackendError("forbidden");
@@ -98,6 +103,7 @@ export function createSupabaseMakerRepository(client: PortalClient): MakerReposi
     const creative=await creativeOf(session,id),v=content(input);
     if(!uuid.test(requestId))throw new ValidationError(["登録IDの形式を確認してください"]);
     if(v.asset.upload) {try{await validateAdImage(v.asset.upload);}catch(e){throw makerError(e);}}
+    await ensureStorage();
     const existing=await query<VersionRow|null>(client.from("creative_versions").select(versionColumns).eq("id",requestId).eq("creative_id",id).maybeSingle());
     if(existing) {
       if(existing.headline!==v.headline || existing.note!==v.note)throw conflict();
@@ -105,7 +111,9 @@ export function createSupabaseMakerRepository(client: PortalClient): MakerReposi
     }
     const previous=await query<VersionRow[]>(client.from("creative_versions").select(versionColumns).eq("creative_id",id).order("version",{ascending:false}).limit(1));
     const image_path=await imageFor(creative.maker_id,id,v.asset);
-    const row=await query<VersionRow>(client.from("creative_versions").insert({id:requestId,creative_id:id,version:(previous[0]?.version??0)+1,image_path,headline:v.headline,note:v.note}).select(versionColumns).single());
+    // SELECT用RLSは別表のヘルパーを通るため、同じINSERTのRETURNINGに依存しない。
+    await query(client.from("creative_versions").insert({id:requestId,creative_id:id,version:(previous[0]?.version??0)+1,image_path,headline:v.headline,note:v.note}));
+    const row=await query<VersionRow>(client.from("creative_versions").select(versionColumns).eq("id",requestId).eq("creative_id",id).single());
     return mapVersion(row);
   }
   async function applications(session:Session,id?:string) {
@@ -135,7 +143,7 @@ export function createSupabaseMakerRepository(client: PortalClient): MakerReposi
     return {maker,call,creative,version};
   }
   return {
-    listStores:portal.listStores,getAdCall:portal.getAdCall,
+    listPublicAdCalls:portal.listPublicAdCalls,listStores:portal.listStores,getAdCall:portal.getAdCall,
     async listMakers(){await requireMaker(client);return query(client.from("makers").select("id,slug,display_name,is_fictional").order("display_name"));},
     async listProducts(){await requireMaker(client);return query(client.from("products").select("id,code,name,category").order("name"));},
     async listMyCreatives(session){
@@ -151,9 +159,13 @@ export function createSupabaseMakerRepository(client: PortalClient): MakerReposi
       if(!uuid.test(input.product_id)||!uuid.test(requestId))throw new ValidationError(["対象商品を選んでください"]);
       if(!v.asset.upload)throw new ValidationError(["登録する画像ファイルを選んでください"]);
       try{await validateAdImage(v.asset.upload);}catch(e){throw makerError(e);}
+      await ensureStorage();
       let creative=await query<Creative|null>(client.from("creatives").select(creativeColumns).eq("id",requestId).eq("maker_id",maker).maybeSingle());
       if(creative && creative.product_id!==input.product_id)throw new Error("前回の登録と対象商品が異なります。登録画面を開き直してください。");
-      if(!creative)creative=await query<Creative>(client.from("creatives").insert({id:requestId,maker_id:maker,product_id:input.product_id}).select(creativeColumns).single());
+      if(!creative) {
+        await query(client.from("creatives").insert({id:requestId,maker_id:maker,product_id:input.product_id}));
+        creative=await query<Creative>(client.from("creatives").select(creativeColumns).eq("id",requestId).eq("maker_id",maker).single());
+      }
       const first=await query<VersionRow[]>(client.from("creative_versions").select(versionColumns).eq("creative_id",creative.id).order("version"));
       if(first.length) {
         if(first[0].headline!==v.headline || first[0].note!==v.note)throw conflict();
@@ -178,7 +190,7 @@ export function createSupabaseMakerRepository(client: PortalClient): MakerReposi
       const current=(await applications(session,id))[0];
       if(!current)throw new BackendError("forbidden");
       if(!canResubmit(current))throw new ValidationError(["審査中は再申請できません"]);
-      if(expectedUpdatedAt && Date.parse(expectedUpdatedAt)!==Date.parse(current.updated_at))throw conflict();
+      if(expectedUpdatedAt && expectedUpdatedAt!==current.updated_at)throw conflict();
       const t=await terms(session,current.ad_call_id,input);
       if(t.creative.id!==current.creative_id)throw new ValidationError(["再申請では同じ広告素材の版を選んでください"]);
       const revision=current.revisions[current.revisions.length-1].rev;

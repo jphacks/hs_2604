@@ -167,6 +167,8 @@ export function deliveryState(
     if (now.getTime() >= ms(active.ends_at)) return { state: "ended", placement: active };
     return { state: "delivering", placement: active };
   }
+  const expired = mine.find((p) => p.status === "expired");
+  if (expired) return { state: "ended", placement: expired };
   const suspended = mine.find((p) => p.status === "suspended");
   if (suspended) return { state: "suspended", placement: suspended };
   return { state: "none" };
