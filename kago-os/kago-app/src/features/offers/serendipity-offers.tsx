@@ -31,10 +31,12 @@ export function SerendipityOffers() {
   const visitId = session.visit!.id;
   const shownKey = `kago-offers-shown:${session.userId}:${visitId}`;
   const dismissedKey = `kago-offers-dismissed:${session.userId}:${visitId}`;
+  const openedKey = `kago-offers-opened:${session.userId}:${visitId}`;
   const [data, setData] = useState<SerendipityResponse | null>(null);
   const [failed, setFailed] = useState(false);
   const [open, setOpen] = useState<SerendipityOffer | null>(null);
   const [dismissed, setDismissed] = useState<string[]>([]);
+  const [opened, setOpened] = useState<string[]>([]);
   const request = useRef<AbortController | null>(null);
   const timer = useRef<number | null>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
@@ -61,14 +63,15 @@ export function SerendipityOffers() {
     }
   };
   useEffect(() => {
-    const boot = window.setTimeout(() => { setDismissed(readList(dismissedKey)); void load(); }, 0);
+    const boot = window.setTimeout(() => { setDismissed(readList(dismissedKey)); setOpened(readList(openedKey)); void load(); }, 0);
     return () => { window.clearTimeout(boot); request.current?.abort(); if (timer.current) window.clearTimeout(timer.current); };
     // Reload whenever the saved cart changes (scan, removal, claim) or a cart/claim request is refused
     // (e.g. the offer just ended); the visit boundary unmounts this tree.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cart.version, cart.error]);
 
-  const visible = data ? [...data.timeSales, ...data.sets, ...(data.coupon && !dismissed.includes(data.coupon.offerId) ? [data.coupon] : [])] : [];
+  const coupon = data?.coupon && !dismissed.includes(data.coupon.offerId) && !opened.includes(data.coupon.offerId) ? data.coupon : null;
+  const visible = data ? [...data.timeSales, ...data.sets, ...(coupon ? [coupon] : [])] : [];
   const visibleIds = visible.map(offer => offer.offerId).join(",");
   useEffect(() => {
     if (!visibleIds) return;
@@ -88,12 +91,16 @@ export function SerendipityOffers() {
   }, [open]);
 
   const claim = (offer: SerendipityOffer) => { setOpen(null); cart.claimOffer(offer.offerId); };
+  const openCoupon = (offer: SerendipityOffer) => {
+    // Opening consumes the sticker for this customer/visit/tab, without declining the offer.
+    const next = [...opened, offer.offerId]; setOpened(next); writeList(openedKey, next);
+    setOpen(offer); record(offer.offerId, "offer_opened");
+  };
   const dismiss = (offer: SerendipityOffer) => {
     const next = [...dismissed, offer.offerId]; setDismissed(next); writeList(dismissedKey, next);
     record(offer.offerId, "offer_dismissed"); setOpen(null);
   };
-  const coupon = data?.coupon && !dismissed.includes(data.coupon.offerId) ? data.coupon : null;
-  if (!data || (!data.timeSales.length && !data.sets.length && !coupon)) {
+  if (!data || (!data.timeSales.length && !data.sets.length && !coupon && !open)) {
     return failed ? <p className="text-xs text-slate-500" role="status">お得情報を取得できませんでした。通信が戻ると自動で再表示します。</p> : null;
   }
 
@@ -118,7 +125,7 @@ export function SerendipityOffers() {
         <button type="button" disabled={!cart.canEdit} onClick={() => claim(offer)} className={`${button} mt-3 w-full bg-emerald-700 text-white`}>{offer.action === "apply" ? "セット割を適用" : `セットでかごに追加（${offer.product.name}を追加）`}</button>
       </article>)}
     </section>}
-    {coupon && !open && <button type="button" onClick={() => { setOpen(coupon); record(coupon.offerId, "offer_opened"); }}
+    {coupon && !open && <button type="button" onClick={() => openCoupon(coupon)}
       className="fixed bottom-24 right-4 z-40 max-w-[11rem] -rotate-6 rounded-2xl border-4 border-white bg-gradient-to-br from-pink-500 to-orange-400 px-3 py-2 text-left text-white shadow-xl motion-safe:animate-bounce"
       style={{ animationIterationCount: 3 }} // a short "pop" to be noticed, then it stays still to be tapped
       aria-label={`ゲリラクーポン：${coupon.product.name} ${coupon.discountLabel}。詳細を開く`}>
