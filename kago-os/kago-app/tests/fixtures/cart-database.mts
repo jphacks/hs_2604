@@ -10,6 +10,12 @@ export async function createCartDatabase() {
     create function auth.jwt() returns jsonb language sql stable as $$
       select coalesce(nullif(current_setting('request.jwt.claims',true),''),'{}')::jsonb $$;
     create function auth.uid() returns uuid language sql stable as $$ select (auth.jwt()->>'sub')::uuid $$;`);
+  // The hosted Storage service supplies these tables. This fixture only needs their
+  // shape to apply COM-03's policies; it does not emulate the Storage API or test it.
+  await db.exec(`create schema storage;
+    create table storage.buckets(id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);
+    create table storage.objects(id uuid primary key default gen_random_uuid(), bucket_id text, name text);
+    alter table storage.objects enable row level security;`);
   const migrations = new URL("../../../kago-core/supabase/migrations/", import.meta.url);
   for (const file of (await readdir(migrations)).filter(f => f.endsWith(".sql")).sort()) await db.exec(await readFile(new URL(file, migrations), "utf8"));
   await db.query("insert into auth.users(id,email) values ($1,'user3@example.test'),($2,'user4@example.test'),($3,'user5@example.test')", [id(3), id(4), id(5)]);
