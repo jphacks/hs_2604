@@ -57,13 +57,20 @@ export function rankSerendipity(list: OfferList, rules: AssociationRuleSet, hist
     }
   }
   const order = (a: SerendipityOffer, b: SerendipityOffer) => b.score - a.score || a.offerId.localeCompare(b.offerId);
+  // Existing store offers can overlap with a day's rehearsal offers. Show a product/pair once.
+  const distinct = (offers: SerendipityOffer[], key: (offer: SerendipityOffer) => string) => {
+    const seen = new Set<string>();
+    return offers.filter(offer => { const value = key(offer); if (seen.has(value)) return false; seen.add(value); return true; });
+  };
   return {
     visitId: list.visitId, cartVersion: list.cartVersion, serverTime: list.serverTime, nextChangeAt: list.nextChangeAt,
     ruleVersion: rules.version,
-    timeSales: timeSales.sort((a, b) => a.endsAt.localeCompare(b.endsAt) || order(a, b)),
+    timeSales: distinct(timeSales.sort((a, b) => b.unitDiscount - a.unitDiscount || a.endsAt.localeCompare(b.endsAt) || order(a, b)), offer => offer.product.productId)
+      .sort((a, b) => a.endsAt.localeCompare(b.endsAt) || order(a, b)),
     // One sticker at a time keeps it a surprise: the best Association × Novelty × Deal for this customer.
     coupon: toCoupon(list, decideCoupon(list, rules, history)),
-    sets: sets.sort(order).slice(0, 2),
+    sets: distinct(sets.sort((a, b) => (b.discountPercent ?? 0) - (a.discountPercent ?? 0) || order(a, b)),
+      offer => [offer.product.productId, offer.trigger!.productId].sort().join(":")).sort(order).slice(0, 2),
   };
 }
 

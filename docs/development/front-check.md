@@ -23,6 +23,7 @@ cd kago-os/kago-insight && pnpm dev      # Insight: http://localhost:3002
 | 購入履歴・利用設定 | `pnpm test:account`、`pnpm test:account:e2e` |
 | おすすめ（選定・カード） | `pnpm test:selection`、`pnpm test:selection:e2e`、`pnpm test:suggestions:e2e` |
 | お得情報・クーポン配布 | `pnpm test:offers`、`pnpm test:offers:e2e`、`pnpm test:coupon-open:e2e`、`pnpm test:coupon-redemption:e2e` |
+| セット割・タイムセールのデモ | `pnpm test:offer-scenarios`、`pnpm test:offer-scenarios:e2e` |
 | 操作の記録 | `pnpm test:events`、`pnpm test:events:e2e` |
 | 共通 | `pnpm lint`、`pnpm exec tsc --noEmit`、`pnpm build` |
 
@@ -77,6 +78,8 @@ cd kago-os/kago-insight && pnpm dev      # Insight: http://localhost:3002
 | 3人とも同じクーポンになる | migration `20261025090000`の適用、田中さんの履歴設定がOFFのままか |
 
 クーポン選定の内訳（スコア・関連の出所・新しさ）は、`GET /api/offers`の応答の`coupon.targeting`で確認できる。
+
+セット割・タイムセールを決まった商品で試す場合は [デモ準備と操作表](offer-demo-scenarios.md)を参照。DB所有者が当日の追加seedを適用した後、`/App/demo-offers`から広島デモ店を開く。パスタ＋ソース／牛乳＋食パンのセット割と、牛乳／唐揚げのタイムセールを試せる。案内ページの表示だけではDBへの準備が済んだことを意味しない。
 
 ## 6. 疑似購入を通して確認する（APP-09）
 
