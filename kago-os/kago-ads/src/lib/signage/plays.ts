@@ -79,12 +79,7 @@ export function summarizePlays(plays: SignagePlay[]): PlaySummary[] {
   return [...map.values()].map((r) => ({ ...r, seconds: Math.round(r.seconds) }));
 }
 
-/**
- * 受け取った記録を保存済みの記録に重ねる（同じ id は1件。再送しても増えない）。
- * 終わった記録を、あとから届いた「開始だけ」の古い記録で戻さない
- */
+/** 受け取った記録を保存する。同じ id がすでにあれば最初のものを残す（再送しても増えず、受信時刻も変わらない） */
 export function mergePlay(existing: SignagePlay | undefined, incoming: SignagePlay, receivedAt: Timestamp): SignagePlay {
-  if (!existing) return { ...incoming, received_at: receivedAt };
-  if (existing.ended_at && !incoming.ended_at) return existing;
-  return { ...incoming, received_at: existing.received_at ?? receivedAt };
+  return existing ?? { ...incoming, received_at: receivedAt };
 }

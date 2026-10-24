@@ -213,7 +213,7 @@ export function createSeed(on: string = today()): MockDb {
   const store_promotions: StorePromotion[] = [
     {
       id: "SP1", version_id: "SP1-v1", store_id: "S1", product_id: productId("PLU-2001"), version: 1, channels: ["app", "signage"],
-      time_windows: [{ start_hour: 16, end_hour: 19 }], priority: 50, reason_text: "店内で揚げたてです",
+      time_windows: [{ weekdays: [1, 2, 3, 4, 5, 6, 7], start: "16:00", end: "19:00" }], priority: 50, reason_text: "店内で揚げたてです",
       starts_at: dayStart(d(-1)), ends_at: dayEnd(d(30)), status: "active",
     },
     {

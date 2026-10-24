@@ -47,6 +47,18 @@ describe("SIG-01 配信内容", () => {
     expect(Date.parse(f.expires_at) - Date.parse(f.fetched_at)).toBe(CACHE_TTL_MS);
   });
 
+  it("曜日が合わない時間帯は出さない（2026-10-25 は日曜＝7）", () => {
+    const db = seed();
+    db.store_promotions[0].time_windows = [{ weekdays: [1, 2, 3, 4, 5], start: "16:00", end: "19:00" }];
+    expect(keys(feedFor(db, "D1", at("17:00")))).not.toContain("SP1-v1");
+  });
+
+  it("期間の終わりの時刻ちょうどは期間外（[starts_at, ends_at)）", () => {
+    const db = seed();
+    db.ad_placements[0].ends_at = at("17:00").toISOString();
+    expect(keys(feedFor(db, "D1", at("17:00")))).not.toContain("PL1");
+  });
+
   it("時間帯の外の販促は出さない（10時は SP1 なし）", () => {
     const f = feedFor(seed(), "D1", at("10:00"));
     expect(keys(f)).toEqual(["PL1", "SP2-v1"]);
@@ -168,7 +180,7 @@ describe("SIG-01・SIG-03 切り替えの判定", () => {
   it("再生中のものが一覧から消えたら、元の順で次にあったものを出す", () => {
     const before = feed();
     const db = seed();
-    db.store_promotions[0].status = "suspended";
+    db.store_promotions[0].status = "inactive";
     const after = feedFor(db, "D1", at("17:00"));
     expect(pickNext(after, t0, allReady, { key: "SP1-v1", feedKeys: keys(before) })?.key).toBe("SP2-v1");
   });
@@ -234,34 +246,34 @@ describe("SIG-01・SIG-02 端末の権限と再送", () => {
     await expect(repo.signInDevice("D9")).rejects.toBeInstanceOf(PermissionError);
   });
 
-  it("同じ記録を再送しても1件。開始→終了で更新され、古い開始の記録で戻らない", async () => {
+  it("終わった記録だけを保存し、同じ記録を再送しても1件・受信時刻も変わらない", async () => {
     const f = await repo.getSignageFeed(d1, at("17:00"));
     const started = startPlay("D1", f.items[1], "no_content", at("17:00").toISOString(), "play-1");
     const ended = endPlay(started, new Date(at("17:00").getTime() + 10_000).toISOString(), "completed");
-    await repo.recordPlays(d1, [started]);
+    await expect(repo.recordPlays(d1, [started])).rejects.toThrow("終わっていない");
     await repo.recordPlays(d1, [ended]);
+    const first = (await repo.devListPlays(staff))[0].received_at;
     await repo.recordPlays(d1, [ended]);
-    await repo.recordPlays(d1, [started]);
     const plays = await repo.devListPlays(staff);
     expect(plays).toHaveLength(1);
-    expect(plays[0]).toMatchObject({ id: "play-1", end_reason: "completed", promotion_version_id: "SP1-v1" });
-    expect(plays[0].received_at).toBeTruthy();
+    expect(plays[0]).toMatchObject({ id: "play-1", end_reason: "completed", promotion_version_id: "SP1-v1", received_at: first });
     expect(summarizePlays(plays)[0]).toMatchObject({ counted: 1, seconds: 10 });
   });
 
   it("他の端末の記録は保存できない。他店の担当者には見えない", async () => {
     const f = await repo.getSignageFeed(d1, at("17:00"));
-    await expect(repo.recordPlays(d1, [startPlay("D3", f.items[0], "no_content", at("17:00").toISOString())])).rejects.toBeInstanceOf(PermissionError);
-    await repo.recordPlays(d1, [startPlay("D1", f.items[0], "no_content", at("17:00").toISOString())]);
+    const done = (dev: string) => endPlay(startPlay(dev, f.items[0], "no_content", at("17:00").toISOString()), at("17:01").toISOString(), "completed");
+    await expect(repo.recordPlays(d1, [done("D3")])).rejects.toBeInstanceOf(PermissionError);
+    await repo.recordPlays(d1, [done("D1")]);
     expect(await repo.devListPlays({ role: "store_staff", storeId: "S2" })).toEqual([]);
   });
 
   it("店舗の担当者が販促を止めると、次の取得で一覧から消え停止として届く", async () => {
-    await repo.devSetPromotionStatus(staff, "SP1", "suspended");
+    await repo.devSetPromotionStatus(staff, "SP1", "inactive");
     const f = await repo.getSignageFeed(d1, at("17:00"));
     expect(f.items.map((i) => i.key)).not.toContain("SP1-v1");
     expect(f.suspended_keys).toContain("SP1-v1");
-    await expect(repo.devSetPromotionStatus({ role: "store_staff", storeId: "S2" }, "SP2", "suspended")).rejects.toBeInstanceOf(PermissionError);
+    await expect(repo.devSetPromotionStatus({ role: "store_staff", storeId: "S2" }, "SP2", "inactive")).rejects.toBeInstanceOf(PermissionError);
   });
 
   it("デモ用の時刻を設定すると、端末の配信内容がその時刻で決まる", async () => {

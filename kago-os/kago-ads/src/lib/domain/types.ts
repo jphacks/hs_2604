@@ -158,14 +158,17 @@ export type AdPlacement = {
   suspend_reason?: string;
 };
 
-/** 店舗販促の状態（提案：共通仕様書は status の値を決めていない。INS-02 と合わせる） */
-export type PromotionStatus = "active" | "suspended";
-
-/** 配信する時間帯（日本時間の時。[start_hour, end_hour)、1時間単位。COM-01 案 G） */
-export type TimeWindow = { start_hour: number; end_hour: number };
+/** 店舗販促の版の状態（docs/specs/database-design.md の promotion_versions.status） */
+export type PromotionStatus = "active" | "inactive";
 
 /**
- * 店舗販促 store_promotions（INS-02 で店舗が設定する）。1行が1つの版。
+ * 配信する時間帯（database-design.md の time_windows）。weekdays は ISO 曜日（1=月〜7=日）、
+ * start・end は店舗の時刻の HH:mm で [start, end)。日をまたぐときは2つに分ける
+ */
+export type TimeWindow = { weekdays: number[]; start: string; end: string };
+
+/**
+ * 店舗販促。DB では store_promotions（販促）と promotion_versions（版）に分かれる。画面ではつないだ形で持つ。
  * id は販促、version_id は版の行の ID（再生記録・提案枠の promotion_version_id が参照する）
  */
 export type StorePromotion = {
@@ -177,7 +180,7 @@ export type StorePromotion = {
   channels: Channel[];
   /** 空なら終日 */
   time_windows: TimeWindow[];
-  /** 0〜100。大きいほど先に出す（提案） */
+  /** 0以上。大きいほど先に出す（上限 100 は画面の入力の提案） */
   priority: number;
   reason_text: string;
   starts_at: Timestamp;
@@ -206,7 +209,10 @@ export const PLAY_END_REASON_LABEL: Record<PlayEndReason, string> = {
   closed: "画面を閉じた",
 };
 
-/** 再生記録 signage_plays（SIG-02）。id は端末が再生開始時に作り、再送しても同じ id を使う */
+/**
+ * 再生記録 signage_plays（SIG-02）。id は端末が再生開始時に作り、再送しても同じ id を使う。
+ * DB では ended_at が必須なので、端末は再生が終わってから送る（再生中の記録は端末の中だけにある）
+ */
 export type SignagePlay = {
   id: string;
   device_id: string;

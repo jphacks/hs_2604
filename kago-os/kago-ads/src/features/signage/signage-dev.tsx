@@ -126,7 +126,7 @@ export function SignageDev() {
                   key={p.id}
                   promotion={p}
                   productName={productName(p.product_id)}
-                  onToggle={() => run(() => getRepository().devSetPromotionStatus(session, p.id, p.status === "active" ? "suspended" : "active"))}
+                  onToggle={() => run(() => getRepository().devSetPromotionStatus(session, p.id, p.status === "active" ? "inactive" : "active"))}
                 />
               ))}
             </ul>
@@ -188,7 +188,7 @@ function DemoClock({ onSet, onReset }: { onSet: (hm: string) => void; onReset: (
 }
 
 function PromotionRow({ promotion: p, productName, onToggle }: { promotion: StorePromotion; productName: string; onToggle: () => void }) {
-  const windows = p.time_windows.length ? p.time_windows.map((w) => `${w.start_hour}〜${w.end_hour}時`).join("・") : "終日";
+  const windows = p.time_windows.length ? p.time_windows.map((w) => `${w.start}〜${w.end}`).join("・") : "終日";
   return (
     <li className="flex flex-wrap items-center justify-between gap-2 py-2" data-testid={`promo-${p.id}`}>
       <span>
@@ -224,7 +224,7 @@ function NewPromotion({
         onCreate({
           product_id: productId,
           channels: ["signage"],
-          time_windows: allDay ? [] : [{ start_hour: start, end_hour: end }],
+          time_windows: allDay ? [] : [{ weekdays: [1, 2, 3, 4, 5, 6, 7], start: hhmm(start), end: hhmm(end) }],
           priority,
           reason_text: reason,
           starts_at: dayStart(d),
@@ -271,6 +271,8 @@ function NewPromotion({
     </form>
   );
 }
+
+const hhmm = (h: number) => `${String(h).padStart(2, "0")}:00`;
 
 function PlayLog({ plays, label }: { plays: SignagePlay[]; label: (p: SignagePlay) => string }) {
   const sorted = [...plays].sort((a, b) => b.started_at.localeCompare(a.started_at));

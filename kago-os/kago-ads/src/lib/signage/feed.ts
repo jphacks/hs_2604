@@ -95,27 +95,30 @@ export type FeedSource = {
 
 const ms = (ts: Timestamp) => Date.parse(ts);
 
-/** 店舗の時刻での「時」（日本時間、0〜23） */
-export function hourOf(storeNow: Date): number {
-  return Number(new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Tokyo", hour: "numeric", hourCycle: "h23" }).format(storeNow));
-}
-
-/** 時間帯の中なら、その時間帯が終わる時刻を返す。外なら null。空の時間帯は終日 */
-export function windowEnd(windows: TimeWindow[], storeNow: Date): Date | null {
-  if (windows.length === 0) return endOfDay(storeNow);
-  const h = hourOf(storeNow);
-  const w = windows.find((x) => x.start_hour <= h && h < x.end_hour);
-  if (!w) return null;
-  const startOfHour = Math.floor(storeNow.getTime() / 3_600_000) * 3_600_000; // 日本時間は時の境界が UTC と同じ
-  return new Date(startOfHour + (w.end_hour - h) * 3_600_000);
-}
-
-function endOfDay(storeNow: Date): Date {
+/** 店舗の時刻（日本時間）の日付・時刻・ISO 曜日 */
+export function localParts(storeNow: Date): { date: string; hm: string; weekday: number } {
   const date = new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Tokyo" }).format(storeNow);
-  return new Date(`${date}T23:59:59+09:00`);
+  const hm = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Tokyo", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(storeNow);
+  const day = new Date(`${date}T00:00:00Z`).getUTCDay();
+  return { date, hm, weekday: day === 0 ? 7 : day };
 }
 
-const inPeriod = (start: Timestamp, end: Timestamp, now: Date) => ms(start) <= now.getTime() && now.getTime() <= ms(end);
+/** 店舗の時刻での「時」（0〜23）。集計の時間帯（共通仕様書 9.3）に使う */
+export function hourOf(storeNow: Date): number {
+  return Number(localParts(storeNow).hm.slice(0, 2));
+}
+
+/** 時間帯の中なら、その時間帯が終わる時刻を返す。外なら null。空の時間帯は終日（翌日0時まで） */
+export function windowEnd(windows: TimeWindow[], storeNow: Date): Date | null {
+  const { date, hm, weekday } = localParts(storeNow);
+  if (windows.length === 0) return new Date(Date.parse(`${date}T00:00:00+09:00`) + 86_400_000);
+  const w = windows.find((x) => x.weekdays.includes(weekday) && x.start <= hm && hm < x.end);
+  if (!w) return null;
+  return w.end === "24:00" ? new Date(Date.parse(`${date}T00:00:00+09:00`) + 86_400_000) : new Date(`${date}T${w.end}:00+09:00`);
+}
+
+/** 期間は [starts_at, ends_at)（database-design.md） */
+const inPeriod = (start: Timestamp, end: Timestamp, now: Date) => ms(start) <= now.getTime() && now.getTime() < ms(end);
 const earlier = (a: Timestamp, b: Date): Timestamp => (ms(a) <= b.getTime() ? a : b.toISOString());
 
 /**
@@ -203,7 +206,7 @@ export function buildFeed(src: FeedSource, realNow: Date, clockOffsetMs = 0): Si
 
   const suspended_keys = [
     ...src.placements.filter((p) => p.store_id === storeId && p.status === "suspended").map((p) => p.id),
-    ...src.promotions.filter((p) => p.store_id === storeId && p.status === "suspended").map((p) => p.version_id),
+    ...src.promotions.filter((p) => p.store_id === storeId && p.status === "inactive").map((p) => p.version_id),
   ];
 
   return {

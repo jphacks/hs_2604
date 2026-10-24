@@ -147,8 +147,9 @@ export class SignageEngine {
   }
 
   private async flush() {
-    if (!this.session || this.outbox.size === 0) return;
-    const batch = [...this.outbox.values()];
+    // DB では ended_at が必須なので、終わった記録だけを送る（再生中のものは端末に残す）
+    const batch = [...this.outbox.values()].filter((p) => p.ended_at);
+    if (!this.session || batch.length === 0) return;
     await this.deps.repo.recordPlays(this.session, batch);
     // 送っている間に更新された記録（終了の追記など）は残して次に送る
     for (const p of batch) if (this.outbox.get(p.id) === p) this.outbox.delete(p.id);

@@ -88,8 +88,10 @@ function validatePromotion(input: PromotionInput): string[] {
   if (!input.reason_text.trim()) errors.push("理由文を入力してください");
   else if (input.reason_text.trim().length > 40) errors.push("理由文は40字以内にしてください");
   if (!Number.isInteger(input.priority) || input.priority < 0 || input.priority > 100) errors.push("優先度は0〜100の整数にしてください");
+  const hm = /^([01]\d|2[0-3]):[0-5]\d$|^24:00$/;
   for (const w of input.time_windows) {
-    if (!(0 <= w.start_hour && w.start_hour < w.end_hour && w.end_hour <= 24)) errors.push("時間帯は0〜24時の範囲で、終わりを始まりより後にしてください");
+    if (!hm.test(w.start) || !hm.test(w.end) || w.start >= w.end) errors.push("時間帯は HH:mm で、終わりを始まりより後にしてください");
+    if (w.weekdays.length === 0 || w.weekdays.some((d) => !Number.isInteger(d) || d < 1 || d > 7)) errors.push("曜日を1つ以上選んでください");
   }
   if (Date.parse(input.starts_at) > Date.parse(input.ends_at)) errors.push("期間の終わりは始まり以降にしてください");
   return errors;
@@ -416,6 +418,10 @@ export function createMockRepository(storage: MockStorage, seed: () => MockDb = 
     recordPlays(session, plays) {
       const { deviceId } = requireDevice(session);
       if (plays.some((p) => p.device_id !== deviceId)) throw new PermissionError("他の端末の再生記録は保存できません");
+      // database-design.md：ended_at は必須で、開始以降
+      if (plays.some((p) => !p.ended_at || Date.parse(p.ended_at) < Date.parse(p.started_at))) {
+        throw new ValidationError(["終わっていない再生記録は保存できません"]);
+      }
       write((db) => {
         for (const p of plays) {
           const i = db.signage_plays.findIndex((x) => x.id === p.id);
