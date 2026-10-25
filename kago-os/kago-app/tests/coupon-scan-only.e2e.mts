@@ -1,4 +1,4 @@
-// #186: scanning spaghetti always shows the tomato sauce coupon, and a guerrilla coupon is confirmed by scanning only
+// #186/#191: while spaghetti is in the cart the coupon is always tomato sauce, and a guerrilla coupon is confirmed by scanning only
 // (no code entry), unless the camera cannot be used. Real Next/API + official SQL/RLS (PGlite).
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
@@ -47,16 +47,25 @@ try {
   await Promise.race([ready(), myPage.waitFor()]);
   if (await myPage.isVisible()) { await page.getByRole("link", { name: "ホーム", exact: true }).click(); await ready(); }
 
-  await page.getByRole("button", { name: "検索", exact: true }).click();
-  const panel = page.getByRole("dialog", { name: "商品を探す", exact: true });
-  await panel.locator(".shopping-code summary").click();
-  await panel.getByLabel("商品コードを入力", { exact: true }).fill("2900000000100");
-  await panel.getByRole("button", { name: "コードで追加", exact: true }).click(); await saved();
-  await panel.getByRole("button", { name: "閉じる", exact: true }).click();
+  const add = async (code: string) => {
+    await page.getByRole("button", { name: "検索", exact: true }).click();
+    const panel = page.getByRole("dialog", { name: "商品を探す", exact: true });
+    await panel.locator(".shopping-code summary").click();
+    await panel.getByLabel("商品コードを入力", { exact: true }).fill(code);
+    await panel.getByRole("button", { name: "コードで追加", exact: true }).click(); await saved();
+    await panel.getByRole("button", { name: "閉じる", exact: true }).click();
+  };
+  const couponCode = async () => (await (await context.request.get(origin + "/api/offers")).json()).coupon?.product.code;
+  await add("2900000000100");
   await sticker().waitFor();
-  const offers = await (await context.request.get(origin + "/api/offers")).json();
-  assert.equal(offers.coupon.product.code, sauceCode, "spaghetti → tomato sauce, although the basil coupon scores higher");
+  assert.equal(await couponCode(), sauceCode, "spaghetti → tomato sauce, although the basil coupon scores higher");
   pass("scanning spaghetti shows the tomato sauce coupon (fixed for the demo)");
+
+  // #191: it stays the sauce coupon after the sauce itself and another product (basil, which has its own coupon) are added.
+  await add(sauceCode); assert.equal(await couponCode(), sauceCode);
+  await add("2900000000179"); assert.equal(await couponCode(), sauceCode);
+  await sticker().waitFor();
+  pass("with spaghetti in the cart the coupon stays tomato sauce, also after adding the sauce and basil");
 
   await sticker().click();
   const dialog = page.getByRole("dialog", { name: "トマトパスタソース 15% OFF", exact: true });
