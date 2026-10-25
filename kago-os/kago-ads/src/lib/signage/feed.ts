@@ -72,6 +72,7 @@ export type FeedItem = {
 };
 
 export type SignageFeed = {
+  crowd?: { snapshot: import('./crowd-selection').CrowdSnapshot | null; categoryByKey: Record<string,string> };
   device: SignageDevice;
   store_name: string;
   /** 取得した時刻と、使ってよい期限（端末の実時刻） */

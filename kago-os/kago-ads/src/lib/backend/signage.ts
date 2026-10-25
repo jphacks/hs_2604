@@ -19,6 +19,7 @@ import type {
   StoreProduct,
   TimeWindow,
 } from "../domain/types";
+import { parseCrowdSnapshot } from "../signage/crowd-selection";
 import { buildFeed, type FeedSource, type SignageFeed } from "../signage/feed";
 
 export type SignageClient = ReturnType<typeof createBrowserBackend>;
@@ -169,8 +170,27 @@ export async function loadSignageRows(client: SignageClient, session: Session): 
 }
 
 /** 端末の配信内容。デモ用の時刻は DB にまだないので、実時刻で判定する */
-export async function loadSignageFeed(client: SignageClient, session: Session, now = new Date()): Promise<SignageFeed> {
-  return buildFeed(feedSourceFromRows(await loadSignageRows(client, session)), now, 0);
+export async function loadSignageFeed(client: SignageClient, session: Session, now = new Date(), crowd = false): Promise<SignageFeed> {
+  const rows=await loadSignageRows(client,session);
+  let feed=buildFeed(feedSourceFromRows(rows),now,0);
+  if(crowd){
+    const {data,error}=await client.rpc("kago_signage_crowd");
+    const snapshot=error?null:parseCrowdSnapshot(data,feed.device.store_id,new Set(rows.products.map(p=>p.category)));
+    if(snapshot){
+      const receivedAt=new Date();
+      // The aggregate supplies authoritative store time; do not depend on the device clock.
+      feed=buildFeed(feedSourceFromRows(rows),receivedAt,Date.parse(snapshot.observed_at)-receivedAt.getTime());
+    }
+    const categoryByKey:Record<string,string>={};
+    for(const item of feed.items){
+      const version=rows.versions.find(v=>v.id===item.creative_version_id);
+      const creative=rows.creatives.find(c=>c.id===version?.creative_id);
+      const product=rows.products.find(p=>p.id===creative?.product_id);
+      if(product)categoryByKey[item.key]=product.category;
+    }
+    feed.crowd={snapshot,categoryByKey};
+  }
+  return feed;
 }
 
 /**
@@ -182,14 +202,24 @@ export async function insertSignagePlays(client: SignageClient, session: Session
   if (plays.some((p) => p.device_id !== session.deviceId || !p.ended_at)) throw new BackendError("forbidden");
   if (plays.length === 0) return { rejected: [] };
   const { error } = await client.from("signage_plays").insert(plays.map(playRow));
-  if (!error) return { rejected: [] };
+  if (!error) { return { rejected: await saveDecisions(client,plays) }; }
   if (!isRejected(error)) throw signageError(error);
   const rejected: string[] = [];
   for (const p of plays) {
     const { error: one } = await client.from("signage_plays").insert([playRow(p)]);
-    if (!one) continue;
+    if (!one) { rejected.push(...await saveDecisions(client,[p])); continue; }
     if (!isRejected(one)) throw signageError(one);
     rejected.push(p.id);
   }
   return { rejected };
+}
+
+async function saveDecisions(client:SignageClient,plays:SignagePlay[]){
+ const rejected:string[]=[];
+ for(const p of plays){
+  if(!p.selection)continue;
+  const {error}=await client.rpc("kago_record_signage_decision",{p_play_id:p.id,p_decision:p.selection});
+  if(error){if(isRejected(error))rejected.push(p.id);else throw signageError(error);} // Retry transient failures with the same play ID.
+ }
+ return rejected;
 }

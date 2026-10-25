@@ -45,7 +45,8 @@ export type EngineDeps = {
   /** 素材を読み込み、表示に使う URL を返す */
   loadMedia: (path: string) => Promise<string>;
   now?: () => number;
-  /** Optional aggregate selector. Omitted for all current DB terminals. */
+  /** Optional aggregate selector; enable DB selection only after migration. */
+  persistSelection?: boolean;
   select?: (feed: SignageFeed, now: Date, ready: (item: FeedItem) => boolean) => CrowdDecision;
 };
 
@@ -272,7 +273,8 @@ export class SignageEngine {
     const play = startPlay(deviceId, item, reason, this.storeTime(now));
     if(selection){
       play.mode=item?"adaptive":"fallback";
-      play.data_origin=selection.snapshot?.data_origin??"synthetic";
+      play.data_origin=selection.snapshot?.data_origin??(this.deps.persistSelection?"operated":"synthetic");
+      if(this.deps.persistSelection)play.selection=selection;
       this.selections=[...this.selections,{play_id:play.id,decision:selection}].slice(-20);
       this.set({selection});
     }

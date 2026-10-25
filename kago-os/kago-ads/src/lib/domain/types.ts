@@ -221,6 +221,7 @@ export const PLAY_END_REASON_LABEL: Record<PlayEndReason, string> = {
  * DB では ended_at が必須なので、端末は再生が終わってから送る（再生中の記録は端末の中だけにある）
  */
 export type SignagePlay = {
+  selection?: import('../signage/crowd-selection').CrowdDecision;
   id: string;
   device_id: string;
   ad_placement_id: string | null;
