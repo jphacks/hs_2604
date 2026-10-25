@@ -30,7 +30,7 @@
     "generate:icons": "node scripts/generate-icons.mjs",
     "sync:lp": "node scripts/sync-lp.mjs",
     "test:association": "node --experimental-strip-types --test tests/association.test.ts tests/product-name.test.ts",
-    "test:offers": "node --experimental-strip-types --test tests/offers-database.test.mts tests/serendipity.test.ts tests/coupon-targeting.test.mts tests/coupon-targeting-service.test.mts tests/fresh-coupons.test.mts",
+    "test:offers": "node --experimental-strip-types --test tests/offers-database.test.mts tests/serendipity.test.ts tests/coupon-targeting.test.mts tests/coupon-targeting-service.test.mts tests/fresh-coupons.test.mts tests/demo-set-deals.test.mts",
     "test:offer-scenarios": "node --experimental-strip-types --test tests/offer-scenarios.test.mts",
     "test:offer-scenarios:e2e": "node --experimental-strip-types tests/offer-scenarios.e2e.mts",
     "test:offers:e2e": "node --experimental-strip-types tests/offers.e2e.mts",
