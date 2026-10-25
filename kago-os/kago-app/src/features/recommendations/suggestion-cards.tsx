@@ -63,7 +63,7 @@ export function SuggestionCards() {
     <div className="mb-3 flex items-end justify-between gap-2">
       <div><p className="text-xs font-black tracking-wider text-emerald-700">FOR YOU</p>
         <h2 id="suggestions-heading" className="text-2xl font-black">あなたへのおすすめ</h2></div>
-      <span className="hidden shrink-0 text-[11px] text-slate-500 min-[360px]:inline">理由・広告表示つき</span>
+      <button type="button" onClick={retry} disabled={state.status === "loading"} className="min-h-11 shrink-0 rounded-xl border border-emerald-200 bg-white px-3 text-xs font-bold text-emerald-800 disabled:opacity-40">おすすめを更新</button>
     </div>
     {state.status === "loading" && <div role="status" aria-label={updating ? "かごに合わせておすすめを更新しています" : "おすすめを読み込んでいます"} className="flex animate-pulse items-center justify-center rounded-2xl bg-slate-200/70 p-4 text-sm text-slate-600" style={{ height: SLIDE_HEIGHT }}>
       {updating ? "かごに合わせておすすめを更新しています…" : "おすすめを読み込んでいます…"}
