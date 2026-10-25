@@ -6,6 +6,12 @@ if (insightOrigin) {
   if (!["https:", "http:"].includes(url.protocol) || url.username || url.password || url.pathname !== "/" || url.search || url.hash) throw new Error("INSIGHT_ORIGIN must be an HTTP(S) origin without credentials or a path");
 }
 
+const adsOrigin = process.env.ADS_ORIGIN;
+if (adsOrigin) {
+  const url = new URL(adsOrigin);
+  if (!["https:", "http:"].includes(url.protocol) || url.username || url.password || url.pathname !== "/" || url.search || url.hash) throw new Error("ADS_ORIGIN must be an HTTP(S) origin without credentials or a path");
+}
+
 const nextConfig: NextConfig = {
   devIndicators: false,
   // Keep browser checks/builds separate from a developer's running server.
@@ -14,7 +20,14 @@ const nextConfig: NextConfig = {
   async rewrites() {
     // Serve the original static LP without applying the App's styles or scripts.
     return {
-      beforeFiles: insightOrigin ? [{ source: "/insight/:path*", destination: `${new URL(insightOrigin).origin}/insight/:path*` }] : [],
+      beforeFiles: [
+        ...(insightOrigin ? [{ source: "/insight/:path*", destination: `${new URL(insightOrigin).origin}/insight/:path*` }] : []),
+        ...(adsOrigin ? [
+          { source: "/ads/:path*", destination: `${new URL(adsOrigin).origin}/ads/:path*` },
+          { source: "/ads-static/:path*", destination: `${new URL(adsOrigin).origin}/ads-static/:path*` },
+          { source: "/ad-assets/:path*", destination: `${new URL(adsOrigin).origin}/ad-assets/:path*` },
+        ] : []),
+      ],
       afterFiles: [{ source: "/", destination: "/website/index.html" }],
     };
   },
