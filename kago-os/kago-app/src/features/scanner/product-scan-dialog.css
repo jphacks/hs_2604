@@ -1,0 +1,19 @@
+
+.target-scan-overlay{position:fixed;inset:0;z-index:95;display:flex;align-items:flex-end;justify-content:center;background:#07192770;backdrop-filter:blur(4px);padding-top:15px;color:#0E2841}
+.target-scan-backdrop{position:absolute;inset:0;width:100%;height:100%}
+.target-scan-sheet{position:relative;width:100%;max-width:520px;max-height:92dvh;overflow:auto;padding:20px 19px max(22px,env(safe-area-inset-bottom));border-radius:27px 27px 0 0;background:#fff}
+.target-scan-sheet>header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:17px}
+.target-scan-sheet>header p{font-size:12px;color:#5C6C7A}
+.target-scan-sheet h2{font-size:21px;line-height:1.5;font-weight:800;margin-top:5px}
+.target-scan-sheet>header button{width:36px;height:36px;flex:none;border-radius:50%;background:#F2F5F6;font-size:25px;color:#5C6C7A}
+.target-scan-camera{height:clamp(180px,32dvh,270px)}
+.target-scan-camera .shopping-scanner{height:100%;min-height:0;overflow:hidden;border-radius:22px;background:#0E2841}
+.target-scan-help{font-size:12px;line-height:1.8;color:#5C6C7A;margin-top:14px}
+.target-scan-error{padding:11px 13px;border-radius:14px;background:#FFEEE8;color:#9a3524;font-size:13px;line-height:1.8;margin-top:12px}
+.target-scan-sheet details{margin-top:15px;border-radius:15px;background:#F2F5F6;padding:11px 13px}
+.target-scan-sheet summary{font-size:12px;color:#5C6C7A;cursor:pointer;min-height:25px}
+.target-scan-sheet form{display:grid;gap:10px;margin-top:12px}
+.target-scan-sheet label{display:grid;gap:7px;font-size:12px;font-weight:700}
+.target-scan-sheet input{min-height:44px;width:100%;border:1px solid #E2E8ED;background:white;border-radius:12px;padding:10px;font-size:16px}
+.target-scan-sheet form button{min-height:44px;border-radius:24px;background:#07576B;color:white;font-size:13px;font-weight:700}
+.target-scan-sheet button:disabled{opacity:.4}

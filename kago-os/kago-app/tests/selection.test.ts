@@ -36,7 +36,7 @@ test("pasta in the cart: organic co_purchase, the store pick and a related ad �
   assert.equal(r.items[1].reasonText, "店内で揚げたてです"); assert.equal(r.items[1].promotionVersionId, "pv-1");
   assert.equal(r.items[2].reasonText, "スパゲッティを選んだ方への広告です");
   assert.deepEqual(r.items[2].sponsor, { makerName: "瀬戸内トマト食品", headline: "トマトの旨みたっぷり", creativeVersionId: "cv-pl-1" });
-  assert.equal(r.ruleVersion, 1); assert.equal(r.cartVersion, 4);
+  assert.equal(r.ruleVersion, 2); assert.equal(r.cartVersion, 4);
   for (const i of r.items) {
     assert.equal(i.placementType === "sponsored", i.reasonCode.startsWith("sponsored_"));
     assert.equal(i.placementType === "store_promo", i.reasonCode.startsWith("store_"));
@@ -79,7 +79,7 @@ test("history ON: replenishment for a due product; history OFF never uses histor
   const r = run(candidates({ popular: [{ productId: TISSUE.productId, orders: 3 }] }), on, due);
   assert.deepEqual(shape(r), [[1, "organic", MILK.code, "replenishment"], [2, "organic", TISSUE.code, "popular"]],
     "eggs (2 of 14 days) and a one-off yogurt are not due");
-  assert.equal(r.items.find(i => i.reasonCode === "replenishment")!.reasonText, "いつもの購入周期から、そろそろです");
+  assert.equal(r.items.find(i => i.reasonCode === "replenishment")!.reasonText, "約7日ごとに購入・前回から9日です");
   const hidden = run(candidates({ popular: [{ productId: TISSUE.productId, orders: 3 }] }), { usePurchaseHistory: false, useCurrentCart: true }, due);
   assert(!hidden.items.some(i => i.reasonCode === "replenishment"));
 });

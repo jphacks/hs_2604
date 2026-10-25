@@ -1,8 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { CartProvider } from "@/features/cart/cart-provider";
-import { StoreProvider } from "@/features/store/store-provider";
-import { ShoppingSessionProvider } from "@/features/shopping/session-provider";
-import { EventProvider } from "@/features/events/event-provider";
+import { AppProviders } from "@/features/shopping/app-providers";
 import "../globals.css";
 
 export const metadata: Metadata = {
@@ -39,10 +36,6 @@ export const viewport: Viewport = {
 
 export default function AppLayout({ children }: LayoutProps<"/App">) {
   return (
-    <ShoppingSessionProvider>
-      <StoreProvider>
-        <EventProvider><CartProvider>{children}</CartProvider></EventProvider>
-      </StoreProvider>
-    </ShoppingSessionProvider>
+    <AppProviders>{children}</AppProviders>
   );
 }

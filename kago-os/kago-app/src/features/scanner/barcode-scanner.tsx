@@ -2,17 +2,22 @@
 
 import { BrowserMultiFormatReader, IScannerControls } from "@zxing/browser";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { ShoppingIcon } from "@/components/shopping-icons";
+import "./scanner-toast.css";
 
 type ScannerStatus = "idle" | "starting" | "scanning" | "error";
 
 type BarcodeScannerProps = {
+  appearance?: "default" | "shopping" | "store";
   onDetected: (code: string) => void;
   disabled?: boolean;
   purpose?: "product" | "store";
+  description?:string;
   onReadFailure?: (reason: "camera_unavailable" | "permission_denied" | "unreadable") => void;
 };
 
-export function BarcodeScanner({ onDetected, onReadFailure, disabled = false, purpose = "product" }: BarcodeScannerProps) {
+export function BarcodeScanner({ onDetected, onReadFailure, disabled = false, purpose = "product", description, appearance = "default" }: BarcodeScannerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const controlsRef = useRef<IScannerControls | null>(null);
   const lastCodeRef = useRef("");
@@ -20,6 +25,7 @@ export function BarcodeScanner({ onDetected, onReadFailure, disabled = false, pu
   const timeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [status, setStatus] = useState<ScannerStatus>("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const [toastClosed, setToastClosed] = useState(false);
 
   const stopScanner = () => {
     generation.current++;
@@ -48,6 +54,7 @@ export function BarcodeScanner({ onDetected, onReadFailure, disabled = false, pu
     if (disabled || !videoRef.current || status === "starting" || status === "scanning") {
       return;
     }
+    setToastClosed(false);
 
     setStatus("starting");
     setErrorMessage("");
@@ -135,11 +142,12 @@ export function BarcodeScanner({ onDetected, onReadFailure, disabled = false, pu
     }
   };
 
+  const Heading = appearance !== "default" ? "h2" : "p";
   const isActive = status === "starting" || status === "scanning";
 
   return (
-    <div className="min-w-0 overflow-hidden rounded-3xl bg-slate-950 shadow-lg">
-      <div className={isActive ? "relative aspect-[4/3] w-full bg-slate-950" : "hidden"}>
+    <div className={appearance !== "default" ? `${appearance === "store" ? "store-scanner" : "shopping-scanner"}${isActive ? " shopping-scanner-active" : ""}` : "min-w-0 overflow-hidden rounded-3xl bg-slate-950 shadow-lg"}>
+      <div className={isActive ? "scanner-live relative aspect-[4/3] w-full bg-slate-950" : "hidden"}>
         <video
           ref={videoRef}
           muted
@@ -148,10 +156,10 @@ export function BarcodeScanner({ onDetected, onReadFailure, disabled = false, pu
         />
         {isActive && (
             <div className="pointer-events-none absolute inset-0 grid place-items-center">
-              <div className="relative h-32 w-[82%] rounded-2xl border-2 border-white/90 shadow-[0_0_0_999px_rgba(2,6,23,0.38)]">
+              <div className="scanner-target relative h-32 w-[82%] rounded-2xl border-2 border-white/90 shadow-[0_0_0_999px_rgba(2,6,23,0.38)]">
                 <span className="scan-line absolute left-3 right-3 top-1/2 h-0.5 bg-emerald-400 shadow-[0_0_12px_2px_rgba(52,211,153,0.7)]" />
               </div>
-              <p className="absolute bottom-5 rounded-full bg-slate-950/75 px-4 py-2 text-xs font-bold text-white backdrop-blur">
+              <p className="scanner-guidance absolute bottom-5 rounded-full bg-slate-950/75 px-4 py-2 text-xs font-bold text-white backdrop-blur">
                 {status === "starting"
                   ? "カメラを起動中…"
                   : purpose === "store" ? "店舗のQRコードを枠内に合わせてください" : "バーコードを枠内に合わせてください"}
@@ -161,39 +169,42 @@ export function BarcodeScanner({ onDetected, onReadFailure, disabled = false, pu
       </div>
 
       {isActive ? (
-        <div className="p-4">
+        <div className="scanner-controls p-4">
           <button
             type="button"
             onClick={stopScanner}
-            className="w-full rounded-2xl border border-white/20 bg-white/10 px-4 py-3 font-bold text-white"
+            className="scanner-stop w-full rounded-2xl border border-white/20 bg-white/10 px-4 py-3 font-bold text-white"
           >
             読み取りを停止
           </button>
         </div>
       ) : (
-        <div className="p-4 text-white">
-          <div className="flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-3 sm:gap-4 sm:p-4">
-            <div className="grid size-12 shrink-0 place-items-center rounded-2xl bg-emerald-400 text-slate-950 sm:size-14">
+        <div className="scanner-idle p-4 text-white">
+          <div className="scanner-intro flex min-w-0 items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-3 sm:gap-4 sm:p-4">
+            <div className="scanner-symbol grid size-12 shrink-0 place-items-center rounded-2xl bg-emerald-400 text-slate-950 sm:size-14">
               <svg viewBox="0 0 32 32" fill="none" className="size-7 sm:size-8" aria-hidden="true">
                 <path d="M5 10V6a1 1 0 0 1 1-1h4M22 5h4a1 1 0 0 1 1 1v4M27 22v4a1 1 0 0 1-1 1h-4M10 27H6a1 1 0 0 1-1-1v-4M10 11v10M14 11v10M18 11v10M22 11v10" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
               </svg>
             </div>
-            <div className="min-w-0">
-              <p className="text-sm font-black sm:text-base">{purpose === "store" ? "店舗のQRコードを読み取る" : "バーコードをカメラで読み取る"}</p>
-              <p className="mt-1 text-xs leading-5 text-slate-300 sm:text-sm">{purpose === "store" ? "店頭に設置されたQRコードを読み取ってください" : "読み取り後、商品を自動でかごへ追加します"}</p>
+            <div className="scanner-copy min-w-0">
+              {appearance !== "shopping" && (              <Heading className="text-sm font-black sm:text-base">{purpose === "store" ? "店舗のQRコードを読み取る" : "バーコードをカメラで読み取る"}</Heading>)}
+              <p className="mt-1 text-xs leading-5 text-slate-300 sm:text-sm">{description ?? (purpose === "store" ? "店頭に設置されたQRコードを読み取ってください" : appearance === "shopping" ? "読み取り後、商品を自動で\nカートに追加します" : "読み取り後、商品を自動でかごへ追加します")}</p>
             </div>
           </div>
-          {status === "error" && (
-            <p className="mt-3 rounded-xl bg-red-950/60 px-3 py-2 text-sm text-red-100">
-              {errorMessage}
-            </p>
+          {/* #166：エラーは読み取りの枠の中に差し込まず、画面の上に重ねて出す（枠の中の並びを崩さない） */}
+          {status === "error" && !toastClosed && createPortal(
+            <div role="alert" className="scanner-toast">
+              <p>{errorMessage.trim() || "カメラを開始できませんでした。ブラウザのカメラ設定を確認して、もう一度お試しください。"}</p>
+              <button type="button" onClick={() => setToastClosed(true)} aria-label="お知らせを閉じる">×</button>
+            </div>, document.body
           )}
           <button
             type="button"
             disabled={disabled}
             onClick={startScanner}
-            className="mt-3 w-full rounded-2xl bg-emerald-400 px-4 py-3.5 font-black text-slate-950 transition hover:bg-emerald-300 active:scale-[0.99] disabled:opacity-40"
+            className="scanner-start mt-3 w-full rounded-2xl bg-emerald-400 px-4 py-3.5 font-black text-slate-950 transition hover:bg-emerald-300 active:scale-[0.99] disabled:opacity-40"
           >
+            {appearance !== "default" && <ShoppingIcon name="camera" />}
             カメラで読み取る
           </button>
         </div>

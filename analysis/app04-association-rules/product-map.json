@@ -1,5 +1,5 @@
 {
-  "note": "デモ商品コードと公開データGroceriesの品目カテゴリの対応表。1商品は1カテゴリに対応し、同じカテゴリ同士の組はルールにしない。",
+  "note": "デモ商品コードと公開データGroceriesの品目カテゴリの対応表。1商品は1カテゴリに対応し、同じカテゴリ同士の組はルールにしない。 group: \"fresh\" は#144で追加した生鮮商品（ルールの上位件数を既存商品と別に数える）。",
   "products": [
     {
       "code": "2900000000018",
@@ -115,6 +115,168 @@
       "code": "PLU-3001",
       "name": "焼きたて塩パン 1個",
       "groceriesItem": "rolls/buns"
+    },
+    {
+      "code": "PLU-4001",
+      "name": "トマト 1個",
+      "groceriesItem": "other vegetables",
+      "group": "fresh"
+    },
+    {
+      "code": "PLU-4002",
+      "name": "なす 1本",
+      "groceriesItem": "other vegetables",
+      "group": "fresh"
+    },
+    {
+      "code": "PLU-4003",
+      "name": "きゅうり 1本",
+      "groceriesItem": "other vegetables",
+      "group": "fresh"
+    },
+    {
+      "code": "PLU-4004",
+      "name": "キャベツ 1玉",
+      "groceriesItem": "other vegetables",
+      "group": "fresh"
+    },
+    {
+      "code": "PLU-4005",
+      "name": "にんじん 1本",
+      "groceriesItem": "root vegetables",
+      "group": "fresh"
+    },
+    {
+      "code": "PLU-4006",
+      "name": "じゃがいも 1個",
+      "groceriesItem": "root vegetables",
+      "group": "fresh"
+    },
+    {
+      "code": "PLU-4007",
+      "name": "ピーマン 1袋",
+      "groceriesItem": "other vegetables",
+      "group": "fresh"
+    },
+    {
+      "code": "PLU-4008",
+      "name": "ほうれん草 1束",
+      "groceriesItem": "other vegetables",
+      "group": "fresh"
+    },
+    {
+      "code": "PLU-4009",
+      "name": "ブロッコリー 1株",
+      "groceriesItem": "other vegetables",
+      "group": "fresh"
+    },
+    {
+      "code": "PLU-5001",
+      "name": "豚バラ薄切り 200g",
+      "groceriesItem": "pork",
+      "group": "fresh"
+    },
+    {
+      "code": "PLU-5002",
+      "name": "豚こま切れ 200g",
+      "groceriesItem": "pork",
+      "group": "fresh"
+    },
+    {
+      "code": "PLU-5003",
+      "name": "豚ロース とんかつ用 2枚",
+      "groceriesItem": "pork",
+      "group": "fresh"
+    },
+    {
+      "code": "PLU-5004",
+      "name": "鶏もも肉 300g",
+      "groceriesItem": "chicken",
+      "group": "fresh"
+    },
+    {
+      "code": "PLU-5005",
+      "name": "鶏むね肉 300g",
+      "groceriesItem": "chicken",
+      "group": "fresh"
+    },
+    {
+      "code": "PLU-5006",
+      "name": "鶏手羽元 500g",
+      "groceriesItem": "chicken",
+      "group": "fresh"
+    },
+    {
+      "code": "PLU-5007",
+      "name": "牛こま切れ 200g",
+      "groceriesItem": "beef",
+      "group": "fresh"
+    },
+    {
+      "code": "PLU-5008",
+      "name": "合いびき肉 250g",
+      "groceriesItem": "hamburger meat",
+      "group": "fresh"
+    },
+    {
+      "code": "PLU-5009",
+      "name": "ロースハム 4枚",
+      "groceriesItem": "ham",
+      "group": "fresh"
+    },
+    {
+      "code": "PLU-6001",
+      "name": "生鮭 切身 2切",
+      "groceriesItem": "fish",
+      "group": "fresh"
+    },
+    {
+      "code": "PLU-6002",
+      "name": "さば 切身 2切",
+      "groceriesItem": "fish",
+      "group": "fresh"
+    },
+    {
+      "code": "PLU-6003",
+      "name": "ぶり 切身 2切",
+      "groceriesItem": "fish",
+      "group": "fresh"
+    },
+    {
+      "code": "PLU-6004",
+      "name": "まぐろ赤身 刺身",
+      "groceriesItem": "fish",
+      "group": "fresh"
+    },
+    {
+      "code": "PLU-6005",
+      "name": "かつおのたたき",
+      "groceriesItem": "fish",
+      "group": "fresh"
+    },
+    {
+      "code": "PLU-6006",
+      "name": "あじ 2尾",
+      "groceriesItem": "fish",
+      "group": "fresh"
+    },
+    {
+      "code": "PLU-6007",
+      "name": "むきえび 150g",
+      "groceriesItem": "fish",
+      "group": "fresh"
+    },
+    {
+      "code": "PLU-6008",
+      "name": "するめいか 1杯",
+      "groceriesItem": "fish",
+      "group": "fresh"
+    },
+    {
+      "code": "PLU-6009",
+      "name": "釜揚げしらす 50g",
+      "groceriesItem": "fish",
+      "group": "fresh"
     }
   ]
 }

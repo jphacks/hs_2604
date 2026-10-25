@@ -7,15 +7,26 @@
 import type { AssociationRule, AssociationRuleSet } from "../recommendations/association";
 import type { ProductPurchaseSummary } from "../recommendations/customer";
 import type { StoreOffer } from "./contracts";
+import { shortProductName } from "../../lib/product-name.ts";
+import { isRegularPurchase } from "../recommendations/purchase-cycle.ts";
+
+// The regular-purchase definition is shared with the replenishment slot and the reminder card (#152).
+export { isRegularPurchase, REGULAR_INTERVAL_FACTOR, REGULAR_MIN_PURCHASES } from "../recommendations/purchase-cycle.ts";
 
 export const INITIAL_ASSOCIATION = 1.5;      // curated (initialRules) pair without enough public data
 export const STORE_TRIGGER_ASSOCIATION = 1.2; // the store tied the coupon to t, without a data/curated rule
 export const NOVELTY = {
   regular_purchase: 0, purchased_before: 0.6, same_category: 1.3, never_purchased: 1, history_disabled: 1, history_empty: 1,
 } as const;
-export const REGULAR_MIN_PURCHASES = 3;
-export const REGULAR_INTERVAL_FACTOR = 1.5;
 export const MAX_COUPONS_PER_VISIT = 3;
+// Demo (#186, #191): while spaghetti is in the cart, the coupon is always the tomato sauce one, whoever the customer
+// is (scores and history are not used): also when another product was added after it, when the sauce is already in
+// the cart, and past the 3-coupons limit. Only a coupon the DB still offers (not claimed in this visit) and not
+// dismissed is shown. If spaghetti was the last product added and the sauce coupon was dismissed, no other is shown.
+//   スパゲッティ 2900000000100 → トマトパスタソース 2900000000162
+export const DEMO_PINNED_COUPONS: Readonly<Record<string, string>> = { "2900000000100": "2900000000162" };
+// Used in the reason when the pinned product is in the cart but was not the last one added.
+const PINNED_TRIGGER_NAMES: Readonly<Record<string, string>> = { "2900000000100": "スパゲッティ 500g" };
 const SCORE_DIGITS = 1e6; // scores are compared after rounding, so float noise never decides a tie
 
 export type NoveltyReason = keyof typeof NOVELTY;
@@ -36,6 +47,7 @@ export type CouponTargetingInput = {
   rules: AssociationRuleSet;
   dismissedOfferIds?: Iterable<string>;     // "今回は見送る" in this visit
   claimedCouponCount?: number;              // coupons received in this visit
+  pinnedCoupons?: Readonly<Record<string, string>>; // trigger code → coupon product code (demo, #186)
 };
 export type CouponScore = {
   offerId: string; productId: string; productCode: string; productName: string;
@@ -56,13 +68,6 @@ export type CouponDecision = {
 };
 
 const round = (value: number) => Math.round(value * SCORE_DIGITS) / SCORE_DIGITS;
-const shortName = (name: string) => name.replace(/\s.*$/, "");
-
-/** Regular purchase: bought ≥3 times and the last purchase is still within 1.5 × the average interval. */
-export function isRegularPurchase(summary: ProductPurchaseSummary) {
-  return summary.purchaseCount >= REGULAR_MIN_PURCHASES && summary.averageIntervalDays !== null
-    && summary.daysSinceLastPurchase <= summary.averageIntervalDays * REGULAR_INTERVAL_FACTOR;
-}
 
 export function novelty(history: CouponHistory, product: Pick<StoreOffer["product"], "productId" | "category">): NoveltyReason {
   if (history.status === "disabled") return "history_disabled";
@@ -94,7 +99,7 @@ export function association(rules: AssociationRuleSet, from: string, offer: Pick
 
 function reasonText(trigger: TriggerProduct, source: RelationSource, rule: AssociationRule | null, noveltyReason: NoveltyReason,
   discount: string, regularExcluded: boolean) {
-  const t = shortName(trigger.name);
+  const t = shortProductName(trigger.name);
   const relation = source === "analysis" ? `公開購買データ（Groceries）では${t}と一緒に買われやすい組み合わせです。`
     : source === "initial" ? `${rule?.reason ?? `${t}と相性のよい商品です`}（KAGOが登録した組み合わせ）。`
       : `店舗が${t}と一緒に案内しているクーポンです。`;
@@ -141,5 +146,37 @@ export function targetCoupon(input: CouponTargetingInput): CouponDecision {
         discountText(input.offers.find(offer => offer.offerId === item.offerId)!), regularExcluded) }));
   const limited = (input.claimedCouponCount ?? 0) >= MAX_COUPONS_PER_VISIT;
   if (limited) for (const item of candidates) excluded.push({ offerId: item.offerId, productCode: item.productCode, reason: "visit_limit" });
+  const pinned = pinnedCoupon(input, cart, dismissed);
+  if (pinned) return { selected: pinned, candidates: [pinned, ...candidates.filter(item => item.offerId !== pinned.offerId)], excluded, historyStatus: input.history.status };
+  // Spaghetti was just added and the sauce coupon is offered but dismissed: never show another coupon in its place.
+  // (Once the sauce coupon has been used, the DB no longer lists it and the normal choice applies.)
+  const pinnedCode = input.triggers.length === 1 ? input.pinnedCoupons?.[input.triggers[0].code] : undefined;
+  if (pinnedCode !== undefined && input.offers.some(offer => offer.kind === "guerrilla_coupon" && offer.product.code === pinnedCode
+    && (offer.dismissed || dismissed.has(offer.offerId)) && (!offer.trigger || offer.triggerInCart)))
+    return { selected: null, candidates: [], excluded, historyStatus: input.history.status };
   return { selected: limited ? null : candidates[0] ?? null, candidates: limited ? [] : candidates, excluded, historyStatus: input.history.status };
+}
+
+/** Demo (#186, #191): the fixed coupon while its product is in the cart, if the DB offers it and it is not dismissed. */
+function pinnedCoupon(input: CouponTargetingInput, cart: Set<string>, dismissed: Set<string>): CouponScore | null {
+  const added = [...input.triggers].sort((a, b) => a.code.localeCompare(b.code));
+  const inCart = [...cart].filter(code => !added.some(t => t.code === code)).sort()
+    .map(code => ({ code, name: PINNED_TRIGGER_NAMES[code] ?? "かごの商品" }));
+  for (const trigger of [...added, ...inCart]) {
+    const code = input.pinnedCoupons?.[trigger.code];
+    const offer = code === undefined ? undefined : input.offers.filter(item => item.kind === "guerrilla_coupon" && item.product.code === code
+      && !item.dismissed && !dismissed.has(item.offerId) && (!item.trigger || item.triggerInCart))
+      .sort((a, b) => dealRate(b) - dealRate(a) || a.offerId.localeCompare(b.offerId))[0];
+    if (!offer) continue;
+    const related = association(input.rules, trigger.code, offer)
+      ?? { value: STORE_TRIGGER_ASSOCIATION, relation: { source: "store" as const, ruleId: `store-${offer.offerId}`, lift: null, confidence: null }, rule: null };
+    const noveltyReason = novelty(input.history, offer.product);
+    const percent = dealRate(offer);
+    const breakdown = { association: related.value, novelty: NOVELTY[noveltyReason], deal: round(1 + percent / 100) };
+    return { offerId: offer.offerId, productId: offer.product.productId, productCode: offer.product.code, productName: offer.product.name,
+      trigger, score: round(breakdown.association * breakdown.novelty * breakdown.deal), breakdown, relation: related.relation,
+      discountPercent: percent, noveltyReason,
+      reason: `${shortProductName(trigger.name)}と一緒に使えるクーポンです。${discountText(offer)}でお得です。` };
+  }
+  return null;
 }

@@ -10,5 +10,5 @@ export function createAdsBackend() {
   return createBrowserBackend(readBackendConfig({
     url: process.env.NEXT_PUBLIC_SUPABASE_URL,
     publishableKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
-  }));
+  }), { name: "kago-ads-auth", path: "/" });
 }

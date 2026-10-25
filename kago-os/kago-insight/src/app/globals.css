@@ -1,20 +1,24 @@
 @import "tailwindcss";
 
 :root {
-  --surface: #f1f2ed;
+  --surface: #f5f8fa;
   --panel: #ffffff;
   --ink: #10233f;
   --muted: #5a6b84;
-  --line: #d9dfe6;
-  --accent: #102a47;
+  --line: #e0e7ed;
+  --accent: #007e88;
 
-  /* グラフ用。青1色の順序ランプ（配布→受け取り→購入）と、単系列の棒。
-     dataviz の検証スクリプトで light / 白背景・ordinal として全項目PASSを確認済み。 */
-  --viz-step-1: #86b6ef;
-  --viz-step-2: #2a78d6;
-  --viz-step-3: #104281;
-  --viz-bar: #2a78d6;
+  /* グラフ用。ティールの順序ランプ（配布→受け取り→購入）と、単系列の棒。
+     配布・受け取り・購入の順序を明度で区別する。 */
+  --viz-step-1: #86d3d5;
+  --viz-step-2: #008f9b;
+  --viz-step-3: #07576b;
+  --viz-bar: #008f9b;
   --viz-track: #eef1f5;
+  /* 推移グラフの値引き（折れ線）。ティールの棒と区別できる橙 */
+  --viz-line: #d9730d;
+  /* 前週比のプラスや継続候補 */
+  --good: #12804a;
 }
 
 * {
@@ -43,3 +47,15 @@ textarea {
 button {
   cursor: pointer;
 }
+
+.insight-header { background: linear-gradient(110deg, #102a47, #14374b); }
+.insight-main h1 { font-size: clamp(1.65rem, 3vw, 2rem); letter-spacing: -.025em; }
+.insight-main :is(input:not([type=checkbox]):not([type=range]), select, textarea) { border-radius: .65rem; min-height: 2.75rem; }
+.insight-main :is(button, a, input, select, textarea):focus-visible { outline: 3px solid #008f9b; outline-offset: 3px; }
+.insight-panel { border: 1px solid var(--line); background: var(--panel); border-radius: 1rem; box-shadow: 0 4px 20px #102a4705; }
+.insight-subtabs { display: flex; gap: .5rem; border-bottom: 1px solid var(--line); }
+@media (max-width: 639px) { .insight-header { padding-block: 1rem; } }
+
+.insight-main :where(section, article, .grid), .insight-panel { min-width: 0; }
+
+.insight-main input:is([type=checkbox], [type=range]) { accent-color: var(--accent); }

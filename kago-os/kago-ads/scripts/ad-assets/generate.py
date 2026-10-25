@@ -477,6 +477,10 @@ def main():
         wr = csv.writer(f)
         wr.writerow(["code", "name", "category", "price", "source", "demo_use"])
         wr.writerows(PRODUCTS)
+    import json
+    with open(os.path.join(DATA_DIR, "ad-assets.json"), "w", encoding="utf8") as f:
+        json.dump([{k: str(v) for k, v in row.items()} for row in rows], f, ensure_ascii=False, indent=2)
+        f.write("\n")
     write_preview(rows)
     print(f"{len(rows)} assets written")
 

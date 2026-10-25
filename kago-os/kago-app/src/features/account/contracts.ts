@@ -1,7 +1,7 @@
 export type SettingKey = "usePurchaseHistory" | "useCurrentCart";
 export type PersonalizationSettings = { usePurchaseHistory: boolean; useCurrentCart: boolean; updatedAt: string | null };
 export type PurchaseItem = { productId: string; name: string; unitPrice: number; quantity: number };
-export type PurchaseOrder = { id: string; orderedAt: string; total: number; dataOrigin: "operated" | "seeded" | "synthetic"; items: PurchaseItem[] };
+export type PurchaseOrder = { id: string; storeId?: string; orderedAt: string; total: number; dataOrigin: "operated" | "seeded" | "synthetic"; items: PurchaseItem[] };
 export type AccountScope = { userId: string; visitId: string; storeId: string; asOf: string; cartVersion: number };
 export type PurchaseHistory = { orders: PurchaseOrder[]; nextCursor: string | null };
 export type SettingsResponse = { scope: AccountScope; settings: PersonalizationSettings };

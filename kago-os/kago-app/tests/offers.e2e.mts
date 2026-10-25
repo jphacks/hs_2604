@@ -15,7 +15,7 @@ const fixture = await createCartBackend({ offers: true });
 const origin = "http://127.0.0.1:3110";
 const output = resolve("../../internal/app13-evidence"); await mkdir(output, { recursive: true });
 const server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "dev", "--webpack", "--hostname", "127.0.0.1", "--port", "3110"], {
-  env: { ...process.env, NEXT_PUBLIC_SUPABASE_URL: fixture.url, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_test" }, windowsHide: true, stdio: ["ignore", "pipe", "pipe"],
+  env: { ...process.env, NEXT_PUBLIC_SUPABASE_URL: fixture.url, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_test", NEXT_PUBLIC_KAGO_COUPON_CODE_ENTRY: "1" }, windowsHide: true, stdio: ["ignore", "pipe", "pipe"],
 });
 let log = ""; server.stdout.on("data", c => { log += c; }); server.stderr.on("data", c => { log += c; });
 let browser; let active: Page | undefined; const passed: string[] = []; const pass = (s: string) => { passed.push(s); console.log("PASS: " + s); };
@@ -53,6 +53,9 @@ try {
   await sticker().click(); await page.getByRole("dialog", { name: "生バジル 25% OFF" }).waitFor();
   await wait("スパゲッティの仕上げに合います（KAGOが登録した組み合わせ）。25%OFFでお得なため選ばれました。"); await wait("￥149");
   await page.screenshot({ path: resolve(output, "coupon-dialog-mobile.png"), fullPage: false });
+  await page.getByLabel("クーポン対象の商品コードを入力", { exact: true }).fill("2900000000179");
+  await page.getByRole("button", { name: "商品を確認", exact: true }).click();
+  await wait("対象商品を確認しました：生バジル");
   await page.getByRole("button", { name: "割引付きでかごに追加", exact: true }).click(); await saved();
   let s = await snapshot(); assert.equal(line(s, PRODUCT.basil)!.discount, 49); assert.equal(s.discountTotal, 49);
   await delay(800); assert.equal(await sticker().count(), 0, "a claimed coupon is not shown again");

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { USING_MOCK } from "@/lib/mode";
 import { useRouter } from "next/navigation";
 import { deactivatePromotion, savePromotion } from "@/lib/actions";
 import { channelLabel } from "@/lib/labels";
@@ -61,7 +62,7 @@ export function PromotionsScreen({
   return (
     <div className="grid gap-6">
       {notice ? (
-        <div className="flex items-start justify-between gap-3 rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-900">
+        <div role="status" className="flex items-start justify-between gap-3 rounded-xl border border-teal-200 bg-teal-50 p-4 text-sm text-teal-900">
           <span>{notice}</span>
           <button type="button" onClick={() => setNotice(null)} className="font-bold">
             閉じる
@@ -70,9 +71,9 @@ export function PromotionsScreen({
       ) : null}
 
       <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
-        <div className="grid gap-3 self-start">
+        <div className="grid gap-4 self-start">
           <h2 className="text-sm font-bold text-[var(--muted)]">
-            設定中の販促（{active.length}件）
+            店舗からのおすすめ（{active.length}件）
           </h2>
 
           {active.length === 0 ? (
@@ -98,9 +99,18 @@ export function PromotionsScreen({
           </button>
         </div>
 
-        <div className="self-start">
+        <div className="self-start lg:sticky lg:top-6">
           {editing === null ? (
-            <EmptyState message="左の一覧から設定を選ぶか、「販促を追加する」を押してください。" />
+            <div className="insight-panel grid gap-5 p-6 sm:p-8">
+              <div><p className="text-xs font-bold tracking-widest text-[var(--accent)]">STORE RECOMMENDATION</p><h2 className="mt-2 text-xl font-bold">今日のおすすめを、お客さまへ</h2></div>
+              <ol className="grid gap-4 text-sm text-[var(--muted)]">
+                <li><strong className="mr-3 text-[var(--accent)]">01</strong>商品と、おすすめする理由を選ぶ</li>
+                <li><strong className="mr-3 text-[var(--accent)]">02</strong>掲載先・期間・優先度を設定して保存</li>
+                <li><strong className="mr-3 text-[var(--accent)]">03</strong>Appの「おすすめを更新」で表示を確認</li>
+              </ol>
+              <button type="button" onClick={() => setEditing({ kind: "new" })} className="rounded-xl bg-[var(--accent)] px-5 py-3 text-sm font-bold text-white">おすすめを追加する</button>
+              <p className="text-xs leading-relaxed text-[var(--muted)]">同じ店舗を利用中で、対象商品がかごにないときに表示されます。複数のおすすめは優先度などで選ばれます。</p>
+            </div>
           ) : (
             <PromotionForm
               key={editing.kind === "new" ? "new" : editing.promotion.promotion_version_id}
@@ -138,7 +148,7 @@ function PromotionCard({
     const result = await deactivatePromotion(promotion.id);
     setBusy(false);
     if (result.ok) {
-      onDone(`販促 ${promotion.id} を停止しました（モックのため保存されません）`);
+      onDone(`おすすめを停止しました${USING_MOCK ? "（モックのため保存されません）" : "。Appでおすすめを更新すると反映されます。"}`);
     } else {
       setError(result.message);
     }
@@ -147,12 +157,12 @@ function PromotionCard({
   return (
     <div
       className={[
-        "rounded-lg border bg-[var(--panel)] p-3",
+        "insight-panel p-5",
         selected ? "border-[var(--accent)] ring-2 ring-[var(--accent)]/20" : "border-[var(--line)]",
       ].join(" ")}
     >
       <div className="flex items-start justify-between gap-2">
-        <span className="font-bold">{promotion.product_name}</span>
+        <div><span className="text-lg font-bold">{promotion.product_name}</span><span className="ml-3 inline-flex rounded-full bg-teal-50 px-2 py-1 text-xs font-bold text-[var(--accent)]">有効な設定</span></div>
         <span className="shrink-0 rounded bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-700">
           第{promotion.version}版
         </span>
@@ -160,7 +170,7 @@ function PromotionCard({
       <p className="mt-1 text-sm text-[var(--muted)]">
         {promotion.time_windows
           .map((w) => `${weekdaysLabel(w.weekdays)} ${w.start}〜${w.end}`)
-          .join("、")}
+          .join("、") || "終日"}
       </p>
       <p className="mt-1 text-sm text-[var(--muted)]">
         {promotion.channels.map((c) => channelLabel[c]).join(" / ")} ・ 優先度 {promotion.priority}
@@ -211,13 +221,13 @@ function PromotionForm({
     promotion?.product_id ?? products[0]?.product_id ?? "",
   );
   const [windows, setWindows] = useState<TimeWindow[]>(
-    promotion?.time_windows ?? [{ weekdays: [1, 2, 3, 4, 5, 6, 7], start: "16:00", end: "19:00" }],
+    promotion?.time_windows ?? [],
   );
   const [channels, setChannels] = useState<Channel[]>(promotion?.channels ?? ["app"]);
   const [priority, setPriority] = useState(promotion?.priority ?? 50);
   const [reasonText, setReasonText] = useState(promotion?.reason_text ?? "");
   const [startsAt, setStartsAt] = useState(toDateInputValue(promotion?.starts_at ?? today));
-  const [endsAt, setEndsAt] = useState(toDateInputValue(promotion?.ends_at ?? today));
+  const [endsAt, setEndsAt] = useState(() => toDateInputValue(promotion?.ends_at ?? new Date(Date.now() + 7 * 86400000).toISOString()));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -258,6 +268,7 @@ function PromotionForm({
 
     const draft: PromotionDraft = {
       promotion_id: promotion?.id ?? null,
+      expected_version: promotion?.version,
       product_id: productId,
       channels,
       time_windows: windows,
@@ -272,15 +283,14 @@ function PromotionForm({
     const result = await savePromotion(draft);
     setBusy(false);
     if (result.ok) {
-      const version = promotion ? promotion.version + 1 : result.data.version;
-      onDone(`第${version}版として保存しました（モックのため保存されません）`);
+      onDone(`第${result.data.version}版として保存しました${USING_MOCK ? "（モックのため保存されません）" : "。Appでおすすめを更新すると反映されます。"}`);
     } else {
       setError(result.message);
     }
   };
 
   return (
-    <article className="grid gap-4 rounded-lg border border-[var(--line)] bg-[var(--panel)] p-4">
+    <article className="insight-panel grid gap-5 p-5 sm:p-6">
       <h2 className="text-lg font-bold">
         {promotion ? `販促を編集（現在 第${promotion.version}版）` : "販促を追加"}
       </h2>
@@ -292,8 +302,10 @@ function PromotionForm({
         </p>
       ) : null}
 
-      <Field label="対象商品">
+      <Field label="対象商品" hint={promotion ? "商品を変える場合は新しいおすすめを追加してください。" : undefined}>
         <select
+          aria-label="おすすめの対象商品"
+          disabled={Boolean(promotion)}
           value={productId}
           onChange={(e) => setProductId(e.target.value)}
           className="w-full rounded border border-[var(--line)] px-2 py-2 text-sm"
@@ -312,7 +324,7 @@ function PromotionForm({
         </select>
       </Field>
 
-      <Field label="時間帯" hint="曜日と時刻の組み合わせです。曜日は1つ以上選んでください。">
+      <Field label="時間帯" hint="時間帯を設定しなければ終日表示。設定する場合は曜日を1つ以上選んでください。時刻は日本時間です。">
         <div className="grid gap-3">
           {windows.map((w, i) => (
             <div key={i} className="rounded border border-[var(--line)] p-2">
@@ -359,7 +371,7 @@ function PromotionForm({
                   }
                   className="rounded border border-[var(--line)] px-2 py-1"
                 />
-                {windows.length > 1 ? (
+                {windows.length > 0 ? (
                   <button
                     type="button"
                     onClick={() => setWindows((cur) => cur.filter((_, j) => j !== i))}
@@ -403,9 +415,10 @@ function PromotionForm({
 
       <Field
         label={`優先度 ${priority}`}
-        hint="大きいほど優先して提案されます。同じ値のときの扱いはApp側と要確認です。"
+        hint="Appでは優先度の高い商品を1件表示します。かごにある商品は除外します。同じ優先度では、かごとの関連性などで選びます。"
       >
         <input
+          aria-label="おすすめの優先度"
           type="range"
           min={0}
           max={100}
@@ -421,6 +434,7 @@ function PromotionForm({
         hint="利用者の画面にそのまま表示されます。店頭のPOPを書くつもりで。"
       >
         <input
+          aria-label="おすすめの理由"
           value={reasonText}
           maxLength={REASON_MAX}
           onChange={(e) => setReasonText(e.target.value)}
@@ -432,10 +446,11 @@ function PromotionForm({
         </p>
       </Field>
 
-      <Field label="有効期間">
+      <Field label="有効期間" hint="日本時間。終了日の0時まで有効です。">
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <input
             type="date"
+            aria-label="有効期間の開始日"
             value={startsAt}
             onChange={(e) => setStartsAt(e.target.value)}
             className="rounded border border-[var(--line)] px-2 py-1"
@@ -443,6 +458,7 @@ function PromotionForm({
           <span>〜</span>
           <input
             type="date"
+            aria-label="有効期間の終了日"
             value={endsAt}
             onChange={(e) => setEndsAt(e.target.value)}
             className="rounded border border-[var(--line)] px-2 py-1"

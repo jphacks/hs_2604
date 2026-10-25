@@ -1,6 +1,8 @@
 "use client";
 
 import Image from "next/image";
+import { ProductScanDialog } from "@/features/scanner/product-scan-dialog";
+import { SuggestionDetail } from "./suggestion-detail";
 import { useEffect, useRef, useState } from "react";
 import { useCart } from "@/features/cart/cart-provider";
 import { useAppEvents } from "@/features/events/event-provider";
@@ -8,6 +10,7 @@ import { useImpression } from "@/features/events/use-impression";
 import { MENU_PRODUCT_IMAGES, productIcon } from "@/lib/product-visuals";
 import type { ReasonCode, SavedSelection, SavedSelectionItem } from "./selection-contracts";
 import { useRecommendations } from "./use-recommendations";
+import { newSuggestionItemIds } from "./new-suggestions";
 
 type Item = SavedSelectionItem;
 const yen = new Intl.NumberFormat("ja-JP", { style: "currency", currency: "JPY" });
@@ -47,11 +50,20 @@ function ProductArt({ item, size }: { item: Item; size: "card" | "detail" }) {
 export function SuggestionCards() {
   const { state, retry, updating } = useRecommendations();
   const [paused, setPaused] = useState(false);
+  const [novelty, setNovelty] = useState<{ selection: SavedSelection | null; itemIds: string[] }>({ selection: null, itemIds: [] });
+  let newItemIds = novelty.itemIds;
+  // Keep the last accepted content through loading/errors. Derive the badge before committing a new card.
+  if (state.status === "ready" && novelty.selection !== state.data) {
+    const sameSelection = state.data.selectionId !== null && novelty.selection?.visitId === state.data.visitId
+      && novelty.selection.selectionId === state.data.selectionId;
+    newItemIds = sameSelection ? novelty.itemIds : newSuggestionItemIds(novelty.selection, state.data);
+    setNovelty({ selection: state.data, itemIds: newItemIds });
+  }
   return <section aria-labelledby="suggestions-heading" aria-busy={state.status === "loading"} className="min-w-0">
     <div className="mb-3 flex items-end justify-between gap-2">
       <div><p className="text-xs font-black tracking-wider text-emerald-700">FOR YOU</p>
         <h2 id="suggestions-heading" className="text-2xl font-black">あなたへのおすすめ</h2></div>
-      <span className="hidden shrink-0 text-[11px] text-slate-500 min-[360px]:inline">理由・広告表示つき</span>
+      <button type="button" onClick={retry} disabled={state.status === "loading"} className="min-h-11 shrink-0 rounded-xl border border-emerald-200 bg-white px-3 text-xs font-bold text-emerald-800 disabled:opacity-40">おすすめを更新</button>
     </div>
     {state.status === "loading" && <div role="status" aria-label={updating ? "かごに合わせておすすめを更新しています" : "おすすめを読み込んでいます"} className="flex animate-pulse items-center justify-center rounded-2xl bg-slate-200/70 p-4 text-sm text-slate-600" style={{ height: SLIDE_HEIGHT }}>
       {updating ? "かごに合わせておすすめを更新しています…" : "おすすめを読み込んでいます…"}
@@ -63,15 +75,16 @@ export function SuggestionCards() {
     {state.status === "ready" && state.data.items.length === 0 && <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-5 text-center text-sm text-slate-600">
       いまのかごに合うおすすめはありません。商品をかごに追加すると、関連するおすすめが表示されます。
     </p>}
-    {state.status === "ready" && state.data.items.length > 0 && <SuggestionCarousel key={state.data.selectionId} selection={state.data} paused={paused} onPauseChange={setPaused} />}
+    {state.status === "ready" && state.data.items.length > 0 && <SuggestionCarousel key={state.data.selectionId} selection={state.data} newItemIds={newItemIds} paused={paused} onPauseChange={setPaused} />}
   </section>;
 }
 
 // A fresh selection owns its slide/detail state. Replacing it also closes an obsolete detail dialog.
-function SuggestionCarousel({ selection, paused, onPauseChange }: { selection: SavedSelection; paused: boolean; onPauseChange: (paused: boolean) => void }) {
+function SuggestionCarousel({ selection, newItemIds, paused, onPauseChange }: { selection: SavedSelection; newItemIds: string[]; paused: boolean; onPauseChange: (paused: boolean) => void }) {
   const cart = useCart();
   const track = useAppEvents();
   const container = useRef<HTMLDivElement>(null);
+  const [scanItem,setScanItem]=useState<Item|null>(null);
   const [detail, setDetail] = useState<Item | null>(null);
   const [index, setIndex] = useState(0);
   const [hovered, setHovered] = useState(false);
@@ -121,16 +134,17 @@ function SuggestionCarousel({ selection, paused, onPauseChange }: { selection: S
               <article data-selection-item-id={item.selectionItemId} aria-label={`${label}：${item.product.name}`} className={`flex h-full gap-3 rounded-2xl border p-3 shadow-sm ${tone[item.placementType].card}`}>
                 <div className="w-28 shrink-0"><ProductArt item={item} size="card" /></div>
                 <div className="flex min-w-0 flex-1 flex-col">
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <div className="flex items-start justify-between gap-1">
                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${tone[item.placementType].badge}`}>{label}</span>
-                    {item.sponsor && <span className="text-[11px] font-bold text-slate-600">提供：{item.sponsor.makerName}</span>}
+                    {newItemIds.includes(item.selectionItemId) && <span aria-label="新しく更新されたおすすめ" className="shrink-0 rounded-full bg-pink-600 px-2 py-0.5 text-[11px] font-black text-white shadow-sm">NEW！！</span>}
                   </div>
+                  {item.sponsor && <span className="truncate text-[11px] font-bold text-slate-600">提供：{item.sponsor.makerName}</span>}
                   <h3 className="mt-1 line-clamp-2 break-words text-sm font-bold leading-5" title={item.product.name}>{item.product.name}</h3>
                   <p className="text-sm font-black text-emerald-800">{yen.format(item.product.price)}</p>
                   <p className="mt-0.5 line-clamp-2 text-[11px] leading-4 text-slate-600">{item.reasonText}</p>
                   <div className="mt-auto flex gap-2 pt-1">
-                    <button type="button" disabled={!cart.canEdit || added} onClick={() => add(item)} aria-label={`${item.product.name}をかごに追加（${label}）`}
-                      className="min-h-11 flex-1 rounded-xl bg-slate-950 px-2 text-xs font-black text-white disabled:opacity-40">{added ? "かごに追加済み" : "かごに追加"}</button>
+                    <button type="button" disabled={!cart.canEdit || added} onClick={() => setScanItem(item)} aria-label={`${item.product.name}をかごに追加（${label}）`}
+                      className="min-h-11 flex-1 rounded-xl bg-slate-950 px-2 text-xs font-black text-white disabled:opacity-40">{added ? "かごに追加済み" : "スキャンして追加"}</button>
                     <button type="button" onClick={() => open(item)} aria-label={`${item.product.name}の詳細（${label}）`}
                       className="min-h-11 shrink-0 px-1 text-xs font-bold text-emerald-800 underline">詳細</button>
                   </div>
@@ -153,26 +167,8 @@ function SuggestionCarousel({ selection, paused, onPauseChange }: { selection: S
         </div>
       </div>}
     </div>
-    {detail && <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-      <button type="button" tabIndex={-1} className="absolute inset-0 bg-slate-950/50" onClick={() => setDetail(null)} aria-label="詳細を閉じる" />
-      <section role="dialog" aria-modal="true" aria-labelledby="suggestion-detail-heading" className="relative max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-white p-6 shadow-2xl sm:rounded-3xl">
-        <div className="flex items-start justify-between gap-3">
-          <span className={`rounded-full px-3 py-1 text-xs font-black ${tone[detail.placementType].badge}`}>{suggestionLabel(detail)}</span>
-          <button ref={closeButton} type="button" onClick={() => setDetail(null)} className="size-11 shrink-0 rounded-full bg-slate-100 text-xl" aria-label="閉じる">×</button>
-        </div>
-        <div className="mt-4 flex items-center gap-4"><ProductArt item={detail} size="detail" />
-          <div className="min-w-0"><p className="text-xs text-slate-500">{detail.product.category}</p>
-            <h2 id="suggestion-detail-heading" className="break-words text-xl font-black">{detail.product.name}</h2>
-            <p className="mt-1 text-lg font-black text-emerald-800">{yen.format(detail.product.price)}</p></div></div>
-        {detail.sponsor && <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm">
-          <p className="font-black">{detail.sponsor.headline}</p>
-          <p className="mt-1 text-xs text-slate-600">この枠は広告です。提供：{detail.sponsor.makerName}（店舗が承認した広告）</p>
-        </div>}
-        {detail.placementType === "store_promo" && <p className="mt-4 rounded-2xl bg-amber-50 p-4 text-xs text-amber-950">店舗が選んだおすすめ商品です。</p>}
-        <p className="mt-4 text-sm leading-6 text-slate-700"><span className="font-bold">おすすめの理由：</span>{detail.reasonText}</p>
-        <button type="button" disabled={!cart.canEdit || inCart.has(detail.product.productId)} onClick={() => add(detail)} className="mt-5 min-h-12 w-full rounded-xl bg-emerald-700 px-4 text-sm font-black text-white disabled:opacity-40">
-          {inCart.has(detail.product.productId) ? "かごに追加済み" : "かごに追加"}</button>
-      </section>
-    </div>}
+    {detail && <SuggestionDetail scanRequired item={detail} label={suggestionLabel(detail)} added={inCart.has(detail.product.productId)} disabled={!cart.canEdit} closeButtonRef={closeButton} onClose={()=>setDetail(null)} onAdd={()=>setScanItem(detail)}/>}
+
+    {scanItem&&<ProductScanDialog product={scanItem.product} disabled={!cart.canEdit} onClose={()=>setScanItem(null)} onVerified={()=>add(scanItem)}/>}
   </>;
 }

@@ -124,6 +124,7 @@ export type Product = {
 
 /** 販促の保存内容。version と status は DB 側で決まる */
 export type PromotionDraft = {
+  expected_version?: number;
   promotion_id: string | null;
   product_id: string;
   channels: Channel[];

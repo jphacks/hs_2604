@@ -1,0 +1,221 @@
+import assert from "node:assert/strict";
+import {createRequire} from "node:module";
+import {resolve} from "node:path";
+import sharp from "sharp";
+import {spawn} from "node:child_process";
+import {mkdir,writeFile} from "node:fs/promises";
+import {setTimeout as delay} from "node:timers/promises";
+import {chromium} from "playwright";
+import {createCartBackend} from "./fixtures/cart-backend.mts";
+import {id} from "./fixtures/cart-database.mts";
+import {PRODUCT,OFFER} from "./fixtures/offers.mts";
+
+const fixture=await createCartBackend({accountHistory:true,offers:true});
+// Three synthetic purchases make a due regular item without touching shared data.
+for(let n=0;n<3;n++){
+ const at=new Date(Date.now()-(12-n*4)*86400000).toISOString();
+ await fixture.db.query("insert into visits(id,user_id,store_id,status,started_at,ended_at,last_activity_at) values ($1,$2,$3,'completed',$4::timestamptz-interval '20 minutes',$4,$4)",[id(7100+n),id(3),id(1),at]);
+ await fixture.db.query("insert into orders(id,visit_id,user_id,store_id,ordered_at,total,idempotency_key,cart_version,data_origin) values ($1,$2,$3,$4,$5,298,$6,1,'synthetic')",[id(7200+n),id(7100+n),id(3),id(1),at,id(7300+n)]);
+ await fixture.db.query("insert into order_items(order_id,product_id,product_name,unit_price,quantity) values ($1,$2,'トマトパスタソース',298,1)",[id(7200+n),PRODUCT.sauce]);
+}
+const base="http://127.0.0.1:3224",out="../../internal/app-ui-evidence";
+await mkdir(out,{recursive:true});
+const bwip=createRequire(import.meta.url)("bwip-js") as {toBuffer:(options:object)=>Promise<Buffer>};
+const barcode=await bwip.toBuffer({bcid:"ean13",text:"4900000000016",scale:3,height:30,includetext:true});
+const grey=await sharp({create:{width:1280,height:720,channels:3,background:"white"}}).composite([{input:barcode,gravity:"centre"}]).greyscale().raw().toBuffer();
+const frame=Buffer.concat([Buffer.from("FRAME\n"),grey,Buffer.alloc(1280*720/2,128)]);
+const video=resolve(out,"synthetic-barcode.y4m");
+await writeFile(video,Buffer.concat([Buffer.from("YUV4MPEG2 W1280 H720 F10:1 Ip A1:1 C420jpeg\n"),...Array.from({length:20},()=>frame)]));
+const server=spawn(process.execPath,["node_modules/next/dist/bin/next","dev","--webpack","--hostname","127.0.0.1","--port","3224"],{
+ env:{...process.env,KAGO_NEXT_DIST_DIR:".next/app-ui-e2e",KAGO_DEMO_ENABLED:"0",NEXT_PUBLIC_SUPABASE_URL:fixture.url,NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:"sb_publishable_test",NEXT_PUBLIC_KAGO_COUPON_CODE_ENTRY:"1"},
+ stdio:["ignore","pipe","pipe"],windowsHide:true
+});
+let log="",browser:Awaited<ReturnType<typeof chromium.launch>>|undefined;
+server.stdout.on("data",value=>log=(log+value).slice(-10000));server.stderr.on("data",value=>log=(log+value).slice(-10000));
+const passed:string[]=[];const pass=(s:string)=>{passed.push(s);console.log("PASS "+s);};
+try{
+ for(let i=0;i<100;i++){if(server.exitCode!==null)throw Error(log);try{if((await fetch(base+"/api/shopping")).status===401)break;}catch{}if(i===99)throw Error(log);await delay(500);}
+ browser=await chromium.launch({headless:true,executablePath:process.env.PLAYWRIGHT_EXECUTABLE_PATH??"/usr/bin/google-chrome",args:["--use-fake-device-for-media-stream","--use-fake-ui-for-media-stream","--use-file-for-fake-video-capture="+video]});
+ const context=await browser.newContext({viewport:{width:390,height:844},reducedMotion:"reduce"});
+ const page=await context.newPage();page.setDefaultTimeout(30000);const errors:string[]=[];page.on("pageerror",e=>errors.push(e.message));
+ const cart=async()=>{const response=await context.request.get(base+"/api/cart");assert.equal(response.status(),200);return response.json();};
+ const waitCart=async(productId:string,quantity:number)=>{for(let n=0;n<100;n++){const c=await cart();if((c.cart.find((line:{productId:string;quantity:number})=>line.productId===productId)?.quantity??0)===quantity)return c;await delay(100);}throw Error("Cart quantity did not settle");};
+ await page.goto(base+"/App");
+ await page.getByLabel("メールアドレス",{exact:true}).fill("user3@example.test");await page.getByLabel("パスワード",{exact:true}).fill("fixture-password");
+ await page.getByRole("button",{name:"ログイン",exact:true}).click();await page.getByRole("heading",{name:"お買い物の店舗を選ぶ",exact:true}).waitFor();
+ await page.locator(".store-entry-chips button").filter({hasText:"検証1号店"}).click();
+ const storeSize=await page.locator(".store-entry .app-brand-logo").boundingBox();
+ for(const size of [{width:390,height:844},{width:375,height:667},{width:320,height:568}]){
+   await page.setViewportSize(size);
+   assert.equal(await page.locator(".store-entry-content").evaluate(el=>el.scrollHeight<=el.clientHeight+2),true,"Store entry must fit "+JSON.stringify(size));
+   assert.equal(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+2),true);
+ }
+ await page.setViewportSize({width:390,height:844});await page.screenshot({path:out+"/store-entry.png"});
+ pass("ログインから店舗選択へ進め、3サイズで店舗QR画面がスクロールしない");
+ await page.getByRole("button",{name:"前回の店舗から再開",exact:true}).click();await page.getByTestId("shopping-home").waitFor();
+ await page.getByRole("button",{name:"検索",exact:true}).waitFor();
+ assert.equal(await page.locator(".shopping-logo").evaluate(el=>Math.round(el.getBoundingClientRect().width)),Math.round(storeSize!.width));
+ for(const size of [{width:390,height:844},{width:375,height:667},{width:320,height:568},{width:430,height:932},{width:1280,height:900}]){
+   await page.setViewportSize(size);
+   assert.equal(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+2),true,"Home fits "+JSON.stringify(size));
+   const box=await page.locator(".shopping-nav").boundingBox();assert.ok(box&&box.y+box.height<=size.height+2);
+ }
+ await page.setViewportSize({width:390,height:844});await page.getByRole("button",{name:"カメラで読み取る",exact:true}).waitFor();
+ await page.waitForFunction(()=>{const button=Array.from(document.querySelectorAll<HTMLButtonElement>("button")).find(b=>b.textContent?.includes("カメラで読み取る"));const card=document.querySelector<HTMLElement>('.shopping-stack-card[aria-hidden="false"]');const image=card?.querySelector("img");if(!card||!image?.complete||!image.naturalWidth||!button||button.disabled)return false;const a=card.getBoundingClientRect(),b=card.parentElement!.getBoundingClientRect();return a.top<b.bottom&&a.bottom>b.top;});await page.screenshot({path:out+"/home.png"});
+ pass("ホームは5サイズで収まり、店舗選択とロゴサイズが一致する");
+ await page.evaluate(()=>{const original=navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);(window as unknown as {restoreCamera:()=>void}).restoreCamera=()=>{navigator.mediaDevices.getUserMedia=original;};navigator.mediaDevices.getUserMedia=async()=>{throw new DOMException("denied","NotAllowedError");};});
+ await page.getByRole("button",{name:"カメラで読み取る",exact:true}).click();
+ const warning=page.getByRole("alertdialog",{name:"お買い物のお知らせ",exact:true});
+ await warning.waitFor();
+ const message=warning.getByRole("alert");await message.waitFor();assert.ok((await message.innerText()).trim().length>0);
+ await page.screenshot({path:out+"/camera-warning.png"});
+ await warning.getByRole("button",{name:"閉じる",exact:true}).click();
+ await page.evaluate(()=>(window as unknown as {restoreCamera:()=>void}).restoreCamera());
+ pass("カメラ拒否の警告文が空にならず表示される");
+
+ const catalog=await (await context.request.get(base+"/api/cart?products=1")).json();
+ const apple=catalog.products.find((p:{productId:string})=>p.productId===id(21));assert.ok(apple);
+ const milk=catalog.products.find((p:{productId:string})=>p.productId===id(20));assert.ok(milk);
+ const saleOffer=(await (await context.request.get(base+"/api/offers")).json()).timeSales.find((o:{offerId:string})=>o.offerId===OFFER.timeSale);assert.ok(saleOffer);
+ await page.getByRole("button",{name:/枚目：タイムセール$/}).click();
+ assert.equal(await page.getByText("STORE DEALS",{exact:true}).count(),0);
+ for(const size of [{width:390,height:844},{width:375,height:667},{width:320,height:568},{width:430,height:932},{width:1280,height:900}]){
+  await page.setViewportSize(size);
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+2),true);
+  assert.equal(await page.locator('.shopping-stack-card[aria-hidden="false"] .store-offer-card').evaluate(el=>{const a=el.querySelector(".store-offer-price")!.getBoundingClientRect(),b=el.querySelector(".store-offer-remaining")!.getBoundingClientRect(),c=el.querySelector(".store-offer-scan")!.getBoundingClientRect();/* #166: no pause button on the ad any more */return a.bottom<=b.top+1&&c.bottom<=el.getBoundingClientRect().bottom+1;}),true,"Sale fits "+JSON.stringify(size));
+ }
+ await page.setViewportSize({width:390,height:844});await page.screenshot({path:out+"/time-sale.png"});
+ pass("タイムセールが広告枠内に入り、5サイズで価格・残時間・ボタンが重ならない");
+ await page.locator('.shopping-stack-card[aria-hidden="false"] .store-offer-scan').click();
+ const saleDialog=page.getByRole("dialog",{name:saleOffer.headline,exact:true});await saleDialog.waitFor();
+ const saleButton=saleDialog.getByRole("button",{name:"ここから商品を読み取る",exact:true});
+ assert.equal(await saleButton.evaluate(el=>getComputedStyle(el).fontSize),"16px");await page.screenshot({path:out+"/time-sale-detail.png"});await saleButton.click();
+ const saleBefore=await cart();assert.equal(saleBefore.cart.some((l:{productId:string})=>l.productId===PRODUCT.karaage),false);
+ await saleDialog.getByLabel("割引対象の商品コードを入力",{exact:true}).fill(milk.code);await saleDialog.getByRole("button",{name:"商品を確認",exact:true}).click();
+ await saleDialog.getByRole("alert").waitFor();assert.equal(await saleDialog.getByRole("button",{name:"この商品に割引を使う",exact:true}).isEnabled(),false);
+ await saleDialog.getByLabel("割引対象の商品コードを入力",{exact:true}).fill(saleOffer.product.code);await saleDialog.getByRole("button",{name:"商品を確認",exact:true}).click();await saleDialog.getByRole("button",{name:"この商品に割引を使う",exact:true}).click();
+ const saleCart=await waitCart(PRODUCT.karaage,1);assert.equal(saleCart.cart.find((l:{productId:string})=>l.productId===PRODUCT.karaage).discount,43);
+ pass("タイムセールは選ぶだけで追加されず、別商品を拒否し対象照合後にDBの割引が保存される");
+ const milkBefore=(await cart()).cart.find((line:{productId:string})=>line.productId===milk.productId)?.quantity??0;
+ await page.getByRole("button",{name:"カメラで読み取る",exact:true}).click();
+ await waitCart(milk.productId,milkBefore+1);
+ pass("合成バーコード映像をZXingが読み取り、実の店舗価格で1点だけ追加される");
+ const original=await cart();const appleBefore=original.cart.find((line:{productId:string})=>line.productId===apple.productId)?.quantity??0;
+ await page.getByRole("button",{name:"果物から探す",exact:true}).click();
+ await page.getByRole("button",{name:apple.name+"をスキャンして追加",exact:true}).click();
+ const scan=page.getByRole("dialog",{name:apple.name+"を読み取る",exact:true});await scan.waitFor();
+ assert.equal((await cart()).cart.find((line:{productId:string})=>line.productId===apple.productId)?.quantity??0,appleBefore);
+ await scan.locator("summary").click();await scan.getByLabel("商品のバーコード番号",{exact:true}).fill(milk.code);
+ await scan.getByRole("button",{name:"番号を確認して追加",exact:true}).click();await scan.getByRole("alert").filter({hasText:"選んだ商品と違います"}).waitFor();
+ assert.equal((await cart()).cart.find((line:{productId:string})=>line.productId===apple.productId)?.quantity??0,appleBefore);
+ await scan.getByLabel("商品のバーコード番号",{exact:true}).fill(apple.code);await scan.getByRole("button",{name:"番号を確認して追加",exact:true}).click();
+ await waitCart(apple.productId,appleBefore+1);
+ await page.getByRole("dialog",{name:"果物から探す",exact:true}).getByRole("button",{name:"閉じる",exact:true}).click();
+ pass("商品を選ぶだけでは追加されず、別商品は拒否、対象バーコード確認後だけ1点追加される");
+ // Exercise the visible decrease/delete controls and compare with the authoritative DB snapshot.
+ await fixture.rpc("app_set_cart_item",[id(13),crypto.randomUUID(),milk.productId,2,(await cart()).visit.cart_version,"manual",null]);
+ await page.reload();await page.getByTestId("shopping-home").waitFor();
+ await page.getByRole("button",{name:/買い物かごを開く/}).click();
+ const basket=page.getByRole("dialog",{name:"買い物かご",exact:true});
+ const milkLine=basket.locator(".shopping-basket-line").filter({has:page.getByRole("heading",{name:milk.name,exact:true})});
+ const milkQuantity=(await cart()).cart.find((line:{productId:string})=>line.productId===milk.productId).quantity;
+ await milkLine.getByRole("button",{name:milk.name+"を1点減らす",exact:true}).click();
+ await waitCart(milk.productId,milkQuantity-1);
+ if(milkQuantity>1)await milkLine.getByLabel(milk.name+"の数量",{exact:true}).filter({hasText:String(milkQuantity-1)}).waitFor();
+ await basket.getByRole("button",{name:apple.name+"を削除",exact:true}).click();
+ await waitCart(apple.productId,0);
+ await basket.getByRole("heading",{name:apple.name,exact:true}).waitFor({state:"detached"});
+ await basket.getByRole("button",{name:"閉じる",exact:true}).click();
+ await page.reload();await page.getByTestId("shopping-home").waitFor();
+ assert.equal((await cart()).cart.some((line:{productId:string})=>line.productId===apple.productId),false);
+ pass("かごの減算・ごみ箱削除がDBへ保存され、再読込でも戻らない");
+
+ await page.getByRole("link",{name:"マイページ",exact:true}).click();await page.getByRole("heading",{name:"マイページ",exact:true}).waitFor();
+ const historySwitch=page.getByRole("switch",{name:"購入履歴をおすすめに使う",exact:true});await historySwitch.click();await page.getByRole("status").filter({hasText:"設定を保存しました"}).waitFor();
+ await page.locator(".account-cart-link").click();await page.getByRole("dialog",{name:"買い物かご",exact:true}).waitFor();
+ pass("マイページの設定を保存でき、かごボタンでホーム上のかごが開く");
+ await page.getByRole("dialog",{name:"買い物かご",exact:true}).getByRole("button",{name:"閉じる",exact:true}).click();
+ await page.getByRole("button",{name:/枚目：いつもの商品$/}).click();await page.locator('.shopping-stack-card[aria-hidden="false"] .regular-reminder-card').waitFor();
+ for(const size of [{width:390,height:844},{width:375,height:667},{width:320,height:568},{width:430,height:932},{width:1280,height:900}]){
+  await page.setViewportSize(size);
+  await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
+  const nav=await page.locator(".shopping-nav").boundingBox();assert.ok(nav&&nav.y+nav.height<=size.height+2,"Reminder navigation fits "+JSON.stringify({size,nav}));
+  await page.screenshot({path:out+"/reminder-"+size.width+"-"+size.height+".png"});
+  assert.equal(await page.locator('.shopping-stack-card[aria-hidden="false"] .regular-reminder-card').evaluate(el=>{const title=el.querySelector("h2")!.getBoundingClientRect(),product=el.querySelector("h3")!.getBoundingClientRect(),meta=el.querySelector(".regular-reminder-product p")!.getBoundingClientRect(),button=el.querySelector("button")!.getBoundingClientRect();return title.bottom<=product.top+1&&meta.bottom<=button.top+1;}),true,"Reminder fits "+JSON.stringify(size));
+ }
+ await page.setViewportSize({width:390,height:844});
+ await page.screenshot({path:out+"/regular-reminder.png"});await page.locator('.shopping-stack-card[aria-hidden="false"] .regular-reminder-card').getByRole("button",{name:"商品のバーコードを読み取る",exact:true}).click();
+ const reminderScan=page.getByRole("dialog",{name:"トマトパスタソースを読み取る",exact:true});await reminderScan.waitFor();assert.equal((await cart()).cart.some((l:{productId:string})=>l.productId===PRODUCT.sauce),false);
+ await reminderScan.getByRole("button",{name:"読み取りを閉じる",exact:true}).click();
+ pass("mainの購入リマインダーを同じ枠に保持し、選ぶだけで商品が増えない");
+ await page.getByRole("link",{name:"りれき",exact:true}).click();await page.getByRole("heading",{name:"購入履歴",exact:true}).waitFor();
+ await page.locator(".account-order").first().waitFor();await page.locator(".account-order").filter({hasText:"検証1号店"}).first().locator("summary").click();await page.getByText("購入時ミルク",{exact:true}).first().waitFor();
+ await page.locator(".account-store-picker summary").click();await page.locator(".account-store-options button").filter({hasText:"検証2号店"}).click();
+ await page.locator(".account-order").first().getByRole("heading",{name:"検証2号店",exact:true}).waitFor();await page.locator(".account-order").first().locator("summary").click();await page.getByText("別店舗の購入品",{exact:true}).waitFor();
+ assert.equal(await page.getByText("別利用者の購入品",{exact:true}).count(),0);
+ await page.screenshot({path:out+"/history.png"});
+ pass("店舗切替・購入明細の展開ができ、他人の履歴が混ざらない");
+ await page.getByRole("link",{name:"ホーム",exact:true}).click();await page.getByTestId("shopping-home").waitFor();
+ await page.goto(base+"/App/store");await page.getByRole("heading",{name:"店舗・商品管理",exact:true}).waitFor();
+ assert.equal(await page.locator(".utility-store-brand").innerText(),"KAGO/Store");assert.equal(await page.locator(".utility-store .app-brand-logo").count(),0);
+ await page.screenshot({path:out+"/store-management.png"});pass("店舗管理だけKAGO/Store表記を維持し、Appロゴを使わない");
+ await page.goto(base+"/App/demo-barcodes");await page.getByRole("heading",{name:"読み取り用デモバーコード",exact:true}).waitFor();
+ await page.waitForFunction(()=>{const images=Array.from(document.querySelectorAll<HTMLImageElement>('img[src^="/demo/barcodes/"]'));return images.length>=15&&images.every(image=>image.complete&&image.naturalWidth>0);});
+ await page.screenshot({path:out+"/barcodes.png"});await page.emulateMedia({media:"print"});assert.equal(await page.locator(".utility-page>.app-brand-header").evaluate(el=>getComputedStyle(el).display),"none");await page.emulateMedia({media:"screen"});
+ pass("印刷用バーコードがすべて読み込まれ、印刷時は補助ヘッダーを隠せる");
+ await page.goto(base+"/App");await page.getByTestId("shopping-home").waitFor();
+ await page.evaluate(()=>{Math.random=()=>0;});
+ const pasta=catalog.products.find((p:{productId:string})=>p.productId===PRODUCT.pasta);assert.ok(pasta);
+ await page.getByRole("textbox",{name:"商品名・商品コードで検索",exact:true}).fill("スパゲッティ");await page.getByRole("button",{name:"検索",exact:true}).click();
+ const products=page.getByRole("dialog",{name:"商品を探す",exact:true});
+ await products.getByRole("button",{name:pasta.name+"をスキャンして追加",exact:true}).click();
+ const pastaScan=page.getByRole("dialog",{name:pasta.name+"を読み取る",exact:true});
+ await pastaScan.locator("summary").click();await pastaScan.getByLabel("商品のバーコード番号",{exact:true}).fill(pasta.code);await pastaScan.getByRole("button",{name:"番号を確認して追加",exact:true}).click();
+ const couponStarted=Date.now();await waitCart(pasta.productId,1);await products.getByRole("button",{name:"閉じる",exact:true}).click();
+ await page.getByRole("button",{name:/ゲリラクーポン：.*詳細を開く/}).waitFor();
+ console.log("Coupon arrival after cart verification: "+(Date.now()-couponStarted)+"ms");
+ await page.getByRole("button",{name:"クーポンを引っ込める",exact:true}).click();
+ await page.getByRole("alertdialog",{name:"クーポンを消しますか？",exact:true}).waitFor();await page.screenshot({path:out+"/coupon-delete-confirm.png"});
+ await page.getByRole("button",{name:"消さずに戻る",exact:true}).click();await page.getByRole("button",{name:/ゲリラクーポン：.*詳細を開く/}).waitFor();
+ pass("チケットを消す前に確認し、キャンセルでは失われない");
+ await page.getByRole("button",{name:/ゲリラクーポン：.*詳細を開く/}).click();
+ const coupon=page.getByRole("dialog",{name:"生バジル 25% OFF",exact:true});await coupon.waitFor();
+ const beforeCoupon=await cart();assert.equal(beforeCoupon.cart.some((line:{productId:string})=>line.productId===PRODUCT.basil),false);
+ await coupon.getByRole("button",{name:"クーポンを受け取る",exact:true}).click();
+ for(const size of [{width:390,height:844},{width:375,height:667},{width:320,height:568},{width:430,height:932}]){
+  await page.setViewportSize(size);
+  assert.equal(await coupon.locator(".coupon-detail-body").evaluate(el=>el.scrollHeight<=el.clientHeight+1),true,"Coupon scan fits "+JSON.stringify(size));
+  assert.equal(await coupon.locator(".scanner-idle").evaluate(el=>el.scrollHeight<=el.clientHeight+1),true,"Camera fits "+JSON.stringify(size));
+  await page.screenshot({path:out+"/coupon-scan-"+size.width+".png"});
+ }
+ await page.setViewportSize({width:390,height:844});
+ pass("クーポン読取画面は4サイズでカメラ・入力・使用ボタンがスクロールなしで収まる");
+
+ assert.equal((await cart()).cart.some((line:{productId:string})=>line.productId===PRODUCT.basil),false);
+ await coupon.getByLabel("クーポン対象の商品コードを入力",{exact:true}).fill(milk.code);await coupon.getByRole("button",{name:"商品を確認",exact:true}).click();
+ await coupon.getByRole("alert").filter({hasText:"クーポン対象の商品ではありません"}).waitFor();
+ assert.equal(await coupon.getByRole("button",{name:"この商品にクーポンを使う",exact:true}).isEnabled(),false);
+ const basil=catalog.products.find((p:{productId:string})=>p.productId===PRODUCT.basil);assert.ok(basil);
+ await coupon.getByLabel("クーポン対象の商品コードを入力",{exact:true}).fill(basil.code);await coupon.getByRole("button",{name:"商品を確認",exact:true}).click();
+ await coupon.getByRole("button",{name:"この商品にクーポンを使う",exact:true}).click();
+ const discounted=await waitCart(PRODUCT.basil,1);assert.ok(discounted.discountTotal>0);
+ pass("クーポン受け取りだけでは商品が追加されず、対象バーコード照合後に割引が保存される");
+ await page.getByRole("button",{name:/枚目：セット割$/}).click();await page.locator('.shopping-stack-card[aria-hidden="false"] .store-offer-scan').click();
+ const setDialog=page.getByRole("dialog",{name:"パスタ＋トマトソースで10%OFF",exact:true});await setDialog.waitFor();await setDialog.getByRole("button",{name:"ここから商品を読み取る",exact:true}).click();
+ const sauce=catalog.products.find((p:{productId:string})=>p.productId===PRODUCT.sauce);assert.ok(sauce);await setDialog.getByLabel("割引対象の商品コードを入力",{exact:true}).fill(sauce.code);await setDialog.getByRole("button",{name:"商品を確認",exact:true}).click();await setDialog.getByRole("button",{name:"この商品に割引を使う",exact:true}).click();
+ const setCart=await waitCart(PRODUCT.sauce,1);assert.equal(setCart.cart.find((l:{productId:string})=>l.productId===PRODUCT.sauce).discount,29);assert.equal(setCart.cart.find((l:{productId:string})=>l.productId===PRODUCT.pasta).discount,24);
+ pass("セット割も広告枠から対象を読み取り、2商品の割引が保存される");
+ await page.getByRole("button",{name:/買い物かごを開く/}).click();await page.getByRole("button",{name:"レジに進む",exact:true}).click();
+ await page.getByRole("heading",{name:"お会計の確認",exact:true}).waitFor();await page.getByRole("button",{name:"お会計を確定する",exact:true}).waitFor();
+ await page.screenshot({path:out+"/checkout.png"});await page.getByRole("button",{name:"お会計を確定する",exact:true}).click();
+ await page.getByRole("heading",{name:"お買い物が完了しました",exact:true}).waitFor();await page.getByText("注文を保存し、この来店を終了しました。",{exact:true}).waitFor();
+ await page.reload();await page.getByRole("heading",{name:"お買い物が完了しました",exact:true}).waitFor();
+ const count=await fixture.db.query<{n:number}>("select count(*)::int as n from orders where visit_id=$1",[id(13)]);assert.equal(count.rows[0].n,1);
+ await page.screenshot({path:out+"/complete.png"});
+ pass("かごから実購入画面へ進み、注文保存・来店終了・再読込後も二重注文なし");
+ assert.deepEqual(errors,[]);pass("ブラウザ実行エラーなし");
+ await writeFile(out+"/results.json",JSON.stringify({passed},null,2));
+ console.log(passed.length+" integrated UI checks passed");
+ await context.close();
+}catch(error){console.error(log);await writeFile(out+"/server.log",log);throw error;}
+finally{await browser?.close();server.kill();await fixture.close();}

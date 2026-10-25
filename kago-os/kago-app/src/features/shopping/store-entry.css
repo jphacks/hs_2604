@@ -1,0 +1,131 @@
+
+html:has(.store-entry),body:has(.store-entry){height:100%;overflow:hidden;background:#F2F5F6}
+.store-entry{height:100dvh;max-width:520px;margin:auto;display:flex;flex-direction:column;background:#F2F5F6;color:#071927}
+.store-entry>header{padding:23px 21px 16px;flex:none}
+.store-entry>header img{width:220px;height:auto}
+.store-entry-content{min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:11px 20px max(18px,env(safe-area-inset-bottom))}
+.store-entry-title{margin:0 3px 24px}
+.store-entry h1{font-size:clamp(23px,6vw,30px);line-height:1.5;font-weight:850;letter-spacing:.02em}
+.store-entry-title p{font-size:13px;line-height:1.8;color:#5C6C7A;margin-top:12px}
+.store-scanner{position:relative;height:clamp(205px,29dvh,265px);min-height:0;border-radius:24px;background:linear-gradient(135deg,#12394c,#071f32);overflow:hidden;box-shadow:0 7px 18px #0e28411c}
+.store-scanner .scanner-idle{height:100%;display:flex;flex-direction:column;justify-content:space-between;padding:17px}
+.store-scanner .scanner-intro{flex:1;gap:14px;padding:15px;border:1px solid #ffffff20;border-radius:19px;background:#ffffff04}
+.store-scanner .scanner-symbol{width:65px;height:65px;border-radius:21px;flex:none;background:linear-gradient(135deg,#20dac4,#00ADA6);color:#071927}
+.store-scanner .scanner-symbol svg{width:36px;height:36px}
+.store-scanner .scanner-copy h2{font-size:clamp(14px,3.6vw,18px);line-height:1.5;font-weight:800;color:#fff}
+.store-scanner .scanner-copy p{font-size:13px;line-height:1.8;color:#c2d8e0;margin-top:8px}
+.store-scanner .scanner-start{display:flex;align-items:center;justify-content:center;gap:12px;min-height:53px;flex:none;margin-top:16px;border:0;border-radius:32px;background:linear-gradient(100deg,#00c5b1,#00ADA6);font-size:19px;font-weight:800;color:#fff}
+.store-scanner .scanner-start svg{width:25px;height:25px}
+.store-scanner>.scanner-live{position:absolute;inset:0;width:100%;height:100%;aspect-ratio:auto}
+.store-scanner .scanner-live video{width:100%;height:100%;object-fit:cover}
+.store-scanner .scanner-target{width:calc(100% - 36px);height:calc(100% - 100px);max-height:none;transform:translateY(-5px)}
+.store-scanner .scanner-guidance{top:11px;bottom:auto;font-size:11px;padding:5px 9px;text-align:center;max-width:92%;background:#071927b8}
+.store-scanner>.scanner-controls{position:absolute;bottom:13px;left:17px;right:17px;padding:0}
+.store-scanner .scanner-stop{min-height:38px;padding:7px 12px;border:1px solid #ffffff75;border-radius:30px;background:#07576be6;backdrop-filter:blur(10px);font-size:14px}
+.store-entry-help{font-size:12px;color:#5C6C7A;line-height:1.9;margin:21px 4px}
+.store-entry-options{border-top:1px solid #dce5e9;padding-top:21px;margin-top:20px}
+.store-entry-options h2{font-size:17px;font-weight:800;margin:0 3px 14px}
+.store-entry-chips{display:flex;flex-wrap:wrap;gap:9px}
+.store-entry-chips button{display:flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:10px 13px;border:1px solid #d8e3e7;border-radius:18px;background:#fff;color:#0E2841;font-size:14px;font-weight:750}
+.store-entry-chips svg{width:19px;height:21px;color:#8597a2;flex:none}
+.store-entry-chips [aria-pressed=true]{border-color:#00ADA6;background:#00ADA6;color:white}
+.store-entry-chips [aria-pressed=true] svg{color:white}
+.store-entry-check{display:grid;place-items:center;background:white;color:#019FA3;width:18px;height:18px;border-radius:50%;font-size:12px}
+.store-entry-actions{margin-top:23px}
+.store-entry-resume{display:flex;align-items:center;justify-content:center;gap:13px;min-height:62px;padding:12px;width:100%;border:1px solid #75d6d2;border-radius:22px;background:#E6F6F5;color:#019FA3;font-size:17px;font-weight:800}
+.store-entry-resume>svg:first-child{width:27px;height:27px}
+.store-entry-resume>svg:last-child{width:13px;height:18px}
+.store-entry-new,.store-entry-logout{display:block;min-height:36px;font-size:11px;color:#5C6C7A;text-align:center;margin:9px auto 0;text-decoration:underline;text-underline-offset:3px}
+.store-entry-logout{margin-top:19px}
+.store-entry-message{padding:11px 13px;border-radius:14px;background:#E6F6F5;color:#07576B;font-size:12px;line-height:1.7;margin-top:15px}
+.store-entry-error{background:#FFEEE8;color:#9a3524}
+.store-entry :focus-visible{outline:3px solid #019FA3;outline-offset:3px}
+@media(max-width:350px){.store-entry-content{padding-inline:14px}.store-entry>header{padding-inline:17px}.store-entry>header img{width:205px}.store-scanner .scanner-idle{padding:13px}.store-scanner .scanner-intro{padding:12px;gap:11px}.store-scanner .scanner-symbol{width:51px;height:57px;border-radius:17px}.store-scanner .scanner-copy p{font-size:12px}.store-entry-chips button{font-size:12px;padding-inline:10px}}
+@media(max-height:680px){.store-entry>header{padding-top:17px;padding-bottom:9px}.store-entry-content{padding-top:5px}.store-entry-title{margin-bottom:15px}.store-entry-title p{margin-top:5px}.store-entry-help{margin-block:14px}.store-entry-options{padding-top:14px;margin-top:13px}.store-entry-actions{margin-top:17px}.store-entry-resume{min-height:53px;font-size:15px}}
+
+/* The live camera replaces only its own card; broad corner marks stay inside it. */
+.shopping-scanner-active .scanner-target,.store-scanner .scanner-target{
+ border:0;border-radius:0;box-shadow:0 0 0 999px #07192744;
+ background:linear-gradient(#58e4d3,#58e4d3) left top/23px 3px no-repeat,linear-gradient(#58e4d3,#58e4d3) left top/3px 23px no-repeat,linear-gradient(#58e4d3,#58e4d3) right top/23px 3px no-repeat,linear-gradient(#58e4d3,#58e4d3) right top/3px 23px no-repeat,linear-gradient(#58e4d3,#58e4d3) left bottom/23px 3px no-repeat,linear-gradient(#58e4d3,#58e4d3) left bottom/3px 23px no-repeat,linear-gradient(#58e4d3,#58e4d3) right bottom/23px 3px no-repeat,linear-gradient(#58e4d3,#58e4d3) right bottom/3px 23px no-repeat
+}
+.shopping-scanner-active .scanner-target{width:calc(100% - 32px);height:calc(100% - 83px);max-height:none;transform:translateY(-5px)}
+@media(max-height:650px){.shopping-scanner-active .scanner-target{height:calc(100% - 69px);transform:translateY(-3px)}}
+
+.store-scanner.shopping-scanner-active .scanner-target{width:calc(100% - 36px);height:calc(100% - 100px);max-height:none;transform:translateY(-5px)}
+
+.store-entry-extra{margin:8px auto 0;text-align:center;color:#5C6C7A;font-size:11px}
+.store-entry-extra summary{cursor:pointer;min-height:32px;padding:8px}
+.store-entry-extra button{margin-top:2px}
+@media(max-height:800px){
+.store-entry>header{padding:16px 21px 8px}
+.store-entry-content{padding-top:8px;padding-bottom:10px}
+.store-entry-title{margin-bottom:14px}
+.store-entry h1{font-size:25px;line-height:1.4}
+.store-entry-title p{font-size:12px;margin-top:7px}
+.store-scanner{height:185px}
+.store-scanner .scanner-idle{padding:14px}
+.store-scanner .scanner-intro{padding:11px}
+.store-scanner .scanner-symbol{width:58px;height:58px;border-radius:18px}
+.store-scanner .scanner-copy h2{font-size:15px}
+.store-scanner .scanner-copy p{font-size:12px;margin-top:5px}
+.store-scanner .scanner-start{min-height:47px;margin-top:12px;font-size:18px}
+.store-entry-help{font-size:11.5px;line-height:1.7;margin:13px 4px}
+.store-entry-options{padding-top:13px;margin-top:13px}
+.store-entry-options h2{font-size:16px;margin-bottom:11px}
+.store-entry-chips button{min-height:42px;padding-block:8px;font-size:13px}
+.store-entry-actions{margin-top:16px}
+.store-entry-resume{min-height:53px;font-size:16px}
+}
+
+/* Fit the entire entry screen; QR corners use a square rather than a barcode strip. */
+.store-entry{overflow:hidden}
+.store-entry>header{padding:16px 18px 9px}
+.store-entry>header img{width:220px;max-width:100%;height:auto}
+.store-entry-content{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:clamp(8px,1.6dvh,15px);padding:4px 20px max(9px,env(safe-area-inset-bottom))}
+.store-entry-title{flex:none;margin:0 3px}
+.store-entry h1{font-size:clamp(23px,3.4dvh,29px);line-height:1.4}
+.store-entry-title p{font-size:12px;line-height:1.7;margin-top:7px}
+.store-entry .store-scanner{flex:1;min-height:0;height:auto;max-height:350px}
+.store-entry-help{flex:none;font-size:11.5px;line-height:1.65;margin:0 3px}
+.store-entry-options{flex:none;margin:0;padding-top:12px}
+.store-entry-options h2{margin-bottom:10px;font-size:16px}
+.store-entry-chips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+.store-entry-chips button{min-height:40px;padding:8px 10px;font-size:13px}
+.store-entry-chips button>span:not(.store-entry-check){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.store-entry-actions{flex:none;margin:0}
+.store-entry-resume{min-height:51px;font-size:16px}
+.store-entry-extra{flex:none;margin:0}
+.store-entry-extra summary{min-height:27px;padding:5px}
+.store-entry-extra[open]{position:fixed;z-index:80;left:50%;bottom:12px;transform:translateX(-50%);width:min(90vw,420px);padding:10px;background:#fff;border:1px solid #E2E8ED;border-radius:19px;box-shadow:0 8px 40px #07192733}
+.store-scanner.shopping-scanner-active>.scanner-controls{left:50%;right:auto;bottom:9px;width:auto;max-width:85%;transform:translateX(-50%);padding:0}
+.store-scanner.shopping-scanner-active .scanner-stop{width:auto;min-height:30px;padding:4px 17px;font-size:12px;white-space:nowrap}
+.store-scanner.shopping-scanner-active .scanner-target{width:auto;height:auto;aspect-ratio:1;max-width:calc(100% - 36px);max-height:none;position:absolute;left:50%;top:38px;bottom:48px;transform:translateX(-50%)}
+.store-scanner .scanner-guidance{top:8px;font-size:11px}
+.store-entry-message{flex:none;margin:0;padding:8px 11px}
+@media(max-height:650px){.store-entry>header{padding-block:12px 7px}.store-entry-content{gap:8px;padding-inline:15px}.store-entry h1{font-size:23px}.store-entry-title p{font-size:11px;margin-top:4px}.store-entry-help{font-size:11px}.store-entry-options{padding-top:9px}.store-entry-options h2{font-size:15px;margin-bottom:8px}.store-entry-resume{min-height:44px;font-size:14px}.store-entry-chips button{min-height:36px;font-size:12px}.store-scanner .scanner-idle{padding:12px}.store-scanner .scanner-intro{padding:8px;gap:10px}.store-scanner .scanner-symbol{width:48px;height:48px}.store-scanner .scanner-copy h2{font-size:14px}.store-scanner .scanner-copy p{font-size:11px;line-height:1.6}.store-scanner .scanner-start{min-height:39px;font-size:16px;margin-top:9px}.store-scanner .scanner-guidance{font-size:10px}.store-scanner.shopping-scanner-active .scanner-target{top:33px;bottom:43px}.store-scanner.shopping-scanner-active .scanner-stop{min-height:27px;font-size:11px}}
+
+.store-entry>header img,.shopping-session-logo{width:clamp(160px,48vw,220px);max-width:100%;height:auto}
+.store-scanner.shopping-scanner-active .scanner-target{top:38px;bottom:auto;height:calc(100% - 86px);width:auto;aspect-ratio:1;max-width:calc(100% - 36px)}
+@media(max-height:650px){.store-scanner.shopping-scanner-active .scanner-target{top:33px;height:calc(100% - 76px)}}
+
+
+/* #166：QR の枠は、下のデモ用の店舗選択が本番でなくなった場合と同じくらいの大きさで固定する。
+   枠は残りの高さを全部使い（中身やエラーで大きさを変えない）、画面の縦横比にだけ合わせる。デモ用の店舗選択は下に小さくまとめる */
+.store-entry-content{flex:1;display:flex;flex-direction:column;overflow:hidden;padding-bottom:max(12px,env(safe-area-inset-bottom))}
+.store-entry-title{flex:none;margin:0 3px}
+.store-entry-content>.store-scanner{flex:1 1 auto;height:auto;min-height:200px;max-height:none}
+.store-entry-help{flex:none;font-size:11px;line-height:1.6;margin:0 4px}
+.store-entry-options{flex:none;margin:0;padding-top:8px;display:flex;align-items:center;gap:8px}
+.store-entry-options h2{flex:none;margin:0;font-size:11px;font-weight:750;color:#5C6C7A}
+.store-entry-chips{display:flex;flex:1;min-width:0;flex-wrap:nowrap;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 0}
+.store-entry-chips::-webkit-scrollbar{display:none}
+.store-entry-chips button{flex:none;min-height:32px;padding:4px 10px;gap:5px;border-radius:12px;font-size:12px}
+.store-entry-chips svg{width:15px;height:16px}
+.store-entry-check{width:15px;height:15px;font-size:10px}
+.store-entry-actions{flex:none;margin:0}
+.store-entry-resume{min-height:44px;padding:8px 12px;gap:9px;border-radius:16px;font-size:14px}
+.store-entry-resume>svg:first-child{width:20px;height:20px}
+.store-entry-extra{flex:none;margin-top:2px}
+.store-entry-extra summary{min-height:26px;padding:4px}
+.store-entry-options>.store-entry-help{margin:0}
+@media(max-height:680px){.store-entry h1{font-size:22px}.store-entry-content>.store-scanner{min-height:170px}}

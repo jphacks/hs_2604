@@ -25,8 +25,9 @@ export function useRecommendations() {
     refresh.current?.update(cart.loaded ? { visitId, cartVersion: cart.version } : null);
   }, [visitId, cart.version, cart.loaded]);
   const retry = useCallback(() => refresh.current?.retry(), []);
+  const refreshQuietly = useCallback(() => refresh.current?.refreshQuietly(), []);
   const scope = cart.loaded ? { visitId, cartVersion: cart.version } : null;
   // Render-time gating hides old cards/details immediately, before effects cancel the old request.
   const current: RecommendationState = scope && sameRecommendationScope(state.scope, scope) ? state : { status: "loading", scope };
-  return { state: current, retry, updating: cart.loaded };
+  return { state: current, retry, refreshQuietly, updating: cart.loaded };
 }

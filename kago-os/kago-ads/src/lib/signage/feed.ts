@@ -44,7 +44,7 @@ export const PROMO_TEMPLATE_ASSET: MediaAsset = {
  * - approved_order：メーカー広告（優先度の設定がないので承認順）
  * - no_content / cache_expired / media_unavailable：案内（mode = fallback）
  */
-export type SignageReasonCode = "store_pick" | "approved_order" | "no_content" | "cache_expired" | "media_unavailable";
+export type SignageReasonCode = "store_pick" | "approved_order" | "no_content" | "cache_expired" | "media_unavailable" | import("./crowd-selection").CrowdDecision["reason_code"];
 
 export type FeedItem = {
   /** 再生の単位。メーカー広告は配信対象の ID、店舗販促は版の ID */

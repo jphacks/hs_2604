@@ -1,0 +1,27 @@
+.regular-reminder-card{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;gap:7px;padding:15px;background:linear-gradient(135deg,#fff,#E6F6F5);color:#0E2841}
+.regular-reminder-label{align-self:flex-start;border-radius:9px;background:#E6F6F5;color:#07576B;padding:4px 8px;font-size:12px;font-weight:750}
+.regular-reminder-card h2{font-size:19px;font-weight:800;line-height:1.25}
+.regular-reminder-product{min-height:0;flex:1;display:flex;align-items:center;gap:8px}
+.regular-reminder-product>div{flex:1;min-width:0}.regular-reminder-product h3{font-size:15px;font-weight:750;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.regular-reminder-product strong{font-size:24px;font-weight:800;color:#07576B}
+.regular-reminder-product p{font-size:12px;line-height:1.5;color:#5C6C7A}
+.regular-reminder-photo{position:relative;flex:none;width:34%;height:100%;min-height:45px;display:grid;place-items:center;font-size:45px}.regular-reminder-photo img{object-fit:contain}
+.regular-reminder-card>button{display:flex;align-items:center;justify-content:center;gap:7px;min-height:36px;border:0;border-radius:24px;background:#07576B;color:white;font-size:12px;font-weight:750;padding:5px 8px}.regular-reminder-card>button svg{width:19px;height:19px}.regular-reminder-card>button:disabled{opacity:.4}
+.regular-reminder-card>small{font-size:11px;color:#5C6C7A;text-align:center}
+@media(max-height:760px){.regular-reminder-card{padding:9px 12px;gap:3px}.regular-reminder-card h2{font-size:16px}.regular-reminder-label{font-size:10px;padding:2px 6px}.regular-reminder-product h3{font-size:13px}.regular-reminder-product strong{font-size:19px}.regular-reminder-product p{font-size:11px}.regular-reminder-card>button{min-height:29px;font-size:11px}.regular-reminder-card>small{font-size:10px}}
+
+
+
+.regular-reminder-card{padding:12px;gap:4px}.regular-reminder-product h3{line-height:1.25}.regular-reminder-product strong{display:block;font-size:22px;line-height:1.2}.regular-reminder-product p{font-size:11px;white-space:nowrap}
+@media(max-height:760px){.regular-reminder-card{padding:9px 12px;gap:3px}.regular-reminder-product strong{font-size:19px}.regular-reminder-product p{font-size:11px}.regular-reminder-product h3{font-size:13px}}
+
+/* #166：読み取りの枠と広告の枠を同じ比率にしたので、背の低い画面では中身を詰めて広告の枠に収める
+   （注記は見出し「そろそろ買う頃です」で意味が伝わるので隠す） */
+@media(max-height:620px){
+.regular-reminder-card{padding:7px 11px;gap:2px}
+.regular-reminder-card>small{display:none}
+.regular-reminder-card h2{font-size:14px;line-height:1.2}
+.regular-reminder-product{gap:6px}
+.regular-reminder-product h3{font-size:12px}.regular-reminder-product strong{font-size:16px}.regular-reminder-product p{font-size:10px;line-height:1.3}
+.regular-reminder-card>button{min-height:27px;font-size:11px;padding:3px 8px}.regular-reminder-card>button svg{width:15px;height:15px}
+}

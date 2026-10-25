@@ -24,7 +24,7 @@ test("pasta in the cart: basil coupon (curated relation) with its reason; set de
   assert.equal(r.coupon?.offerId, "c1"); assert.equal(r.coupon?.relation?.origin, "initial");
   assert.equal(r.coupon?.reason, "スパゲッティの仕上げに合います（KAGOが登録した組み合わせ）。25%OFFでお得なため選ばれました。");
   assert.equal(r.sets[0].action, "add"); assert.match(r.sets[0].reason, /スパゲッティとトマトパスタソース/);
-  assert.equal(r.ruleVersion, 1);
+  assert.equal(r.ruleVersion, 2);
 });
 test("coupons are not shown for products already in the cart or without trigger/relation", () => {
   const r = rankSerendipity(list([PASTA.code], [
@@ -60,4 +60,21 @@ test("a store-tied coupon no longer jumps the queue; the higher Association × D
     offer({ offerId: "store", kind: "guerrilla_coupon", product: BASIL, trigger: { ...PASTA, unitDiscount: 0 }, triggerInCart: true }),
   ]), rules);
   assert.equal(r.coupon?.offerId, "rule-only"); assert.equal(r.coupon?.targeting?.relation.source, "analysis");
+});
+
+test("overlapping set offers show a pair once, retaining the higher discount and another distinct pair", () => {
+  const r = rankSerendipity(list([PASTA.code, EGG.code], [
+    offer({ offerId: "same-low", kind: "set_deal", product: SAUCE, trigger: { ...PASTA, unitDiscount: 24 }, triggerInCart: true, discountPercent: 10, unitDiscount: 29 }),
+    offer({ offerId: "same-high", kind: "set_deal", product: SAUCE, trigger: { ...PASTA, unitDiscount: 49 }, triggerInCart: true, discountPercent: 20, unitDiscount: 59 }),
+    offer({ offerId: "other", kind: "set_deal", product: ONION, trigger: { ...EGG, unitDiscount: 29 }, triggerInCart: true, discountPercent: 10, unitDiscount: 7 }),
+  ]), rules);
+  assert.equal(r.sets.length, 2); assert(r.sets.some(o => o.offerId === "same-high")); assert(r.sets.some(o => o.offerId === "other"));
+});
+test("overlapping time sales show each product once with the largest discount; distinct products stay ordered by end", () => {
+  const r = rankSerendipity(list([], [
+    offer({ offerId: "low", kind: "time_sale", product: KARAAGE, unitDiscount: 20 }),
+    offer({ offerId: "high", kind: "time_sale", product: KARAAGE, unitDiscount: 43, endsAt: "2026-10-25T10:00:00Z" }),
+    offer({ offerId: "other", kind: "time_sale", product: SAUCE }),
+  ]), rules);
+  assert.deepEqual(r.timeSales.map(o => o.offerId), ["other", "high"]);
 });

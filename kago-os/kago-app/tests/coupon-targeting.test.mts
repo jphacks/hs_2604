@@ -6,7 +6,7 @@ import { readFile } from "node:fs/promises";
 import { after, test } from "node:test";
 import { createDemoDatabase, userId } from "./fixtures/demo-database.mts";
 import { buildPurchaseSummaries, type ProductPurchaseSummary } from "../src/features/recommendations/customer.ts";
-import { targetCoupon, isRegularPurchase, type CouponHistory, type CouponTargetingInput } from "../src/features/offers/targeting.ts";
+import { DEMO_PINNED_COUPONS, targetCoupon, isRegularPurchase, type CouponHistory, type CouponTargetingInput } from "../src/features/offers/targeting.ts";
 import { rankSerendipity } from "../src/features/offers/serendipity.ts";
 import type { OfferList, StoreOffer } from "../src/features/offers/contracts.ts";
 import type { PurchaseOrder } from "../src/features/account/contracts.ts";
@@ -179,12 +179,42 @@ test("12. analysis (public data, lift) and initial (curated, 1.5) relations are 
 test("13. APP-13 response: only the selected coupon is returned, with its targeting breakdown", () => {
   const list: OfferList = { visitId: "v", cartVersion: 2, serverTime: "2026-10-25T03:00:00Z", nextChangeAt: null, offers: three,
     cartProductCodes: [PASTA], lastAddedProduct: { productId: P.pasta.productId, code: PASTA, name: P.pasta.name, category: "乾麺" }, claimedCouponCount: 0 };
+  // The App pins the demo coupon for spaghetti (#186): tomato sauce whatever the history (the score alone gives basil / eggs, above).
   const off = rankSerendipity(list, rules);
-  assert.equal(off.coupon?.offerId, "o-basil"); assert.equal(off.coupon?.targeting?.noveltyReason, "history_disabled");
+  assert.equal(off.coupon?.offerId, "o-sauce"); assert.equal(off.coupon?.targeting?.noveltyReason, "history_disabled");
   assert.equal(off.coupon?.relation?.origin, "initial");
   const on = rankSerendipity(list, rules, available([summary(P.basil, 3, 7, 1), summary(P.sauce, 3, 7, 1)]));
-  assert.equal(on.coupon?.offerId, "o-eggs");
-  // The trigger is the last product added, not every product in the cart.
+  assert.equal(on.coupon?.offerId, "o-sauce");
+  // The trigger is the last product added, not every product in the cart — except the demo pin (#191):
+  // spaghetti still in the cart keeps the sauce coupon after eggs were added.
   const lastEggs = rankSerendipity({ ...list, cartProductCodes: [PASTA, EGGS], lastAddedProduct: { ...list.lastAddedProduct!, code: EGGS, name: P.eggs.name } }, rules);
-  assert.equal(lastEggs.coupon, null, "eggs → basil/sauce have no rule");
+  assert.equal(lastEggs.coupon?.offerId, "o-sauce");
+  const eggsOnly = rankSerendipity({ ...list, cartProductCodes: [EGGS], lastAddedProduct: { ...list.lastAddedProduct!, code: EGGS, name: P.eggs.name } }, rules);
+  assert.equal(eggsOnly.coupon, null, "eggs → basil/sauce have no rule");
+});
+
+test("#186/#191 demo: while spaghetti is in the cart the coupon is always tomato sauce (or none), never another", () => {
+  const pinnedCoupons = DEMO_PINNED_COUPONS;
+  const regular = available([summary(P.sauce, 3, 7, 1)]);
+  assert.equal(run({ history: regular }).selected?.productCode, BASIL, "without the pin, a regular purchase is excluded");
+  for (const history of [{ status: "disabled" } as CouponHistory, { status: "empty" } as CouponHistory, regular]) {
+    const d = run({ history, pinnedCoupons });
+    assert.equal(d.selected?.offerId, "o-sauce"); assert.equal(d.candidates[0].offerId, "o-sauce");
+    assert.equal(new Set(d.candidates.map(c => c.offerId)).size, d.candidates.length);
+    assert.match(d.selected!.reason, /^スパゲッティと一緒に使えるクーポンです。15%OFFでお得です。$/);
+  }
+  // Sauce already in the cart (the DB applies the coupon to one unit) and past the 3-coupons limit: still the sauce.
+  assert.equal(run({ pinnedCoupons, cartProductCodes: [PASTA, SAUCE] }).selected?.offerId, "o-sauce");
+  assert.equal(run({ pinnedCoupons, offers: three.map(o => o.offerId === "o-sauce" ? { ...o, productInCart: true } : o) }).selected?.offerId, "o-sauce");
+  assert.equal(run({ pinnedCoupons, claimedCouponCount: 3 }).selected?.offerId, "o-sauce");
+  // Another product added after the spaghetti: the sauce coupon stays.
+  const afterEggs = run({ pinnedCoupons, triggers: [{ code: EGGS, name: P.eggs.name }], cartProductCodes: [PASTA, EGGS] }).selected;
+  assert.equal(afterEggs?.offerId, "o-sauce"); assert.match(afterEggs!.reason, /^スパゲッティと一緒に使えるクーポンです。/);
+  // Dismissed: no other coupon takes its place for the spaghetti.
+  assert.equal(run({ pinnedCoupons, dismissedOfferIds: ["o-sauce"] }).selected, null);
+  assert.equal(run({ pinnedCoupons, offers: three.map(o => o.offerId === "o-sauce" ? { ...o, dismissed: true } : o) }).candidates.length, 0);
+  // Already used (the DB no longer lists it) or not offered at all: the normal choice applies.
+  assert.equal(run({ pinnedCoupons, offers: three.filter(o => o.offerId !== "o-sauce") }).selected?.offerId, "o-basil");
+  // Without spaghetti in the cart nothing is pinned.
+  assert.notEqual(run({ pinnedCoupons, triggers: [{ code: EGGS, name: P.eggs.name }], cartProductCodes: [EGGS] }).selected?.offerId, "o-sauce");
 });
