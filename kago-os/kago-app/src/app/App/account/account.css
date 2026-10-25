@@ -76,8 +76,8 @@
 .account-retry,.account-more{min-height:42px;border-radius:22px;background:#07576B;color:#fff;padding:9px 16px;font-size:12.5px;font-weight:700;margin-top:12px}
 .account-more{width:100%}
 .account-reload{display:block;width:100%;min-height:35px;font-size:11px;color:var(--kago-gray);margin-top:8px;text-decoration:underline;text-underline-offset:3px}
-.shopping-account .shopping-nav [aria-current=page] svg path{fill:none}
-.shopping-account .shopping-nav a:last-child[aria-current=page] svg{fill:currentColor}
+.shopping-account .shopping-nav a[href="/App/history"] svg :is(path,circle){fill:none}
+.shopping-account .shopping-nav a[href="/App/account"]:not([aria-current=page]) svg :is(path,circle){fill:none}
 @media(max-width:350px){.account-title h1{font-size:25px}.shopping-account-content{padding-inline:12px}.account-order{padding:12px}.account-order-top{gap:7px;grid-template-columns:25px minmax(0,1fr) auto}.account-order-top>strong{font-size:19px}.account-profile{padding:16px 13px;gap:10px}.account-profile h2{font-size:15px}.account-setting strong{font-size:12.5px}.account-cart-link{padding:11px 9px;font-size:12px}}
 @media(max-height:650px){.shopping-account{grid-template-rows:54px minmax(0,1fr) calc(56px + env(safe-area-inset-bottom))}}
 

@@ -119,7 +119,7 @@ export default function Home() {
   const store = session.stores.find(s=>s.id===session.visit?.store_id);
   const storeName = [store?.name,store?.branch_name].filter(Boolean).join(" ");
   const status = <div className={`shopping-feedback ${cart.error ? "shopping-error border border-red-200 bg-red-50 text-red-900" : "border-emerald-100 bg-emerald-50 text-emerald-950"}`}>
-    <p role={cart.error ? "alert" : "status"} className="text-sm font-semibold">{cart.message}</p>
+    <p role={cart.error ? "alert" : "status"} className="text-sm font-semibold">{cart.message || "操作を完了できませんでした。もう一度お試しください。"}</p>
     {cart.pending && <button type="button" disabled={cart.busy} onClick={cart.retry} className={`${button} mt-3`}>同じ操作を再試行</button>}
     {!cart.pending && cart.error && <button type="button" disabled={cart.busy} onClick={cart.reload} className={`${button} mt-3`}>かごを再読み込み</button>}
   </div>;

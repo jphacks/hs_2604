@@ -8,7 +8,7 @@ const paths:Record<Name,React.ReactNode>={
  search:<><circle cx="10.5" cy="10.5" r="7.5"/><path d="m16 16 6 6"/></>,
  home:<><path d="m2 11 10-9 10 9"/><path d="M5 9v13h5v-7h4v7h5V9"/></>,
  history:<><circle cx="12" cy="12" r="10"/><path d="M12 5v7h5"/></>,
- user:<><circle cx="12" cy="7" r="4"/><path d="M3 22v-3a9 9 0 0 1 18 0v3"/></>,
+ user:<><circle cx="12" cy="7" r="4"/><path d="M3 22v-3a9 9 0 0 1 18 0v3Z"/></>,
  trash:<><path d="M4 6h16M9 6V3h6v3M6 6l1 15h10l1-15M10 10v7m4-7v7"/></>,
  coupon:<><path d="M4 4h16v5a3 3 0 0 0 0 6v5H4v-5a3 3 0 0 0 0-6z"/><path d="M9 8v8m6-8v8"/></>,
  arrow:<path d="m9 4 8 8-8 8"/>,

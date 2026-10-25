@@ -117,3 +117,25 @@ html:has(.coupon-preview),body:has(.coupon-preview){height:100%;margin:0;overflo
 
 
 .coupon-redemption{padding:4px 0}.coupon-redemption>.shopping-scanner{height:210px;overflow:hidden;border-radius:21px;background:#0E2841}.coupon-redemption>button:last-child{background:#07576B;border-radius:25px}.coupon-redemption form button{border-color:#019FA3;color:#07576B;border-radius:23px}.coupon-redemption>code{font-size:14px}.coupon-detail-body:has(.coupon-redemption){justify-content:flex-start}
+
+/* Keep target verification on one screen, including a compact camera and manual fallback. */
+html:has(.coupon-detail-scanning),body:has(.coupon-detail-scanning){overflow:hidden;overscroll-behavior:none}
+.coupon-detail-scanning{height:min(650px,calc(100dvh - 20px))}
+.coupon-detail-scanning .coupon-detail-body{overflow:hidden;gap:0;padding:0 16px 8px}
+.coupon-detail-scanning .coupon-detail-footer{padding:4px 16px max(6px,env(safe-area-inset-bottom))}
+.coupon-detail-scanning .coupon-detail-dismiss{margin:0;min-height:34px}
+.coupon-detail-scanning .coupon-redemption{display:flex;flex-direction:column;min-height:0;gap:6px;padding:0}
+.coupon-detail-scanning .coupon-redemption>p{margin:0;font-size:12px;line-height:1.5}
+.coupon-detail-scanning .coupon-redemption>code{margin:0;padding:5px 10px;font-size:13px}
+.coupon-detail-scanning .coupon-redemption>.shopping-scanner{flex:none;height:clamp(112px,19dvh,160px);min-height:0}
+.coupon-detail-scanning .scanner-idle{padding:8px 12px}
+.coupon-detail-scanning .scanner-intro{margin:0;gap:9px}
+.coupon-detail-scanning .scanner-symbol{width:32px;height:32px;border-radius:10px}
+.coupon-detail-scanning .scanner-symbol svg{width:23px;height:23px}
+.coupon-detail-scanning .scanner-copy>p:last-child{font-size:11px;line-height:1.5;white-space:normal}
+.coupon-detail-scanning .scanner-start{height:36px;min-height:36px;margin-top:5px;font-size:14px}
+.coupon-detail-scanning .coupon-redemption form{margin:0;gap:5px}
+.coupon-detail-scanning .coupon-redemption form label{font-size:12px;gap:3px}
+.coupon-detail-scanning .coupon-redemption form input{min-height:36px;height:36px;font-size:16px}
+.coupon-detail-scanning .coupon-redemption form button{min-height:34px;padding:5px 10px;font-size:12px}
+.coupon-detail-scanning .coupon-redemption>button:last-child{margin:0;min-height:38px;padding:6px 10px;font-size:13px}

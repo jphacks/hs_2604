@@ -92,7 +92,7 @@ body:has(.shopping-home) .shopping-session-bar{display:none}
 .shopping-home{grid-template-areas:"header" "content" "basket" "nav"}.shopping-header{grid-area:header}.shopping-content{grid-area:content}.shopping-cart-summary{grid-area:basket}.shopping-nav{grid-area:nav}
 
 /* #166：今いる画面のアイコンは、線の一部ではなく全体を塗る */
-.shopping-nav [aria-current=page] svg :is(path,circle){fill:currentColor}.shopping-nav a:last-child svg{fill:currentColor}
+.shopping-nav [aria-current=page] svg :is(path,circle){fill:currentColor}
 
 /* UI review v3: full-photo category buttons and translucent glass navigation. */
 .shopping-logo{width:min(100%,220px)}
@@ -320,3 +320,5 @@ body:has(.shopping-home) .shopping-session-bar{display:none}
 .shopping-stack-card-photo .shopping-stack-copy{max-width:58%}
 .shopping-stack-card-photo .shopping-stack-copy h2{font-size:clamp(17px,2.9dvh,26px);overflow-wrap:anywhere}
 
+
+.shopping-cart-summary>button>svg:first-child{fill:#fff;stroke:#fff}
