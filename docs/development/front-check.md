@@ -31,6 +31,8 @@ cd kago-os/kago-insight && pnpm dev      # Insight: http://localhost:3002
 
 スマホ幅（390px程度）で確認する。
 
+実機スマホで見るときは、同じネットワークで`pnpm dev --hostname 0.0.0.0`を起動し、`http://<PCのIP>:3000/App`を開く。進まない場合は`next.config.ts`の`allowedDevOrigins`に自分のPCのIPを入れる（コミットしない）。Turbopackが落ちる場合は`--webpack`を付ける。
+
 | 機能 | 操作 | 期待結果 |
 | --- | --- | --- |
 | ログイン・来店 | ログイン →店舗を選ぶ（デモ自動ログインならヘッダーでU1〜U3を切替） | 店舗名とかごが表示される。1分ごとの再確認で画面が白くならない |
