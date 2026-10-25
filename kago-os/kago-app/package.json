@@ -40,7 +40,7 @@
     "test:login:e2e": "node --experimental-strip-types tests/login-no-reload.e2e.mts",
     "test:coupon-redemption:e2e": "node --experimental-strip-types tests/coupon-redemption.e2e.mts",
     "test:coupon-scan-only:e2e": "node --experimental-strip-types tests/coupon-scan-only.e2e.mts",
-    "test:selection": "node --experimental-strip-types --test tests/purchase-cycle.test.ts tests/selection.test.ts tests/selection-database.test.mts tests/selection-service.test.mts",
+    "test:selection": "node --experimental-strip-types --test tests/purchase-cycle.test.ts tests/selection.test.ts tests/selection-database.test.mts tests/selection-service.test.mts tests/demo-store-pick.test.mts",
     "test:selection:e2e": "node --experimental-strip-types tests/recommendations.e2e.mts",
     "test:suggestions:e2e": "node --experimental-strip-types tests/suggestions.e2e.mts",
     "test:session:e2e": "node --experimental-strip-types tests/session-background.e2e.mts",
