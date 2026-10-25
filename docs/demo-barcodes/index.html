@@ -1,93 +1,99 @@
 <!doctype html><html lang="ja"><head><meta charset="utf-8"><title>KAGO デモ店舗 サンプルバーコード</title>
 <style>@page{size:A4;margin:10mm}body{font-family:"Noto Sans CJK JP","Hiragino Sans",sans-serif;margin:0;color:#111}
-h1{font-size:16px;margin:0 0 2px}p.note{font-size:10px;margin:0 0 8px;color:#444}
+h1{font-size:16px;margin:0 0 2px}h2.section{font-size:14px;margin:4px 0 4px;padding:4px 8px;color:#fff;background:#be185d}
+h2.section.plain{background:#475569}p.note{font-size:10px;margin:0 0 8px;color:#444}
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.card{border:1px solid #999;padding:6px;break-inside:avoid}
-.card h2{font-size:11px;margin:0;line-height:1.3}.meta{font-size:9px;color:#555;display:flex;justify-content:space-between}
-.card img{width:78%;height:auto;display:block;margin:4px auto 0}</style></head><body>
+.card.coupon{border:2px solid #be185d}.card h2{font-size:11px;margin:0;line-height:1.3}
+.meta{font-size:9px;color:#555;display:flex;justify-content:space-between}
+.card img{width:78%;height:auto;display:block;margin:4px auto 0}
+.deal{font-size:9.5px;margin:4px 0 0;padding:3px 5px;background:#fdf2f8;color:#9d174d;font-weight:700;line-height:1.35}
+.cart-only{break-before:page}</style></head><body>
 <h1>KAGO/OS デモ店舗（hiroshima-demo-store）サンプルバーコード 50点</h1>
-<p class="note">架空の商品です。KAGO Appの「カメラで読み取る」で読み取れます（13桁はEAN-13、PLU-で始まる商品はCode 128）。価格は参考で、購入時は店舗の現在価格が適用されます。倍率100%で印刷してください。</p>
+<p class="note">架空の商品です。KAGO Appの「カメラで読み取る」で読み取れます（13桁はEAN-13、PLU-で始まる商品はCode 128）。クーポンは、その商品だけをかごに入れたときに出るもので、デモの3人（田中：履歴OFF、佐藤・鈴木：履歴ON）で異なる場合は人ごとに書いています。クーポンを受け取る・見送る・ほかの商品を入れると、次に出るクーポンは変わります。倍率100%で印刷してください。</p>
+<h2 class="section">① 読み取るとゲリラクーポンが出る商品（36点）</h2>
+<div class="grid"><div class="card coupon"><div class="meta"><span>乾麺</span><span>¥248</span></div>
+<h2>スパゲッティ 500g</h2><img src="2900000000100.svg" alt="スパゲッティ 500g 2900000000100"><p class="deal">🎉 ゲリラクーポン<br>田中：生バジル 25%OFF ／ 佐藤：新鮮たまご 20%OFF ／ 鈴木：トマトパスタソース 15%OFF</p></div>
+<div class="card coupon"><div class="meta"><span>飲料</span><span>¥98</span></div>
+<h2>KAGO 天然水 550ml</h2><img src="2900000000025.svg" alt="KAGO 天然水 550ml 2900000000025"><p class="deal">🎉 ゲリラクーポン<br>田中：生バジル 25%OFF ／ 佐藤：なし ／ 鈴木：生バジル 25%OFF</p></div>
+<div class="card coupon"><div class="meta"><span>飲料</span><span>¥178</span></div>
+<h2>KAGO カフェラテ</h2><img src="2900000000032.svg" alt="KAGO カフェラテ 2900000000032"><p class="deal">🎉 ゲリラクーポン<br>全員：鶏もも肉 15%OFF</p></div>
+<div class="card coupon"><div class="meta"><span>乳製品</span><span>¥238</span></div>
+<h2>成分無調整牛乳 1L</h2><img src="2900000000049.svg" alt="成分無調整牛乳 1L 2900000000049"><p class="deal">🎉 ゲリラクーポン<br>田中：生バジル 25%OFF ／ 佐藤：鶏もも肉 15%OFF ／ 鈴木：鶏もも肉 15%OFF</p></div>
+<div class="card coupon"><div class="meta"><span>パン</span><span>¥228</span></div>
+<h2>もっちり食パン 6枚切</h2><img src="2900000000056.svg" alt="もっちり食パン 6枚切 2900000000056"><p class="deal">🎉 ゲリラクーポン<br>全員：ロースハム 25%OFF</p></div>
+<div class="card coupon"><div class="meta"><span>卵</span><span>¥298</span></div>
+<h2>新鮮たまご 10個</h2><img src="2900000000063.svg" alt="新鮮たまご 10個 2900000000063"><p class="deal">🎉 ゲリラクーポン<br>全員：ロースハム 25%OFF</p></div>
+<div class="card coupon"><div class="meta"><span>乳製品</span><span>¥188</span></div>
+<h2>プレーンヨーグルト</h2><img src="2900000000070.svg" alt="プレーンヨーグルト 2900000000070"><p class="deal">🎉 ゲリラクーポン<br>全員：ロースハム 25%OFF</p></div>
+<div class="card coupon"><div class="meta"><span>青果</span><span>¥198</span></div>
+<h2>フィリピン産バナナ</h2><img src="2900000000087.svg" alt="フィリピン産バナナ 2900000000087"><p class="deal">🎉 ゲリラクーポン<br>全員：ロースハム 25%OFF</p></div>
+<div class="card coupon"><div class="meta"><span>菓子</span><span>¥178</span></div>
+<h2>うすしおポテトチップス</h2><img src="2900000000117.svg" alt="うすしおポテトチップス 2900000000117"><p class="deal">🎉 ゲリラクーポン<br>全員：豚こま切れ 20%OFF</p></div>
+<div class="card coupon"><div class="meta"><span>菓子</span><span>¥158</span></div>
+<h2>ミルクチョコレート</h2><img src="2900000000124.svg" alt="ミルクチョコレート 2900000000124"><p class="deal">🎉 ゲリラクーポン<br>全員：ロースハム 25%OFF</p></div>
+<div class="card coupon"><div class="meta"><span>日用品</span><span>¥398</span></div>
+<h2>箱ティッシュ 5個組</h2><img src="2900000000131.svg" alt="箱ティッシュ 5個組 2900000000131"><p class="deal">🎉 ゲリラクーポン<br>全員：ロースハム 25%OFF</p></div>
+<div class="card coupon"><div class="meta"><span>衛生用品</span><span>¥598</span></div>
+<h2>不織布マスク 30枚</h2><img src="2900000000155.svg" alt="不織布マスク 30枚 2900000000155"><p class="deal">🎉 ゲリラクーポン<br>田中：新鮮たまご 20%OFF ／ 佐藤：豚こま切れ 20%OFF ／ 鈴木：豚こま切れ 20%OFF</p></div>
+<div class="card coupon"><div class="meta"><span>青果</span><span>¥198</span></div>
+<h2>生バジル</h2><img src="2900000000179.svg" alt="生バジル 2900000000179"><p class="deal">🎉 ゲリラクーポン<br>全員：鶏もも肉 15%OFF</p></div>
+<div class="card coupon"><div class="meta"><span>青果</span><span>¥78</span></div>
+<h2>玉ねぎ 1個</h2><img src="PLU-1001.svg" alt="玉ねぎ 1個 PLU-1001"><p class="deal">🎉 ゲリラクーポン<br>全員：新鮮たまご 20%OFF</p></div>
+<div class="card coupon"><div class="meta"><span>青果</span><span>¥158</span></div>
+<h2>国産りんご 1個</h2><img src="PLU-1002.svg" alt="国産りんご 1個 PLU-1002"><p class="deal">🎉 ゲリラクーポン<br>全員：ロースハム 25%OFF</p></div>
+<div class="card coupon"><div class="meta"><span>青果</span><span>¥198</span></div>
+<h2>アボカド 1個</h2><img src="PLU-1003.svg" alt="アボカド 1個 PLU-1003"><p class="deal">🎉 ゲリラクーポン<br>全員：ロースハム 25%OFF</p></div>
+<div class="card coupon"><div class="meta"><span>惣菜</span><span>¥218</span></div>
+<h2>若鶏の唐揚げ 100g</h2><img src="PLU-2002.svg" alt="若鶏の唐揚げ 100g PLU-2002"><p class="deal">🎉 ゲリラクーポン<br>田中：生バジル 25%OFF ／ 佐藤：新鮮たまご 20%OFF ／ 鈴木：生バジル 25%OFF</p></div>
+<div class="card coupon"><div class="meta"><span>パン</span><span>¥130</span></div>
+<h2>焼きたて塩パン 1個</h2><img src="PLU-3001.svg" alt="焼きたて塩パン 1個 PLU-3001"><p class="deal">🎉 ゲリラクーポン<br>全員：ロースハム 25%OFF</p></div>
+<div class="card coupon"><div class="meta"><span>野菜</span><span>¥98</span></div>
+<h2>トマト 1個</h2><img src="PLU-4001.svg" alt="トマト 1個 PLU-4001"><p class="deal">🎉 ゲリラクーポン<br>田中：生バジル 25%OFF ／ 佐藤：鶏もも肉 15%OFF ／ 鈴木：鶏もも肉 15%OFF</p></div>
+<div class="card coupon"><div class="meta"><span>野菜</span><span>¥68</span></div>
+<h2>なす 1本</h2><img src="PLU-4002.svg" alt="なす 1本 PLU-4002"><p class="deal">🎉 ゲリラクーポン<br>田中：生バジル 25%OFF ／ 佐藤：鶏もも肉 15%OFF ／ 鈴木：鶏もも肉 15%OFF</p></div>
+<div class="card coupon"><div class="meta"><span>野菜</span><span>¥58</span></div>
+<h2>きゅうり 1本</h2><img src="PLU-4003.svg" alt="きゅうり 1本 PLU-4003"><p class="deal">🎉 ゲリラクーポン<br>田中：生バジル 25%OFF ／ 佐藤：鶏もも肉 15%OFF ／ 鈴木：鶏もも肉 15%OFF</p></div>
+<div class="card coupon"><div class="meta"><span>野菜</span><span>¥198</span></div>
+<h2>キャベツ 1玉</h2><img src="PLU-4004.svg" alt="キャベツ 1玉 PLU-4004"><p class="deal">🎉 ゲリラクーポン<br>田中：生バジル 25%OFF ／ 佐藤：鶏もも肉 15%OFF ／ 鈴木：鶏もも肉 15%OFF</p></div>
+<div class="card coupon"><div class="meta"><span>野菜</span><span>¥48</span></div>
+<h2>にんじん 1本</h2><img src="PLU-4005.svg" alt="にんじん 1本 PLU-4005"><p class="deal">🎉 ゲリラクーポン<br>田中：生バジル 25%OFF ／ 佐藤：鶏もも肉 15%OFF ／ 鈴木：生バジル 25%OFF</p></div>
+<div class="card coupon"><div class="meta"><span>野菜</span><span>¥38</span></div>
+<h2>じゃがいも 1個</h2><img src="PLU-4006.svg" alt="じゃがいも 1個 PLU-4006"><p class="deal">🎉 ゲリラクーポン<br>田中：生バジル 25%OFF ／ 佐藤：鶏もも肉 15%OFF ／ 鈴木：生バジル 25%OFF</p></div>
+<div class="card coupon"><div class="meta"><span>野菜</span><span>¥128</span></div>
+<h2>ピーマン 1袋</h2><img src="PLU-4007.svg" alt="ピーマン 1袋 PLU-4007"><p class="deal">🎉 ゲリラクーポン<br>田中：生バジル 25%OFF ／ 佐藤：鶏もも肉 15%OFF ／ 鈴木：鶏もも肉 15%OFF</p></div>
+<div class="card coupon"><div class="meta"><span>野菜</span><span>¥158</span></div>
+<h2>ほうれん草 1束</h2><img src="PLU-4008.svg" alt="ほうれん草 1束 PLU-4008"><p class="deal">🎉 ゲリラクーポン<br>田中：生バジル 25%OFF ／ 佐藤：鶏もも肉 15%OFF ／ 鈴木：鶏もも肉 15%OFF</p></div>
+<div class="card coupon"><div class="meta"><span>野菜</span><span>¥198</span></div>
+<h2>ブロッコリー 1株</h2><img src="PLU-4009.svg" alt="ブロッコリー 1株 PLU-4009"><p class="deal">🎉 ゲリラクーポン<br>田中：生バジル 25%OFF ／ 佐藤：鶏もも肉 15%OFF ／ 鈴木：鶏もも肉 15%OFF</p></div>
+<div class="card coupon"><div class="meta"><span>肉</span><span>¥398</span></div>
+<h2>豚バラ薄切り 200g</h2><img src="PLU-5001.svg" alt="豚バラ薄切り 200g PLU-5001"><p class="deal">🎉 ゲリラクーポン<br>田中：生バジル 25%OFF ／ 佐藤：鶏もも肉 15%OFF ／ 鈴木：鶏もも肉 15%OFF</p></div>
+<div class="card coupon"><div class="meta"><span>肉</span><span>¥298</span></div>
+<h2>豚こま切れ 200g</h2><img src="PLU-5002.svg" alt="豚こま切れ 200g PLU-5002"><p class="deal">🎉 ゲリラクーポン<br>田中：生バジル 25%OFF ／ 佐藤：鶏もも肉 15%OFF ／ 鈴木：鶏もも肉 15%OFF</p></div>
+<div class="card coupon"><div class="meta"><span>肉</span><span>¥458</span></div>
+<h2>豚ロース とんかつ用 2枚</h2><img src="PLU-5003.svg" alt="豚ロース とんかつ用 2枚 PLU-5003"><p class="deal">🎉 ゲリラクーポン<br>田中：生バジル 25%OFF ／ 佐藤：鶏もも肉 15%OFF ／ 鈴木：鶏もも肉 15%OFF</p></div>
+<div class="card coupon"><div class="meta"><span>肉</span><span>¥378</span></div>
+<h2>鶏もも肉 300g</h2><img src="PLU-5004.svg" alt="鶏もも肉 300g PLU-5004"><p class="deal">🎉 ゲリラクーポン<br>田中：生バジル 25%OFF ／ 佐藤：新鮮たまご 20%OFF ／ 鈴木：生バジル 25%OFF</p></div>
+<div class="card coupon"><div class="meta"><span>肉</span><span>¥258</span></div>
+<h2>鶏むね肉 300g</h2><img src="PLU-5005.svg" alt="鶏むね肉 300g PLU-5005"><p class="deal">🎉 ゲリラクーポン<br>田中：生バジル 25%OFF ／ 佐藤：新鮮たまご 20%OFF ／ 鈴木：生バジル 25%OFF</p></div>
+<div class="card coupon"><div class="meta"><span>肉</span><span>¥348</span></div>
+<h2>鶏手羽元 500g</h2><img src="PLU-5006.svg" alt="鶏手羽元 500g PLU-5006"><p class="deal">🎉 ゲリラクーポン<br>田中：生バジル 25%OFF ／ 佐藤：新鮮たまご 20%OFF ／ 鈴木：生バジル 25%OFF</p></div>
+<div class="card coupon"><div class="meta"><span>肉</span><span>¥598</span></div>
+<h2>牛こま切れ 200g</h2><img src="PLU-5007.svg" alt="牛こま切れ 200g PLU-5007"><p class="deal">🎉 ゲリラクーポン<br>田中：生バジル 25%OFF ／ 佐藤：豚こま切れ 20%OFF ／ 鈴木：豚こま切れ 20%OFF</p></div>
+<div class="card coupon"><div class="meta"><span>肉</span><span>¥348</span></div>
+<h2>合いびき肉 250g</h2><img src="PLU-5008.svg" alt="合いびき肉 250g PLU-5008"><p class="deal">🎉 ゲリラクーポン<br>全員：鶏もも肉 15%OFF</p></div>
+<div class="card coupon"><div class="meta"><span>肉</span><span>¥198</span></div>
+<h2>ロースハム 4枚</h2><img src="PLU-5009.svg" alt="ロースハム 4枚 PLU-5009"><p class="deal">🎉 ゲリラクーポン<br>全員：新鮮たまご 20%OFF</p></div></div>
+<div class="cart-only"><h2 class="section plain">② かごに入るだけの商品（クーポンなし・14点）</h2>
 <div class="grid"><div class="card"><div class="meta"><span>飲料</span><span>¥138</span></div>
 <h2>KAGO 緑茶 500ml</h2><img src="2900000000018.svg" alt="KAGO 緑茶 500ml 2900000000018"></div>
-<div class="card"><div class="meta"><span>飲料</span><span>¥98</span></div>
-<h2>KAGO 天然水 550ml</h2><img src="2900000000025.svg" alt="KAGO 天然水 550ml 2900000000025"></div>
-<div class="card"><div class="meta"><span>飲料</span><span>¥178</span></div>
-<h2>KAGO カフェラテ</h2><img src="2900000000032.svg" alt="KAGO カフェラテ 2900000000032"></div>
-<div class="card"><div class="meta"><span>乳製品</span><span>¥238</span></div>
-<h2>成分無調整牛乳 1L</h2><img src="2900000000049.svg" alt="成分無調整牛乳 1L 2900000000049"></div>
-<div class="card"><div class="meta"><span>パン</span><span>¥228</span></div>
-<h2>もっちり食パン 6枚切</h2><img src="2900000000056.svg" alt="もっちり食パン 6枚切 2900000000056"></div>
-<div class="card"><div class="meta"><span>卵</span><span>¥298</span></div>
-<h2>新鮮たまご 10個</h2><img src="2900000000063.svg" alt="新鮮たまご 10個 2900000000063"></div>
-<div class="card"><div class="meta"><span>乳製品</span><span>¥188</span></div>
-<h2>プレーンヨーグルト</h2><img src="2900000000070.svg" alt="プレーンヨーグルト 2900000000070"></div>
-<div class="card"><div class="meta"><span>青果</span><span>¥198</span></div>
-<h2>フィリピン産バナナ</h2><img src="2900000000087.svg" alt="フィリピン産バナナ 2900000000087"></div>
 <div class="card"><div class="meta"><span>加工食品</span><span>¥258</span></div>
 <h2>中辛ビーフカレー</h2><img src="2900000000094.svg" alt="中辛ビーフカレー 2900000000094"></div>
-<div class="card"><div class="meta"><span>乾麺</span><span>¥248</span></div>
-<h2>スパゲッティ 500g</h2><img src="2900000000100.svg" alt="スパゲッティ 500g 2900000000100"></div>
-<div class="card"><div class="meta"><span>菓子</span><span>¥178</span></div>
-<h2>うすしおポテトチップス</h2><img src="2900000000117.svg" alt="うすしおポテトチップス 2900000000117"></div>
-<div class="card"><div class="meta"><span>菓子</span><span>¥158</span></div>
-<h2>ミルクチョコレート</h2><img src="2900000000124.svg" alt="ミルクチョコレート 2900000000124"></div>
-<div class="card"><div class="meta"><span>日用品</span><span>¥398</span></div>
-<h2>箱ティッシュ 5個組</h2><img src="2900000000131.svg" alt="箱ティッシュ 5個組 2900000000131"></div>
 <div class="card"><div class="meta"><span>日用品</span><span>¥498</span></div>
 <h2>液体洗濯洗剤 詰替</h2><img src="2900000000148.svg" alt="液体洗濯洗剤 詰替 2900000000148"></div>
-<div class="card"><div class="meta"><span>衛生用品</span><span>¥598</span></div>
-<h2>不織布マスク 30枚</h2><img src="2900000000155.svg" alt="不織布マスク 30枚 2900000000155"></div>
 <div class="card"><div class="meta"><span>調味料</span><span>¥298</span></div>
 <h2>トマトパスタソース</h2><img src="2900000000162.svg" alt="トマトパスタソース 2900000000162"></div>
-<div class="card"><div class="meta"><span>青果</span><span>¥78</span></div>
-<h2>玉ねぎ 1個</h2><img src="PLU-1001.svg" alt="玉ねぎ 1個 PLU-1001"></div>
-<div class="card"><div class="meta"><span>青果</span><span>¥158</span></div>
-<h2>国産りんご 1個</h2><img src="PLU-1002.svg" alt="国産りんご 1個 PLU-1002"></div>
-<div class="card"><div class="meta"><span>青果</span><span>¥198</span></div>
-<h2>アボカド 1個</h2><img src="PLU-1003.svg" alt="アボカド 1個 PLU-1003"></div>
 <div class="card"><div class="meta"><span>惣菜</span><span>¥98</span></div>
 <h2>お店のコロッケ 1個</h2><img src="PLU-2001.svg" alt="お店のコロッケ 1個 PLU-2001"></div>
-<div class="card"><div class="meta"><span>惣菜</span><span>¥218</span></div>
-<h2>若鶏の唐揚げ 100g</h2><img src="PLU-2002.svg" alt="若鶏の唐揚げ 100g PLU-2002"></div>
-<div class="card"><div class="meta"><span>パン</span><span>¥130</span></div>
-<h2>焼きたて塩パン 1個</h2><img src="PLU-3001.svg" alt="焼きたて塩パン 1個 PLU-3001"></div>
-<div class="card"><div class="meta"><span>青果</span><span>¥198</span></div>
-<h2>生バジル</h2><img src="2900000000179.svg" alt="生バジル 2900000000179"></div>
-<div class="card"><div class="meta"><span>野菜</span><span>¥98</span></div>
-<h2>トマト 1個</h2><img src="PLU-4001.svg" alt="トマト 1個 PLU-4001"></div>
-<div class="card"><div class="meta"><span>野菜</span><span>¥68</span></div>
-<h2>なす 1本</h2><img src="PLU-4002.svg" alt="なす 1本 PLU-4002"></div>
-<div class="card"><div class="meta"><span>野菜</span><span>¥58</span></div>
-<h2>きゅうり 1本</h2><img src="PLU-4003.svg" alt="きゅうり 1本 PLU-4003"></div>
-<div class="card"><div class="meta"><span>野菜</span><span>¥198</span></div>
-<h2>キャベツ 1玉</h2><img src="PLU-4004.svg" alt="キャベツ 1玉 PLU-4004"></div>
-<div class="card"><div class="meta"><span>野菜</span><span>¥48</span></div>
-<h2>にんじん 1本</h2><img src="PLU-4005.svg" alt="にんじん 1本 PLU-4005"></div>
-<div class="card"><div class="meta"><span>野菜</span><span>¥38</span></div>
-<h2>じゃがいも 1個</h2><img src="PLU-4006.svg" alt="じゃがいも 1個 PLU-4006"></div>
-<div class="card"><div class="meta"><span>野菜</span><span>¥128</span></div>
-<h2>ピーマン 1袋</h2><img src="PLU-4007.svg" alt="ピーマン 1袋 PLU-4007"></div>
-<div class="card"><div class="meta"><span>野菜</span><span>¥158</span></div>
-<h2>ほうれん草 1束</h2><img src="PLU-4008.svg" alt="ほうれん草 1束 PLU-4008"></div>
-<div class="card"><div class="meta"><span>野菜</span><span>¥198</span></div>
-<h2>ブロッコリー 1株</h2><img src="PLU-4009.svg" alt="ブロッコリー 1株 PLU-4009"></div>
-<div class="card"><div class="meta"><span>肉</span><span>¥398</span></div>
-<h2>豚バラ薄切り 200g</h2><img src="PLU-5001.svg" alt="豚バラ薄切り 200g PLU-5001"></div>
-<div class="card"><div class="meta"><span>肉</span><span>¥298</span></div>
-<h2>豚こま切れ 200g</h2><img src="PLU-5002.svg" alt="豚こま切れ 200g PLU-5002"></div>
-<div class="card"><div class="meta"><span>肉</span><span>¥458</span></div>
-<h2>豚ロース とんかつ用 2枚</h2><img src="PLU-5003.svg" alt="豚ロース とんかつ用 2枚 PLU-5003"></div>
-<div class="card"><div class="meta"><span>肉</span><span>¥378</span></div>
-<h2>鶏もも肉 300g</h2><img src="PLU-5004.svg" alt="鶏もも肉 300g PLU-5004"></div>
-<div class="card"><div class="meta"><span>肉</span><span>¥258</span></div>
-<h2>鶏むね肉 300g</h2><img src="PLU-5005.svg" alt="鶏むね肉 300g PLU-5005"></div>
-<div class="card"><div class="meta"><span>肉</span><span>¥348</span></div>
-<h2>鶏手羽元 500g</h2><img src="PLU-5006.svg" alt="鶏手羽元 500g PLU-5006"></div>
-<div class="card"><div class="meta"><span>肉</span><span>¥598</span></div>
-<h2>牛こま切れ 200g</h2><img src="PLU-5007.svg" alt="牛こま切れ 200g PLU-5007"></div>
-<div class="card"><div class="meta"><span>肉</span><span>¥348</span></div>
-<h2>合いびき肉 250g</h2><img src="PLU-5008.svg" alt="合いびき肉 250g PLU-5008"></div>
-<div class="card"><div class="meta"><span>肉</span><span>¥198</span></div>
-<h2>ロースハム 4枚</h2><img src="PLU-5009.svg" alt="ロースハム 4枚 PLU-5009"></div>
 <div class="card"><div class="meta"><span>魚</span><span>¥398</span></div>
 <h2>生鮭 切身 2切</h2><img src="PLU-6001.svg" alt="生鮭 切身 2切 PLU-6001"></div>
 <div class="card"><div class="meta"><span>魚</span><span>¥298</span></div>
@@ -105,4 +111,4 @@ h1{font-size:16px;margin:0 0 2px}p.note{font-size:10px;margin:0 0 8px;color:#444
 <div class="card"><div class="meta"><span>魚</span><span>¥298</span></div>
 <h2>するめいか 1杯</h2><img src="PLU-6008.svg" alt="するめいか 1杯 PLU-6008"></div>
 <div class="card"><div class="meta"><span>魚</span><span>¥298</span></div>
-<h2>釜揚げしらす 50g</h2><img src="PLU-6009.svg" alt="釜揚げしらす 50g PLU-6009"></div></div></body></html>
+<h2>釜揚げしらす 50g</h2><img src="PLU-6009.svg" alt="釜揚げしらす 50g PLU-6009"></div></div></div></body></html>
