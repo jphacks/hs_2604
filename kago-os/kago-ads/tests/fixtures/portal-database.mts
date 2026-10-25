@@ -32,16 +32,23 @@ const columns: Record<string, string[]> = {
   maker_members: ["maker_id", "user_id"],
   store_members: ["store_id", "user_id"],
   stores: ["id", "slug", "name", "branch_name", "timezone"],
-  products: ["id", "category"],
+  products: ["id", "code", "name", "category"],
+  makers: ["id", "slug", "display_name", "is_fictional"],
+  creatives: ["id", "maker_id", "product_id", "created_at"],
+  creative_versions: ["id", "creative_id", "version", "image_path", "headline", "note", "created_at"],
+  store_products: ["store_id", "product_id", "price", "is_active"],
+  application_revisions: ["application_id", "revision", "creative_version_id", "channels", "requested_period", "message", "submitted_at", "status", "review_comment", "reviewed_at"],
+  ad_placements: ["id","application_id","store_id","creative_version_id","channels","starts_at","ends_at","status","approved_by","approved_at","suspend_reason","suspended_by","suspended_at"],
   ad_calls: ["id", "store_id", "title", "description", "categories", "channels", "starts_at", "ends_at", "status", "disclosure_scope", "created_at", "updated_at"],
   signage_devices: ["id", "store_id", "slug", "location", "is_active"],
-  ad_applications: ["id", "ad_call_id", "maker_id"],
+  ad_applications: ["id","ad_call_id","maker_id","store_id","creative_id","creative_version_id","channels","requested_period","revision","status","review_comment","reviewed_by","reviewed_at","message","created_at","updated_at"],
 };
 export async function createPortalDatabase() {
   const db = new PGlite();
   await db.exec(`
     create role anon; create role authenticated; create role service_role bypassrls;
-    -- Supabase Storage bootstrap; bucket policies come from the formal migration.
+    -- Supabase owns these Storage tables/grants. Only its bootstrap is simulated;
+    -- all application and bucket policies below come from the formal migrations.
     create schema storage;
     create table storage.buckets(id text primary key,name text,public boolean default false,file_size_limit bigint,allowed_mime_types text[]);
     create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text references storage.buckets(id),name text not null,metadata jsonb default '{}',unique(bucket_id,name));
@@ -79,11 +86,14 @@ export async function createPortalDatabase() {
       ('${id(41)}','${id(1)}','${id(106)}','entrance','入口',true),('${id(42)}','${id(1)}','${id(107)}','disabled','停止端末',false);
     insert into creatives(id,maker_id,product_id) values ('${id(51)}','${id(11)}','${id(21)}'),('${id(52)}','${id(12)}','${id(21)}');
     insert into creative_versions(id,creative_id,version,image_path,headline) values
-      ('${id(53)}','${id(51)}',1,'fixture/one.png','広告1'),('${id(54)}','${id(52)}',1,'fixture/two.png','広告2');
+      ('${id(53)}','${id(51)}',1,'${id(11)}/${id(51)}/${id(53)}.png','広告1'),('${id(54)}','${id(52)}',1,'${id(12)}/${id(52)}/${id(54)}.png','広告2');
     insert into ad_applications(id,ad_call_id,store_id,maker_id,creative_id,creative_version_id,channels,requested_period) values
       ('${id(61)}','${id(31)}','${id(1)}','${id(11)}','${id(51)}','${id(53)}',array['app'],'[2099-01-01,2099-02-01)'),
       ('${id(62)}','${id(31)}','${id(1)}','${id(12)}','${id(52)}','${id(54)}',array['app'],'[2099-01-01,2099-02-01)');
   `);
+  await db.exec(`insert into storage.objects(bucket_id,name) values
+    ('ad-images','${id(11)}/${id(51)}/${id(53)}.png'),
+    ('ad-images','${id(12)}/${id(52)}/${id(54)}.png')`);
   let queue: Promise<unknown> = Promise.resolve();
   function asUser<T>(user: FixtureUser, query: () => Promise<T>, persist = false): Promise<T> {
     const pending = queue.then(async () => {
@@ -98,6 +108,11 @@ export async function createPortalDatabase() {
     queue = pending.catch(() => undefined);
     return pending;
   }
+  const imageBytes = await readFile(new URL("../../public/ad-assets/CR1_v1_app.png", import.meta.url));
+  const objects = new Map<string, Uint8Array>([
+    [`${id(11)}/${id(51)}/${id(53)}.png`,imageBytes],
+    [`${id(12)}/${id(52)}/${id(54)}.png`,imageBytes],
+  ]);
   const expired = new Set<string>();
   const requests: string[] = [];
   const json = (value: unknown, status = 200) => new Response(JSON.stringify(value), { status, headers: { "content-type": "application/json", "x-supabase-api-version": "2024-01-01" } });
@@ -115,13 +130,43 @@ export async function createPortalDatabase() {
       return json({ access_token: token(found), refresh_token: "fixture-refresh", expires_in: 3600, token_type: "bearer", user: authUser(found) });
     }
     if (url.pathname.endsWith("/logout")) return json({});
+    if (url.pathname.startsWith("/storage/v1/object/sign/ad-images/") && method === "GET") {
+      const key=decodeURIComponent(url.pathname.split("/ad-images/")[1]);
+      if(url.searchParams.get("token")!=="fixture-signed" || !objects.has(key))return json({code:"42501"},403);
+      return new Response(objects.get(key)! as BodyInit,{headers:{"content-type":"image/png"}});
+    }
     if (!user || expired.has(id(user.n))) return json({ code: "session_not_found" }, 401);
     if (url.pathname.endsWith("/user")) return json(authUser(user));
+    if(url.pathname==="/rest/v1/rpc/kago_ad_image_path_valid" && method==="POST") {
+      const body=JSON.parse(String(init?.body));
+      const value=await asUser(user,()=>db.query<{ok:boolean}>("select public.kago_ad_image_path_valid($1) as ok",[body.p_path]));
+      return json(value.rows[0].ok);
+    }
+    if(url.pathname.startsWith("/storage/v1/object/")) {
+      const key=decodeURIComponent(url.pathname.split("/ad-images/")[1]??"");
+      try {
+        if(method==="POST" && url.pathname.includes("/object/sign/")) {
+          const rows=await asUser(user,()=>db.query("select name from storage.objects where bucket_id='ad-images' and name=$1",[key]));
+          if(!rows.rows.length)return json({code:"42501"},403);
+          return json({signedURL:"/object/sign/ad-images/"+key+"?token=fixture-signed"});
+        }
+        if(method==="POST" && url.pathname.startsWith("/storage/v1/object/ad-images/")) {
+          const body=init?.body;
+          const file=body instanceof FormData?body.get(""):body;
+          if(!(file instanceof Blob))return json({code:"invalid_image"},400);
+          await asUser(user,()=>db.query("insert into storage.objects(bucket_id,name) values ('ad-images',$1)",[key]),true);
+          objects.set(key,new Uint8Array(await file.arrayBuffer()));
+          return json({Key:"ad-images/"+key,Id:id(900)},200);
+        }
+        return json({code:"42501"},403);
+      }catch{return json({code:"42501"},403);}
+    }
     if (!["GET", "POST", "PATCH"].includes(method) || !url.pathname.startsWith("/rest/v1/")) return json({ code: "42501" }, 403);
     const table = url.pathname.split("/").pop()!;
     if (!columns[table]) return json({ code: "42P01" }, 404);
     const allowed = (name: string) => { if (!columns[table].includes(name)) throw new Error("Unexpected query column"); return name; };
-    const select = (url.searchParams.get("select") ?? "").split(",").map(allowed).join(",");
+    const selected = url.searchParams.get("select");
+    const select = (selected ?? "id").split(",").map(allowed).join(",");
     const params: unknown[] = [];
     const where: string[] = [];
     for (const [key, value] of url.searchParams) {
@@ -145,14 +190,18 @@ export async function createPortalDatabase() {
     try {
       let sql = "select " + select + " from " + table + (where.length ? " where " + where.join(" and ") : "") + (order ? " order by " + order : "");
       if (method !== "GET") {
-        if (table !== "ad_calls") return json({ code: "42501" }, 403);
+        if (!["ad_calls","creatives","creative_versions","ad_applications"].includes(table)) return json({ code: "42501" }, 403);
         const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
         const keys = Object.keys(body).map(allowed);
         const placeholders = keys.map((key) => { params.push(body[key]); return "$" + params.length; });
         sql = method === "POST"
-          ? "insert into ad_calls (" + keys.join(",") + ") values (" + placeholders.join(",") + ") returning " + select
-          : "update ad_calls set " + keys.map((key, i) => key + "=" + placeholders[i]).join(",")
-            + (where.length ? " where " + where.join(" and ") : "") + " returning " + select;
+          ? "insert into " + table + " (" + keys.join(",") + ") values (" + placeholders.join(",") + ")" + (selected ? " returning " + select : "")
+          : "update " + table + " set " + keys.map((key, i) => key + "=" + placeholders[i]).join(",")
+            + (where.length ? " where " + where.join(" and ") : "") + (selected ? " returning " + select : "");
+      }
+      if(method==="GET" && url.searchParams.has("limit")) {
+        const limit=Number(url.searchParams.get("limit"));if(!Number.isInteger(limit)||limit<0)throw new Error("Invalid limit");
+        sql+=" limit "+limit;
       }
       const rows = await asUser(user, async () => (await db.query(sql, params)).rows, method !== "GET");
       return json(headers.get("accept")?.includes("vnd.pgrst.object") ? rows[0] ?? null : rows, method === "POST" ? 201 : 200);

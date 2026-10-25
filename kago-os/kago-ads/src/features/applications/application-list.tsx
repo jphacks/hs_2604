@@ -1,16 +1,16 @@
 "use client";
 // ADS-03：自社の申請と、審査の状態・掲載先ごとの配信の状態
 import Link from "next/link";
-import { getRepository } from "@/lib/data";
+import { useMakerRepository, usePortalSession as useSession } from "@/features/auth/ads-runtime";
 import { deliveryState, storeLabel } from "@/lib/domain/rules";
 import { CHANNELS } from "@/lib/domain/types";
-import { useSession } from "@/lib/session";
 import { DeliveryBadge, StatusBadge } from "@/components/badges";
 import { ButtonLink, Card, Empty, ErrorList, Loading, NeedRole, PageTitle } from "@/components/parts";
 import { useLoad } from "@/lib/use-load";
 
 export function ApplicationList() {
   const session = useSession();
+  const getRepository = useMakerRepository();
   const { state } = useLoad(async () => {
     if (session.role !== "maker_staff") return null;
     const repo = getRepository();

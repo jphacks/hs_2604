@@ -59,8 +59,12 @@ try {
         await route.fulfill({ status: 204, headers: { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "GET,POST,PATCH,OPTIONS" } });
         return;
       }
-      const response = await fixture.fetcher(request.url(), { method: request.method(), headers: request.headers(), body: request.postData() });
-      await route.fulfill({ status: response.status, headers: { ...Object.fromEntries(response.headers), "access-control-allow-origin": "*", "access-control-expose-headers": "x-supabase-api-version" }, body: await response.text() });
+      let body: BodyInit | null = request.postData();
+      if(request.headers()["content-type"]?.startsWith("multipart/form-data")) {
+        body=await new Request(request.url(),{method:request.method(),headers:request.headers(),body:new Uint8Array(request.postDataBuffer()!).buffer}).formData();
+      }
+      const response = await fixture.fetcher(request.url(), { method: request.method(), headers: request.headers(), body });
+      await route.fulfill({ status: response.status, headers: { ...Object.fromEntries(response.headers), "access-control-allow-origin": "*", "access-control-expose-headers": "x-supabase-api-version" }, body: Buffer.from(await response.arrayBuffer()) });
     });
     ctx.on("page", (p) => p.on("pageerror", (e) => pageErrors.push(e.message)));
     return ctx;
@@ -91,6 +95,13 @@ try {
   assert.equal(await page.getByText("秘密の下書き").count(), 0);
   assert.equal(await page.getByText("終了した募集", { exact: true }).count(), 0);
   checks.push("2店舗の公開募集、下書きと終了募集の除外");
+  for (const [name, href] of [["広告素材", "/ads/maker/creatives"], ["申請一覧", "/ads/maker/applications"], ["広告の成果", "/ads/maker/results"]]) {
+    const link = page.getByRole("link", { name, exact: true }).first();
+    await link.waitFor();
+    assert.equal(await link.getAttribute("href"), href);
+  }
+  checks.push("統合後も素材・申請・成果の3つの導線を保持");
+
   await page.screenshot({ path: new URL("ads01-portal.png", images).pathname, fullPage: true });
   await page.getByPlaceholder("キーワード").fill("見つからない条件");
   await shown(page, "条件に合う募集はありません。条件をゆるめるか、「終了した募集も表示」で過去の募集を確認してください。");
@@ -120,8 +131,8 @@ try {
   await shown(page, id(61));
   assert.equal(await page.getByText(id(62), { exact: true }).count(), 0);
   await page.getByRole("link", { name: "この募集に申請する" }).click();
-  await shown(page, "この操作はDB接続の準備中です");
-  checks.push("詳細・自社申請だけの表示・申請入口で未接続の保存を案内");
+  await page.getByRole("heading", { name: "募集に申請する", exact: true }).waitFor();
+  checks.push("詳細・自社申請だけの表示・申請画面への入口");
   await page.goto(base + "/ads/portal/call?id=" + id(33));
   await shown(page, "募集が見つかりません（下書き、または削除された募集です）");
   checks.push("下書きのUUIDを直接指定しても表示しない");
@@ -266,6 +277,91 @@ try {
   await shown(storePage, "店舗担当者としてログイン");
   assert.equal(await storePage.getByRole("heading", { name: "ブラウザで編集した募集" }).count(), 0);
   checks.push("店舗のログアウト後に募集情報を残さない");
+  const makerCtx=await context();
+  const makerPage=await makerCtx.newPage();
+  await makerPage.goto(base+"/ads/maker/creatives");
+  await login(makerPage);
+  await makerPage.getByRole("heading",{name:"自社の広告素材",exact:true}).waitFor();
+  await makerPage.goto(base+"/ads/maker/creatives/new");
+  await makerPage.getByLabel("対象商品").selectOption(id(21));
+  await makerPage.getByLabel("見出し").fill("ブラウザから登録した広告");
+  await makerPage.locator('input[type="file"]').setInputFiles(new URL("../public/ad-assets/CR1_v1_app.png",import.meta.url).pathname);
+  await makerPage.locator('img[src^="blob:"]').first().waitFor();
+  assert.equal(await makerPage.locator('img[src^="blob:"]').count(),2);
+  await makerPage.screenshot({path:new URL("ads03-register.png",images).pathname,fullPage:true});
+  await makerPage.getByRole("button",{name:"登録する",exact:true}).click();
+  await makerPage.waitForURL("**/ads/maker/creative?id=*");
+  const creativeId=new URL(makerPage.url()).searchParams.get("id")!;
+  await makerPage.getByText("ブラウザから登録した広告",{exact:false}).first().waitFor();
+  assert.equal((await fixture.db.query("select id from creative_versions where creative_id=$1",[creativeId])).rows.length,1);
+  checks.push("1枚の画像をApp・Signageでプレビューし、共通Storageと素材の第1版へ保存");
+  const foreignCtx=await context(), foreignPage=await foreignCtx.newPage();
+  await foreignPage.goto(base+"/ads/maker/creative?id="+creativeId);
+  await login(foreignPage,"maker-two@example.test");
+  await shown(foreignPage,"広告素材が見つからないか、他社の素材です");
+  checks.push("別メーカーの素材詳細URLを直接指定しても閲覧しない");
+
+  await makerPage.goto(base+"/ads/maker/applications/new?call="+id(31));
+  await makerPage.getByLabel("申請する広告素材").selectOption(creativeId);
+  await makerPage.getByRole("button",{name:"申請する",exact:true}).click();
+  await makerPage.waitForURL("**/ads/maker/application?id=*");
+  const applicationId=new URL(makerPage.url()).searchParams.get("id")!;
+  await makerPage.getByText("審査中",{exact:true}).first().waitFor();
+  assert.equal((await fixture.db.query<{status:string}>("select status from ad_applications where id=$1",[applicationId])).rows[0].status,"submitted");
+  assert.equal(await makerPage.getByRole("button",{name:"承認",exact:true}).count(),0);
+  checks.push("広告を募集へ申請し、メーカーに承認操作を出さない");
+
+  await fixture.asUser({n:104,email:"store@example.test",role:"store_staff"},()=>fixture.db.query("select * from kago_reject_application($1,1,$2)",[applicationId,"商品名を大きくしてください"]),true);
+  await makerPage.reload();
+  await makerPage.getByText("却下の理由：商品名を大きくしてください",{exact:true}).waitFor();
+  checks.push("店舗の正式審査関数による却下を再取得し、理由を表示");
+
+  await makerPage.goto(base+"/ads/maker/creative?id="+creativeId);
+  await makerPage.getByRole("button",{name:"新しい版を作る",exact:true}).click();
+  await makerPage.getByLabel("見出し").fill("修正した広告");
+  await makerPage.getByLabel("版のメモ").fill("商品名を大きく");
+  await makerPage.locator('input[type="file"]').setInputFiles(new URL("../public/ad-assets/CR1_v2_app.png",import.meta.url).pathname);
+  await makerPage.locator('img[src^="blob:"]').first().waitFor();
+  await makerPage.getByRole("button",{name:"この版を保存",exact:true}).click();
+  await makerPage.getByRole("button",{name:"この版を保存",exact:true}).waitFor({state:"hidden"});
+  await makerPage.getByText("修正した広告",{exact:false}).first().waitFor();
+  assert.equal((await fixture.db.query("select id from creative_versions where creative_id=$1",[creativeId])).rows.length,2);
+  await makerPage.screenshot({path:new URL("ads03-versions.png",images).pathname,fullPage:true});
+  checks.push("修正を別画像・第2版として保存し、第1版を履歴に保持");
+
+  await makerPage.goto(base+"/ads/maker/application?id="+applicationId);
+  await makerPage.getByRole("button",{name:"修正して再申請",exact:true}).click();
+  await makerPage.getByRole("button",{name:"再申請する",exact:true}).click();
+  await makerPage.getByRole("button",{name:"再申請する",exact:true}).waitFor({state:"hidden"});
+  await makerPage.getByText("審査中",{exact:true}).first().waitFor();
+  assert.equal((await fixture.db.query<{revision:number}>("select revision from ad_applications where id=$1",[applicationId])).rows[0].revision,2);
+  assert.equal((await fixture.db.query("select revision from application_revisions where application_id=$1",[applicationId])).rows.length,2);
+  await makerPage.screenshot({path:new URL("ads03-application.png",images).pathname,fullPage:true});
+  checks.push("同じ申請IDで第2版を再申請し、第1回の却下コメントを保持");
+
+  await fixture.asUser({n:104,email:"store@example.test",role:"store_staff"},()=>fixture.db.query("select * from kago_approve_application($1,2,null,null,array['app'])",[applicationId]),true);
+  await makerPage.reload();
+  await makerPage.getByText("店舗はこの掲載先を承認しませんでした（掲載先を絞って承認）。",{exact:true}).waitFor();
+  const placement=(await fixture.db.query<{id:string}>("select id from ad_placements where application_id=$1 and status='active'",[applicationId])).rows[0];
+  checks.push("Appだけの承認を取得し、Signageへ配信しない状態を表示");
+  await fixture.asUser({n:104,email:"store@example.test",role:"store_staff"},()=>fixture.db.query("select * from kago_suspend_placement($1,$2)",[placement.id,"検証のため停止"]),true);
+  await makerPage.reload();
+  await makerPage.getByText("停止の理由：検証のため停止",{exact:true}).waitFor();
+  checks.push("店舗で停止した配信の状態と理由を表示");
+
+  await foreignPage.goto(base+"/ads/maker/application?id="+applicationId);
+  await shown(foreignPage,"申請が見つからないか、他社の申請です");
+  checks.push("別メーカーの申請詳細URLを直接指定しても閲覧しない");
+  await makerPage.setViewportSize({width:390,height:844});
+  await makerPage.goto(base+"/ads/maker/creatives/new");
+  await makerPage.getByLabel("広告画像").waitFor();
+  assert.equal(await makerPage.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);
+  checks.push("スマホ幅でも実画像の登録フォームが横にはみ出さない");
+  await makerPage.getByRole("button",{name:"ログアウト",exact:true}).click();
+  await makerPage.goto(base+"/ads/maker/application?id="+applicationId);
+  await shown(makerPage,"メーカーとしてログイン");
+  checks.push("ログアウト後は保存済み素材・申請の画面を表示しない");
+
   assert.deepEqual(pageErrors, []);
   checks.push("ブラウザの未処理エラーなし");
   console.log(checks.map((s, i) => (i + 1) + ". " + s).join("\n"));

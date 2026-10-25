@@ -3,8 +3,8 @@
 import { dateOf, dayEnd, dayStart, endDateOf, periodLabel } from "@/lib/domain/rules";
 import { CHANNEL_LABEL, type AdCall, type CreativeVersion } from "@/lib/domain/types";
 import type { ApplicationInput } from "@/lib/data/repository";
-import { AdMedia } from "@/components/ad-media";
-import { Field, inputClass } from "@/components/parts";
+import { ConnectedAdMedia as AdMedia } from "@/features/creatives/connected-media";
+import { ErrorList, Field, inputClass } from "@/components/parts";
 
 export function ApplicationFields({
   call,
@@ -24,8 +24,9 @@ export function ApplicationFields({
   const maxDate = endDateOf(call.ends_at);
   return (
     <div className="space-y-5">
+      {version?.image_error && <ErrorList errors={[version.image_error]} />}
       <Field label="素材の版">
-        <select className={inputClass} value={value.creative_version_id} onChange={(e) => onChange({ ...value, creative_version_id: e.target.value })}>
+        <select className={inputClass} value={value.creative_version_id} onChange={(e) => onChange({ ...value, creative_version_id: e.target.value, channels: value.channels.filter(ch => versions.find(v => v.id === e.target.value)?.assets[ch]) })}>
           {[...versions].reverse().map((v) => (
             <option key={v.id} value={v.id}>
               第{v.version}版　{v.note}

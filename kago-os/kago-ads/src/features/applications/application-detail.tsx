@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { getRepository } from "@/lib/data";
+import { useMakerRepository, usePortalSession as useSession } from "@/features/auth/ads-runtime";
 import type { ApplicationInput } from "@/lib/data/repository";
 import {
   canApplyTo,
@@ -17,7 +17,6 @@ import {
   today,
 } from "@/lib/domain/rules";
 import { CHANNEL_LABEL, CHANNELS } from "@/lib/domain/types";
-import { useSession } from "@/lib/session";
 import { DeliveryBadge, StatusBadge } from "@/components/badges";
 import { Button, Card, ErrorList, Loading, NeedRole } from "@/components/parts";
 import { errorMessages, useLoad } from "@/lib/use-load";
@@ -26,6 +25,7 @@ import { ApplicationFields } from "./application-fields";
 export function ApplicationDetail() {
   const id = useSearchParams().get("id") ?? "";
   const session = useSession();
+  const getRepository = useMakerRepository();
   const { state, reload } = useLoad(async () => {
     if (session.role !== "maker_staff") return null;
     const repo = getRepository();
@@ -53,6 +53,7 @@ export function ApplicationDetail() {
 
   const [form, setForm] = useState<ApplicationInput | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
 
   if (session.role !== "maker_staff") return <NeedRole role="メーカー" />;
   if (state.status === "loading") return <Loading />;
@@ -78,15 +79,16 @@ export function ApplicationDetail() {
   };
 
   const resubmit = async () => {
-    if (!form) return;
+    if (!form || saving) return;
+    setSaving(true);
     setErrors([]);
     try {
-      await getRepository().resubmitApplication(session, app.id, form);
+      await getRepository().resubmitApplication(session, app.id, form, app.updated_at);
       setForm(null);
       reload();
     } catch (e) {
       setErrors(errorMessages(e));
-    }
+    } finally { setSaving(false); }
   };
 
   return (
@@ -156,7 +158,7 @@ export function ApplicationDetail() {
         </div>
 
         {form && (
-          <Card className="space-y-4">
+          <Card className="space-y-4"><fieldset disabled={saving} className="contents">
             <h3 className="font-bold">{latest.rev + 1}回目の申請</h3>
             <p className="text-sm text-muted">
               素材を変える場合は、先に
@@ -168,12 +170,12 @@ export function ApplicationDetail() {
             <ApplicationFields call={call} versions={item.versions} value={form} onChange={setForm} makerName={makerName} />
             <ErrorList errors={errors} />
             <div className="flex gap-2">
-              <Button onClick={resubmit}>再申請する</Button>
+              <Button disabled={saving} onClick={resubmit}>再申請する</Button>
               <Button variant="secondary" onClick={() => setForm(null)}>
                 やめる
               </Button>
             </div>
-          </Card>
+          </fieldset></Card>
         )}
 
         {[...app.revisions].reverse().map((r) => (
