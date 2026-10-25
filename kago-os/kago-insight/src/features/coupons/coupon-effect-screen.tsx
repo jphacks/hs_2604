@@ -26,7 +26,7 @@ import {
  * ここをDBへ差し替えるには DB-09 と同じ形の集計関数が必要（Coreへ依頼済み）。
  */
 
-const panel = "rounded-xl border border-[var(--line)] bg-[var(--panel)] p-5";
+const panel = "insight-panel p-5 sm:p-6";
 
 const yen = (value: number) => `¥${value.toLocaleString("ja-JP")}`;
 
@@ -86,7 +86,7 @@ export function CouponEffectScreen() {
     <div className="grid gap-5">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">販促効果と次の打ち手</h1>
+          <h1 className="font-bold tracking-tight">販促効果と次の打ち手</h1>
           <p className="mt-1 text-sm text-[var(--muted)]">結果を振り返り、次の施策へつなげる</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -98,7 +98,7 @@ export function CouponEffectScreen() {
             {period.compare_label}
           </span>
           <span
-            className="rounded-md border border-amber-300 bg-amber-50 px-3 py-1.5 font-bold text-amber-800"
+            className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5 font-bold text-sky-800"
             title="実際の計測値ではありません"
           >
             サンプルデータ
@@ -106,7 +106,7 @@ export function CouponEffectScreen() {
         </div>
       </header>
 
-      <section aria-label="全体の結果" className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <section aria-label="全体の結果" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {kpis.map((kpi) => (
           <div key={kpi.label} className={panel}>
             <p className="flex items-center gap-1 text-sm font-bold text-[var(--muted)]">
@@ -199,13 +199,14 @@ export function CouponEffectScreen() {
       <section className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-5">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="text-lg font-bold">
-            次に試すこと
+            次の打ち手
             <span className="ml-3 text-sm font-normal text-[var(--muted)]">結果からの仮説を、小さな検証につなげる</span>
           </h2>
           <span className="rounded-md bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-800">
             改善案は仮説です
           </span>
         </div>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm"><p className="text-[var(--muted)]">結果をもとに仮説を立て、次のおすすめ・値引き設定へつなげましょう。</p><Link href="/promotions" className="rounded-xl border border-[var(--accent)] bg-white px-4 py-2.5 font-bold text-[var(--accent)]">販促設定へ →</Link></div>
         <ol className="mt-4 grid gap-4 md:grid-cols-3">
           {rows.map((row, index) => (
             <ActionCard key={row.offer.offer_id} row={row} index={index + 1} overall={current} />

@@ -23,7 +23,7 @@ export async function signInAction(_previous: SignInState, formData: FormData): 
     // 文言は共通ライブラリの固定文のみ。認証基盤の詳細は画面に出さない。
     return { message: toBackendError(error).message };
   }
-  redirect("/review");
+  redirect("/promotions");
 }
 
 export async function signOutAction() {

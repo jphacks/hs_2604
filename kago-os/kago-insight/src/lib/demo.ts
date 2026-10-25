@@ -27,5 +27,5 @@ export function isDemoAutoSignInEnabled(): boolean {
 export function safeNextPath(value: string | null | undefined): string {
   // Only actual screens are valid return targets. Reject protocol-relative URLs,
   // backslashes, traversal and nested sign-in routes before building a raw URL.
-  return value && ["/review", "/promotions", "/metrics", "/coupons"].includes(value) ? value : "/review";
+  return value && ["/review", "/promotions", "/metrics", "/coupons"].includes(value) ? value : "/promotions";
 }
