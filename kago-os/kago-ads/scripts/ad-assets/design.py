@@ -80,11 +80,23 @@ def main():
     else:render_png(campaign(maker,version,channel),size,str(OUT/file))
     rows.append(dict(asset_id=f"{creative}-v{version}-{channel}",maker_id=maker,maker_name="瀬戸内トマト食品" if maker=="M1" else "確認用メーカー（架空）",product_code="2900000000162" if maker=="M1" else "2900000000056",product_name="トマトパスタソース" if maker=="M1" else "もっちり食パン 6枚切",creative_version=version,channel=channel,kind="sponsored",file="/ad-assets/design-v2/"+file,width=size[0],height=size[1],status="未申請・デザイン確認用"))
     if imported:rows[-1].update(embedded_price=imported["embedded_price"],artwork_source="user-supplied")
+ def append_supplied(file,item):
+  assert hashlib.sha256((OUT/file).read_bytes()).hexdigest()==item["sha256"],"Supplied image changed"
+  rows.append(dict(asset_id=item["asset_id"],channel=item["channel"],kind=item["kind"],display_name=item["display_name"],file="/ad-assets/design-v2/"+file,width=item["width"],height=item["height"],artwork_source="user-supplied",status="提供素材・デザイン確認用"))
  for channel,size in [("app",(800,800)),("signage",(1920,1080))]:
-  file="PROMO_TEMPLATE_v2_"+channel+".png";render_png(promo(channel),size,str(OUT/file))
-  rows.append(dict(asset_id="PROMO-v2-"+channel,channel=channel,kind="store_promo_template",file="/ad-assets/design-v2/"+file,width=size[0],height=size[1],status="新しい店舗販促背景・デザイン確認用"))
- render_png(fallback(),(1920,1080),str(OUT/"FALLBACK_v2_signage.png"))
- rows.append(dict(asset_id="FALLBACK-v2-signage",channel="signage",kind="fallback",file="/ad-assets/design-v2/FALLBACK_v2_signage.png",width=1920,height=1080,status="汎用案内・広告ではない"))
+  file="PROMO_TEMPLATE_v2_"+channel+".png"
+  if file in supplied:append_supplied(file,supplied[file])
+  else:
+   render_png(promo(channel),size,str(OUT/file))
+   rows.append(dict(asset_id="PROMO-v2-"+channel,channel=channel,kind="store_promo_template",file="/ad-assets/design-v2/"+file,width=size[0],height=size[1],status="新しい店舗販促背景・デザイン確認用"))
+ file="FALLBACK_v2_signage.png"
+ if file in supplied:append_supplied(file,supplied[file])
+ else:
+  render_png(fallback(),(1920,1080),str(OUT/file))
+  rows.append(dict(asset_id="FALLBACK-v2-signage",channel="signage",kind="fallback",file="/ad-assets/design-v2/"+file,width=1920,height=1080,status="汎用案内・広告ではない"))
+ used={row["file"].split("/")[-1] for row in rows}
+ for file,item in supplied.items():
+  if file not in used and item.get("kind") in ["store_promo","fallback"]:append_supplied(file,item)
  dest=ROOT/"src/data/demo/ad-design-v2.json";dest.write_text(json.dumps(rows,ensure_ascii=False,indent=2)+"\n")
  manifest={key:dict(source=str(p.relative_to(ROOT.parent)),sha256=hashlib.sha256(p.read_bytes()).hexdigest()) for key,p in SOURCES.items()}
  (OUT/"sources.json").write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+"\n")

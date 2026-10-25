@@ -130,28 +130,89 @@
   {
     "asset_id": "PROMO-v2-app",
     "channel": "app",
-    "kind": "store_promo_template",
+    "kind": "store_promo",
+    "display_name": "お店からのおすすめ",
     "file": "/ad-assets/design-v2/PROMO_TEMPLATE_v2_app.png",
-    "width": 800,
-    "height": 800,
-    "status": "新しい店舗販促背景・デザイン確認用"
+    "width": 1254,
+    "height": 1254,
+    "artwork_source": "user-supplied",
+    "status": "提供素材・デザイン確認用"
   },
   {
     "asset_id": "PROMO-v2-signage",
     "channel": "signage",
-    "kind": "store_promo_template",
+    "kind": "store_promo",
+    "display_name": "お店からのおすすめ",
     "file": "/ad-assets/design-v2/PROMO_TEMPLATE_v2_signage.png",
-    "width": 1920,
-    "height": 1080,
-    "status": "新しい店舗販促背景・デザイン確認用"
+    "width": 1672,
+    "height": 941,
+    "artwork_source": "user-supplied",
+    "status": "提供素材・デザイン確認用"
   },
   {
     "asset_id": "FALLBACK-v2-signage",
     "channel": "signage",
     "kind": "fallback",
+    "display_name": "買い物の案内：スキャン",
     "file": "/ad-assets/design-v2/FALLBACK_v2_signage.png",
-    "width": 1920,
-    "height": 1080,
-    "status": "汎用案内・広告ではない"
+    "width": 1672,
+    "height": 941,
+    "artwork_source": "user-supplied",
+    "status": "提供素材・デザイン確認用"
+  },
+  {
+    "asset_id": "STORE-BAKERY-v1-app",
+    "channel": "app",
+    "kind": "store_promo",
+    "display_name": "焼きたてパンのおすすめ",
+    "file": "/ad-assets/design-v2/STORE_BAKERY_v1_app.png",
+    "width": 1254,
+    "height": 1254,
+    "artwork_source": "user-supplied",
+    "status": "提供素材・デザイン確認用"
+  },
+  {
+    "asset_id": "STORE-SEASONAL-v1-app",
+    "channel": "app",
+    "kind": "store_promo",
+    "display_name": "旬のいちごのおすすめ",
+    "file": "/ad-assets/design-v2/STORE_SEASONAL_v1_app.png",
+    "width": 1254,
+    "height": 1254,
+    "artwork_source": "user-supplied",
+    "status": "提供素材・デザイン確認用"
+  },
+  {
+    "asset_id": "STORE-BAKERY-v1-signage",
+    "channel": "signage",
+    "kind": "store_promo",
+    "display_name": "焼きたてパンのおすすめ",
+    "file": "/ad-assets/design-v2/STORE_BAKERY_v1_signage.png",
+    "width": 1672,
+    "height": 941,
+    "artwork_source": "user-supplied",
+    "status": "提供素材・デザイン確認用"
+  },
+  {
+    "asset_id": "STORE-DELI-v1-signage",
+    "channel": "signage",
+    "kind": "store_promo",
+    "display_name": "本日のお惣菜",
+    "file": "/ad-assets/design-v2/STORE_DELI_v1_signage.png",
+    "width": 1672,
+    "height": 941,
+    "artwork_source": "user-supplied",
+    "status": "提供素材・デザイン確認用"
+  },
+  {
+    "asset_id": "FALLBACK-CART-v1-signage",
+    "channel": "signage",
+    "kind": "fallback",
+    "display_name": "買い物の案内：かご",
+    "file": "/ad-assets/design-v2/FALLBACK_CART_v1_signage.png",
+    "width": 1672,
+    "height": 941,
+    "artwork_source": "user-supplied",
+    "status": "提供素材・デザイン確認用"
   }
 ]

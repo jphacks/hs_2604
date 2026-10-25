@@ -4,7 +4,7 @@ from pathlib import Path
 from PIL import Image
 root=Path(__file__).resolve().parents[2]
 rows=json.loads((root/"src/data/demo/ad-design-v2.json").read_text())
-assert len(rows)==11 and len({r["asset_id"] for r in rows})==11
+assert len(rows)==16 and len({r["asset_id"] for r in rows})==16
 for r in rows:
  p=(root/"public"/r["file"].lstrip("/")).resolve()
  assert p.is_relative_to((root/"public/ad-assets/design-v2").resolve())
@@ -17,8 +17,8 @@ for item in sources.values():
  assert hashlib.sha256(p.read_bytes()).hexdigest()==item["sha256"]
 assert {r["maker_id"] for r in rows if r["kind"]=="sponsored"}=={"M1","M2"}
 supplied=json.loads((root/"public/ad-assets/design-v2/supplied.json").read_text())
-assert len(supplied)==8
+assert len(supplied)==16
 for file,item in supplied.items():
  p=root/"public/ad-assets/design-v2"/file
  assert hashlib.sha256(p.read_bytes()).hexdigest()==item["sha256"]
-print("PASS 11 images / dimensions / 8 supplied originals under 5MiB / unchanged sources / 2 maker families")
+print("PASS 16 images / dimensions / 16 supplied originals under 5MiB / unchanged sources / 2 maker families")

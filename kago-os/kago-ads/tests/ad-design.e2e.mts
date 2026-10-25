@@ -16,12 +16,13 @@ try{
   await p.setViewportSize(size);await p.goto(base+"/ad-design");
   for(const channel of ["App / 正方形","Signage / 横長"]){
    await p.getByRole("button",{name:channel,exact:true}).click();
-   const expected=channel.startsWith("App")?5:6;
+   const expected=channel.startsWith("App")?7:9;
    assert.equal(await p.locator("[data-design]").count(),expected);
    await p.locator("img").evaluateAll(async es=>{await Promise.all(es.map(el=>(el as HTMLImageElement).decode()));});
    assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
    for(const card of await p.locator("[data-design]").all()){
     const id=await card.getAttribute("data-design");
+    assert.equal(await card.locator("[data-frame] span").count(),0,"Ready-made artwork must not get extra text or price");
     if(id?.startsWith("CR")){
      assert.equal(await card.locator("[data-ad-disclosure]").count(),1);
      assert.equal(await card.locator("[data-frame] span").count(),0,"Supplied text/price must not be covered or duplicated");
@@ -30,9 +31,9 @@ try{
     assert.equal(overflow,false,"Overlay fits "+size.width+" "+await card.getAttribute("data-design"));
    }
    if(channel.startsWith("Signage"))assert.equal(await p.locator("[data-square-frame] img").evaluate(el=>getComputedStyle(el).objectFit),"contain");
-   if(size.width===1280||size.width===320)await p.screenshot({path:"../../internal/ad-design-evidence/"+(channel.startsWith("App")?"app":"signage")+"-"+size.width+".png",fullPage:true});
+   if(size.width===1280||size.width===320)await p.locator("[data-design]").first().screenshot({path:"../../internal/ad-design-evidence/"+(channel.startsWith("App")?"app":"signage")+"-"+size.width+".png"});
   }
-  checks.push(size.width+"px: 11素材・重ね表示・横はみ出しなし・正方形のSignage表示");
+  checks.push(size.width+"px: 16素材・重ね表示・横はみ出しなし・正方形のSignage表示");
  }
  await p.setViewportSize({width:1280,height:900});
  await p.getByRole("button",{name:"App / 正方形",exact:true}).click();
@@ -41,6 +42,9 @@ try{
   assert.ok((await p.locator("[data-design]").evaluateAll(es=>es.map(e=>e.getAttribute("data-design")))).every(id=>id?.startsWith(prefix)));
   await p.locator("[data-design]").first().screenshot({path:"../../internal/ad-design-evidence/"+prefix+"app.png"});
  }
+ await p.getByRole("button",{name:"お店からのおすすめ",exact:true}).click();assert.equal(await p.locator("[data-design]").count(),3);
+ await p.getByRole("button",{name:"Signage / 横長",exact:true}).click();assert.equal(await p.locator("[data-design]").count(),3);
+ await p.getByRole("button",{name:"買い物の案内",exact:true}).click();assert.equal(await p.locator("[data-design]").count(),2);
  assert.deepEqual(errors,[]);assert.deepEqual(external,[]);
  checks.push("メーカー別に2案を表示・写真読込成功・外部通信なし・画面エラーなし");
  console.log(checks.map(c=>"PASS "+c).join("\n"));

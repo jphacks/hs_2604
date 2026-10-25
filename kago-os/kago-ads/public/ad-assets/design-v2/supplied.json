@@ -54,5 +54,85 @@
     "width": 1254,
     "height": 1254,
     "embedded_price": 138
+  },
+  "PROMO_TEMPLATE_v2_app.png": {
+    "source": "user-attachment:codex-clipboard-76580662-6199-4fc6-af47-03109d8f49a4.png",
+    "sha256": "3fec4856b871a4c116c1cf24e8dcd3375777fec2cfae9e8498760bba479e6409",
+    "width": 1254,
+    "height": 1254,
+    "asset_id": "PROMO-v2-app",
+    "channel": "app",
+    "kind": "store_promo",
+    "display_name": "お店からのおすすめ"
+  },
+  "STORE_BAKERY_v1_app.png": {
+    "source": "user-attachment:codex-clipboard-0e3967b7-9ef5-4bfb-a4d3-300917ddb607.png",
+    "sha256": "a34e761ec29f938dde6b91d4b75ba1c57c4f98bb6c33bb5ace4a8bb848bd8922",
+    "width": 1254,
+    "height": 1254,
+    "asset_id": "STORE-BAKERY-v1-app",
+    "channel": "app",
+    "kind": "store_promo",
+    "display_name": "焼きたてパンのおすすめ"
+  },
+  "STORE_SEASONAL_v1_app.png": {
+    "source": "user-attachment:codex-clipboard-88203c26-f5bc-446b-9e71-ed9b032069d0.png",
+    "sha256": "37e290d2ea2dfdb507727e0606624faebe4046f044af0ce2d276ec708b496745",
+    "width": 1254,
+    "height": 1254,
+    "asset_id": "STORE-SEASONAL-v1-app",
+    "channel": "app",
+    "kind": "store_promo",
+    "display_name": "旬のいちごのおすすめ"
+  },
+  "PROMO_TEMPLATE_v2_signage.png": {
+    "source": "user-attachment:codex-clipboard-ced18eb8-75c5-464c-b9e6-b6bd5d591b2a.png",
+    "sha256": "edfdbcd17cec97475c68ef5b3a47cee15ab3d02289f17705d7b13909864a8086",
+    "width": 1672,
+    "height": 941,
+    "asset_id": "PROMO-v2-signage",
+    "channel": "signage",
+    "kind": "store_promo",
+    "display_name": "お店からのおすすめ"
+  },
+  "STORE_BAKERY_v1_signage.png": {
+    "source": "user-attachment:codex-clipboard-5b96aeaf-ba86-414c-82a8-523662e6745d.png",
+    "sha256": "133f19e36f08dab6c263740caf164280e7ea0c9bdc92380888aed783e95f43ff",
+    "width": 1672,
+    "height": 941,
+    "asset_id": "STORE-BAKERY-v1-signage",
+    "channel": "signage",
+    "kind": "store_promo",
+    "display_name": "焼きたてパンのおすすめ"
+  },
+  "STORE_DELI_v1_signage.png": {
+    "source": "user-attachment:codex-clipboard-c2ffe53c-f0fb-48e8-98b9-f430542a3371.png",
+    "sha256": "33f1430f84ab08e6269683ace19e57de52addc24987537978c981ed2d0415767",
+    "width": 1672,
+    "height": 941,
+    "asset_id": "STORE-DELI-v1-signage",
+    "channel": "signage",
+    "kind": "store_promo",
+    "display_name": "本日のお惣菜"
+  },
+  "FALLBACK_v2_signage.png": {
+    "source": "user-attachment:codex-clipboard-1d65345a-3224-4592-bd00-e9c478c3809d.png",
+    "sha256": "80dad0a48532f6cea895350800d9c6d08b5d5ccb9bafadaf91e5b2705fcb2386",
+    "width": 1672,
+    "height": 941,
+    "asset_id": "FALLBACK-v2-signage",
+    "channel": "signage",
+    "kind": "fallback",
+    "display_name": "買い物の案内：スキャン"
+  },
+  "FALLBACK_CART_v1_signage.png": {
+    "source": "user-attachment:codex-clipboard-04af6c34-34dc-44d9-ac3a-41c7f201983f.png",
+    "sha256": "fd6db69d75ee10dee9ac55865d03a43aad3dcfb783baf59ad72700f02bf6e56c",
+    "width": 1672,
+    "height": 941,
+    "asset_id": "FALLBACK-CART-v1-signage",
+    "channel": "signage",
+    "kind": "fallback",
+    "display_name": "買い物の案内：かご"
   }
 }
