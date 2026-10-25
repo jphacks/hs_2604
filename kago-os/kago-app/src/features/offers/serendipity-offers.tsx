@@ -28,14 +28,12 @@ export function SerendipityOffers({renderStoreOffers}:{renderStoreOffers:(offers
   const visitId = session.visit!.id;
   const shownKey = `kago-offers-shown:${session.userId}:${visitId}`;
   const dismissedKey = `kago-offers-dismissed:${session.userId}:${visitId}`;
-  const openedKey = `kago-offers-opened:${session.userId}:${visitId}`;
   const appearanceKey = `kago-coupon-appearance:${session.userId}:${visitId}`;
   const [data, setData] = useState<SerendipityResponse | null>(null);
   const [failed, setFailed] = useState(false);
   const [redeeming,setRedeeming]=useState(false);
   const [open, setOpen] = useState<SerendipityOffer | null>(null);
   const [dismissed, setDismissed] = useState<string[]>([]);
-  const [opened, setOpened] = useState<string[]>([]);
   const [visibleCouponId, setVisibleCouponId] = useState<string | null>(null);
   const appearance = useRef<CouponAppearance | null>(null);
   const consumedCoupons = useRef(new Set<string>());
@@ -76,9 +74,7 @@ export function SerendipityOffers({renderStoreOffers}:{renderStoreOffers:(offers
   useEffect(() => {
     const boot = window.setTimeout(() => {
       setDismissed(readList(dismissedKey));
-      // Keep the in-memory choice when storage is unavailable during a cart refresh.
-      setOpened(previous => [...new Set([...previous, ...readList(openedKey)])]);
-      for (const id of [...readList(openedKey), ...readList(dismissedKey)]) consumedCoupons.current.add(id);
+      for (const id of readList(dismissedKey)) consumedCoupons.current.add(id);
       void load();
     }, 0);
     return () => { window.clearTimeout(boot); request.current?.abort(); if (timer.current) window.clearTimeout(timer.current); };
@@ -88,7 +84,7 @@ export function SerendipityOffers({renderStoreOffers}:{renderStoreOffers:(offers
   }, [cart.version, cart.error]);
 
   const coupon = data?.cartVersion === cart.version && data?.coupon && visibleCouponId === data.coupon.offerId
-    && !dismissed.includes(data.coupon.offerId) && !opened.includes(data.coupon.offerId) ? data.coupon : null;
+    && !dismissed.includes(data.coupon.offerId) ? data.coupon : null;
   const visible = data ? [...data.timeSales, ...data.sets, ...(coupon ? [coupon] : [])] : [];
   const visibleIds = visible.map(offer => offer.offerId).join(",");
   useEffect(() => {
@@ -110,9 +106,8 @@ export function SerendipityOffers({renderStoreOffers}:{renderStoreOffers:(offers
 
   const claim = (offer: SerendipityOffer) => { setOpen(null); cart.claimOffer(offer.offerId); };
   const openCoupon = (offer: SerendipityOffer) => {
-    // Opening consumes the sticker for this customer/visit/tab, without declining the offer.
-    const next = [...opened, offer.offerId]; setOpened(next); writeList(openedKey, next);
-    consumedCoupons.current.add(offer.offerId);
+    // #166: opening only shows the details. Closing (×・Escape・背景) returns to the ticket; the coupon leaves
+    // the screen only when it is used or explicitly dismissed (「今回は見送る」). offer_opened is stored once by the DB.
     setRedeeming(false);setOpen(offer); record(offer.offerId, "offer_opened");
   };
   const dismiss = (offer: SerendipityOffer) => {

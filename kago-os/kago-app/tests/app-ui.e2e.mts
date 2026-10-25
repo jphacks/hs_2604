@@ -72,7 +72,7 @@ try{
  for(const size of [{width:390,height:844},{width:375,height:667},{width:320,height:568},{width:430,height:932},{width:1280,height:900}]){
   await page.setViewportSize(size);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+2),true);
-  assert.equal(await page.locator('.shopping-stack-card[aria-hidden="false"] .store-offer-card').evaluate(el=>{const a=el.querySelector(".store-offer-price")!.getBoundingClientRect(),b=el.querySelector(".store-offer-remaining")!.getBoundingClientRect(),c=el.querySelector(".store-offer-scan")!.getBoundingClientRect();const pause=el.closest(".shopping-stack-viewport")!.querySelector(".shopping-stack-motion")!.getBoundingClientRect();return a.bottom<=b.top+1&&c.bottom<=el.getBoundingClientRect().bottom+1&&pause.bottom<=c.top+1;}),true,"Sale fits "+JSON.stringify(size));
+  assert.equal(await page.locator('.shopping-stack-card[aria-hidden="false"] .store-offer-card').evaluate(el=>{const a=el.querySelector(".store-offer-price")!.getBoundingClientRect(),b=el.querySelector(".store-offer-remaining")!.getBoundingClientRect(),c=el.querySelector(".store-offer-scan")!.getBoundingClientRect();/* #166: no pause button on the ad any more */return a.bottom<=b.top+1&&c.bottom<=el.getBoundingClientRect().bottom+1;}),true,"Sale fits "+JSON.stringify(size));
  }
  await page.setViewportSize({width:390,height:844});await page.screenshot({path:out+"/time-sale.png"});
  pass("タイムセールが広告枠内に入り、5サイズで価格・残時間・ボタンが重ならない");

@@ -91,7 +91,8 @@ body:has(.shopping-home) .shopping-session-bar{display:none}
 
 .shopping-home{grid-template-areas:"header" "content" "basket" "nav"}.shopping-header{grid-area:header}.shopping-content{grid-area:content}.shopping-cart-summary{grid-area:basket}.shopping-nav{grid-area:nav}
 
-.shopping-nav [aria-current=page] svg path:last-child{fill:currentColor}.shopping-nav a:last-child svg{fill:currentColor}
+/* #166：今いる画面のアイコンは、線の一部ではなく全体を塗る */
+.shopping-nav [aria-current=page] svg :is(path,circle){fill:currentColor}.shopping-nav a:last-child svg{fill:currentColor}
 
 /* UI review v3: full-photo category buttons and translucent glass navigation. */
 .shopping-logo{width:min(100%,220px)}
@@ -161,7 +162,6 @@ body:has(.shopping-home) .shopping-session-bar{display:none}
 .shopping-scanner .scanner-intro{margin-top:clamp(3px,1.2dvh,12px)}
 .shopping-cart-summary>button{border:0;background:linear-gradient(105deg,#07576B,#006575);box-shadow:0 3px 8px #0E284124;min-height:49px;padding:9px 16px;border-radius:22px}
 .shopping-card-stack{display:grid;grid-template-columns:minmax(0,1fr) 17px;gap:7px;min-height:0}
-.shopping-card-stack:has(>.shopping-stack-refresh){grid-template-rows:minmax(0,1fr) 44px}
 .shopping-stack-viewport{position:relative;min-height:0;overflow:hidden;border-radius:21px;background:var(--kago-mint);box-shadow:0 3px 12px #0E28410b;touch-action:pan-x;isolation:isolate}
 .shopping-stack-card{position:absolute;inset:0;overflow:hidden;border-radius:inherit;will-change:transform;isolation:isolate}
 .shopping-stack-card>img{z-index:-2;object-fit:cover;object-position:60% center}
@@ -178,7 +178,6 @@ body:has(.shopping-home) .shopping-session-bar{display:none}
 .shopping-stack-dots button{display:grid;place-items:center;width:17px;height:21px}
 .shopping-stack-dots span{width:5px;height:5px;border-radius:10px;background:#b1bec5;transition:height 150ms,background 150ms}
 .shopping-stack-dots [aria-pressed=true] span{height:15px;background:var(--kago-logo-teal)}
-.shopping-stack-motion{position:absolute;right:8px;bottom:8px;z-index:3;display:grid;place-items:center;width:25px;height:25px;border:1px solid #ffffffbd;border-radius:50%;background:#ffffffa6;backdrop-filter:blur(8px);color:var(--kago-navy);font-size:12px;font-weight:700}
 @media(min-width:600px){.shopping-category-photo{width:36px}.shopping-category strong{font-size:15px}.shopping-categories{gap:9px}}
 @media(max-width:350px){.shopping-category{padding:5px 4px;gap:3px;border-radius:13px}.shopping-category-photo{width:23px}.shopping-category strong{font-size:11px}.shopping-stack-copy{padding-inline:12px}.shopping-stack-copy h2{font-size:21px}}
 @media(max-height:650px){.shopping-content{grid-template-rows:minmax(0,.95fr) 40px 49px minmax(0,1.15fr)}.shopping-scanner .scanner-copy>p:last-child{font-size:11px;line-height:1.6}.shopping-scanner .scanner-intro{margin-top:0}.shopping-category-photo{height:31px}.shopping-stack-copy{padding:8px 12px}.shopping-stack-label{font-size:8px;margin-bottom:2px}.shopping-stack-copy>p{font-size:8px}.shopping-stack-copy h2{font-size:19px;line-height:1.4;margin:3px 0 7px}.shopping-stack-copy>button{min-height:30px;font-size:10px;padding:4px 11px}.shopping-cart-summary>button{min-height:45px;padding-block:6px}}
@@ -271,10 +270,53 @@ body:has(.shopping-home) .shopping-session-bar{display:none}
 .shopping-header .shopping-logo{width:clamp(160px,48vw,220px);max-width:100%;height:auto}
 
 /* Store deals share the existing advertising slot, without adding a page row. */
-.shopping-content:has(.store-offer-card,.regular-reminder-card){grid-template-rows:minmax(0,.9fr) clamp(44px,7dvh,58px) clamp(54px,8.5dvh,75px) minmax(0,1.2fr)}
-@media(max-height:590px){.shopping-content:has(.store-offer-card,.regular-reminder-card){grid-template-rows:minmax(0,.86fr) 40px 49px minmax(0,1.24fr)}}
+
 
 /* Fill the camera cell, leaving only the stop button and a 3px gap. */
 .shopping-scanner.shopping-scanner-active>.scanner-live{height:100%}
 .shopping-scanner-active .scanner-target{position:absolute;top:8px;left:12px;right:12px;bottom:41px;width:auto;height:auto;max-height:none;transform:none}
 @media(max-height:650px){.shopping-scanner-active .scanner-target{top:6px;bottom:37px}}
+
+/* #166：バーコード読み取り・検索・分類・広告の枠の大きさは、出ているカード（タイムセール・セット割・購入リマインダーなど）で変えない
+   （以前はカードの種類で :has を使い行を変えていた）。読み取りの枠と広告の枠は同じ比率（1:1）にし、画面の高さ（dvh）にだけ合わせる。
+   カードの中身は、この大きさに収まるように詰める */
+.shopping-content{grid-template-rows:minmax(0,1fr) clamp(44px,7dvh,58px) clamp(54px,8.5dvh,75px) minmax(0,1fr)}
+@media(max-height:650px){.shopping-content{grid-template-rows:minmax(0,1fr) 40px 49px minmax(0,1fr)}}
+
+/* #166：広告の右の点（てんてん）の列は、点が見える最低限の幅にして、広告を横に広げる */
+.shopping-card-stack{grid-template-columns:minmax(0,1fr) 9px;gap:4px}
+.shopping-stack-dots button{width:9px}
+
+/* #166：カードの種類のラベル（広告・店舗からのおすすめ・あなたへのおすすめ・タイムセール・セット割・いつもの商品）は、
+   大きさを統一し、どのカードでも広告の枠の左上の同じ位置に置く（色はカードごと）。中身はラベルの分だけ上を空ける */
+.shopping-card-stack .shopping-stack-card :is(.shopping-stack-label,.store-offer-label,.regular-reminder-label){
+ position:absolute;top:10px;left:12px;z-index:3;display:inline-flex;align-items:center;gap:4px;height:22px;margin:0;padding:0 9px;
+ border-radius:8px;font-size:11px;font-weight:800;line-height:1;white-space:nowrap}
+.shopping-card-stack .shopping-stack-card .store-offer-label svg{width:13px;height:13px}
+.shopping-card-stack .shopping-stack-card .shopping-stack-label{border:1px solid #c4d4d6;background:#ffffffd9;color:var(--kago-navy)}
+.shopping-card-stack .shopping-stack-card .store-offer-card>header{position:static;justify-content:flex-end;min-height:22px}
+.shopping-card-stack .shopping-stack-card .store-offer-time{height:22px;padding:0 8px;font-size:11px}
+.shopping-card-stack .shopping-stack-card .store-offer-time svg{width:13px;height:13px}
+.shopping-card-stack .shopping-stack-card .regular-reminder-card{padding-top:38px}
+.shopping-card-stack .shopping-stack-card .shopping-stack-copy{padding-top:38px}
+@media(max-height:650px){
+ .shopping-card-stack .shopping-stack-card :is(.shopping-stack-label,.store-offer-label,.regular-reminder-label){top:7px;left:10px;height:20px;font-size:10px;padding:0 8px}
+ .shopping-card-stack .shopping-stack-card .store-offer-card>header{min-height:20px}
+ .shopping-card-stack .shopping-stack-card .store-offer-time{height:20px;font-size:10px}
+ .shopping-card-stack .shopping-stack-card .regular-reminder-card,.shopping-card-stack .shopping-stack-card .shopping-stack-copy{padding-top:31px}
+}
+
+/* #166：商品写真の白い背景を、カードの背景の色になじませる（写真の背景を透過したのと同じ見え方） */
+/* 影（drop-shadow）は写真の四角い形に沿って付くので外す */
+.store-offer-photo img,.regular-reminder-photo img{mix-blend-mode:multiply;filter:none}
+
+/* #166：広告・あなたへのおすすめの商品写真（タイムセールと同じく右側の決まった場所に、切らずに入れる） */
+.shopping-stack-card-photo{background:linear-gradient(135deg,#fff,var(--kago-mint))}
+.shopping-stack-card-photo:before{display:none}
+/* 重なり順（z-index）を付けると写真が入れ物の中だけでなじむので付けない。文字は後ろの要素なので写真より手前に出る */
+.shopping-stack-photo{position:absolute;right:3%;top:14%;bottom:7%;width:44%}
+.shopping-stack-photo:before{content:"";position:absolute;inset:4% 0 0 0;border-radius:50%;background:#ffffffb3}
+.shopping-stack-photo img{object-fit:contain;mix-blend-mode:multiply}
+.shopping-stack-card-photo .shopping-stack-copy{max-width:58%}
+.shopping-stack-card-photo .shopping-stack-copy h2{font-size:clamp(17px,2.9dvh,26px);overflow-wrap:anywhere}
+

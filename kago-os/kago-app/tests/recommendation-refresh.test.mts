@@ -88,3 +88,33 @@ test("foreign-visit results and auth failures revalidate the session and never p
     } finally {t.loader.stop();}
   }
 });
+
+test("#166 quiet refresh keeps the cards while reloading, then swaps in the new selection", async () => {
+  const t = setup();
+  try {
+    t.loader.update(scope()); await tick(); t.requests[0].resolve(data()); await tick();
+    const before = t.states.length;
+    t.loader.refreshQuietly(); t.loader.refreshQuietly(); await tick();
+    assert.equal(t.requests.length, 2, "one quiet request at a time");
+    assert.equal(t.states.length, before, "no loading state: the cards stay on screen");
+    const changed = { ...data(), selectionId: "selection-after-insight" };
+    t.requests[1].resolve(changed); await tick();
+    assert.deepEqual(t.states.at(-1), { status: "ready", scope: scope(), data: changed });
+  } finally { t.loader.stop(); }
+});
+
+test("#166 a failed quiet refresh keeps the current cards; a cart change aborts it and stale results are ignored", async () => {
+  const t = setup();
+  try {
+    t.loader.update(scope()); await tick(); t.requests[0].resolve(data()); await tick();
+    t.loader.refreshQuietly(); await tick(); t.requests[1].reject(new Error("offline")); await tick();
+    assert.equal(t.states.at(-1)?.status, "ready");
+    t.loader.refreshQuietly(); await tick();
+    t.loader.update(scope(1)); assert(t.requests[2].signal.aborted);
+    t.requests[2].resolve(data()); await tick();
+    assert.equal(t.states.at(-1)?.status, "loading");
+    await tick(); const pending = t.requests.length; // the new cart version's selection is in flight
+    t.loader.refreshQuietly(); await tick();
+    assert.equal(t.requests.length, pending, "no quiet request while a selection is still pending");
+  } finally { t.loader.stop(); }
+});

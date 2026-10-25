@@ -1,0 +1,9 @@
+/* #166：カメラ・読み取りのエラーは、読み取りの枠に差し込まず画面の上に重ねる。元の画面の並びは変えない */
+.scanner-toast{position:fixed;z-index:200;top:calc(env(safe-area-inset-top) + 12px);left:50%;transform:translateX(-50%);
+ width:min(480px,calc(100vw - 24px));display:flex;align-items:flex-start;gap:10px;padding:12px 12px 12px 14px;
+ border:1px solid #ffc9bb;border-radius:16px;background:#FFEEE8;color:#7a2a1b;box-shadow:0 8px 24px #0e284129;
+ font-size:13px;font-weight:700;line-height:1.6;text-align:left;animation:scanner-toast-in .25s ease-out both}
+.scanner-toast p{flex:1;margin:0}
+.scanner-toast button{flex:none;display:grid;place-items:center;width:28px;height:28px;border:0;border-radius:50%;background:#ffffffb3;color:#7a2a1b;font-size:18px;line-height:1;cursor:pointer}
+@keyframes scanner-toast-in{from{opacity:0;transform:translate(-50%,-8px)}to{opacity:1;transform:translate(-50%,0)}}
+@media(prefers-reduced-motion:reduce){.scanner-toast{animation:none}}

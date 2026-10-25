@@ -26,10 +26,11 @@ export function StoreEntry({context,qrStore,error,onDetected,onClearQr,onStart,o
  return <main className="store-entry">
    <AppBrandHeader/>
    <div className="store-entry-content">
-     <div className="store-entry-title"><h1>お買い物の店舗を選ぶ</h1><p>続きから開くと、同じ来店のかごを復元します。</p></div>
+     <div className="store-entry-title"><h1>お買い物の店舗を選ぶ</h1></div>
      <BarcodeScanner purpose="store" appearance="store" onDetected={onDetected}/>
      <p className="store-entry-help">カメラを利用できない場合は、スマートフォンのカメラでQRを開くか、下の店舗選択をご利用ください。</p>
-     {error&&<p role="alert" className="store-entry-message store-entry-error">{error}</p>}
+     {/* #166：エラーは並びを崩さないよう、画面の上に重ねて出す */}
+     {error&&<div role="alert" className="scanner-toast store-entry-toast"><p>{error}</p></div>}
 
      <section className="store-entry-options" aria-labelledby="entry-stores-heading">
        <h2 id="entry-stores-heading">デモ用の店舗を選択</h2>

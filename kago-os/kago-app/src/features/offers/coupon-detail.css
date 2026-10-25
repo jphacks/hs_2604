@@ -54,7 +54,8 @@ html:has(.coupon-preview),body:has(.coupon-preview){height:100%;margin:0;overflo
 
 /* A surprise ticket peeks in from the left edge of the shopping screen. */
 .coupon-arrival.coupon-arrival-guerrilla{
- left:max(-14px,calc((100vw - 520px)/2 - 14px));right:auto;top:49%;bottom:auto;
+ /* #166：広告ではなく、上のバーコード読み取りの枠に重ねて出す（ヘッダーのすぐ下） */
+ left:max(-14px,calc((100vw - 520px)/2 - 14px));right:auto;top:calc(clamp(60px,9dvh,78px) + 6px);bottom:auto;
  width:105px;max-width:none;display:block;padding:0;border:0;border-radius:0;background:transparent;
  box-shadow:none;transform:rotate(-7deg);transform-origin:left center;animation:coupon-ticket-enter .55s cubic-bezier(.2,.9,.3,1.12) both
 }
@@ -81,7 +82,7 @@ html:has(.coupon-preview),body:has(.coupon-preview){height:100%;margin:0;overflo
 .coupon-preview-variant{position:fixed;z-index:96;top:15px;right:12px;display:flex;gap:4px;padding:4px;background:#ffffffed;border-radius:20px}
 .coupon-preview-variant button{border:0;border-radius:17px;padding:7px 9px;font-size:11px;color:#07576B;background:transparent;cursor:pointer}
 .coupon-preview-variant [aria-pressed=true]{background:#E6F6F5}
-@media(max-height:650px){.coupon-arrival.coupon-arrival-guerrilla{top:43%;width:96px}.coupon-ticket{min-height:200px;padding-top:13px}.coupon-ticket .coupon-ticket-value{font-size:26px}.coupon-ticket .coupon-ticket-title{font-size:12px;margin-top:6px}.coupon-ticket-off{font-size:21px}.coupon-ticket-open{width:35px;height:35px}.coupon-ticket-perforation{margin-block:7px}.coupon-detail-deadline{font-size:12px}}
+@media(max-height:650px){.coupon-arrival.coupon-arrival-guerrilla{top:58px;width:96px}.coupon-ticket{min-height:200px;padding-top:13px}.coupon-ticket .coupon-ticket-value{font-size:26px}.coupon-ticket .coupon-ticket-title{font-size:12px;margin-top:6px}.coupon-ticket-off{font-size:21px}.coupon-ticket-open{width:35px;height:35px}.coupon-ticket-perforation{margin-block:7px}.coupon-detail-deadline{font-size:12px}}
 @media(prefers-reduced-motion:reduce){.coupon-arrival.coupon-arrival-guerrilla{animation:none}}
 
 .coupon-detail-guerrilla .coupon-detail-header>span,.coupon-detail-guerrilla .coupon-detail-discount>strong{transform:none}

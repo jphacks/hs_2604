@@ -123,8 +123,10 @@ try {
   pass("the next saved cart version shows its coupon; reload keeps it with random=0.99");
 
   await sticker().click(); await page.getByRole("dialog").getByRole("button", { name: "閉じる", exact: true }).click();
-  await roll(0.1); await poll(); assert.equal(await sticker().count(), 0);
-  pass("opening consumes the sticker; closing and refreshing never immediately produce another sticker");
+  // #166: closing the details returns to the same ticket; only using it or「今回は見送る」removes it.
+  await roll(0.1); await poll(); await sticker().waitFor(); assert.equal(await sticker().count(), 1);
+  assert.match((await sticker().getAttribute("aria-label"))!, /トマトパスタソース/);
+  pass("closing the details returns to the same ticket; refreshing does not swap it for another coupon");
 
   await page.getByRole("link", { name: "マイページ", exact: true }).click();
   await page.getByRole("button", { name: "店舗・来店を選ぶ", exact: true }).click();

@@ -51,5 +51,4 @@
 .store-offer-scan:disabled{opacity:.45}
 .store-offer-detail{max-height:calc(100dvh - 32px);overflow:auto}.store-offer-copy h2{overflow:hidden;text-overflow:ellipsis}
 
-.shopping-card-stack:has(.store-offer-card) .shopping-stack-motion{bottom:72px;right:7px;width:20px;height:20px;font-size:10px}
-@media(max-height:650px){.shopping-card-stack:has(.store-offer-card) .shopping-stack-motion{bottom:62px}}
+

@@ -18,6 +18,7 @@ export class RecommendationRefresh {
   private stopped = false;
   private timer: ReturnType<typeof setTimeout> | undefined;
   private request: AbortController | null = null;
+  private quiet: AbortController | null = null;
   private options: {
     load: (signal: AbortSignal) => Promise<SavedSelection>;
     publish: (state: RecommendationState) => void;
@@ -36,19 +37,39 @@ export class RecommendationRefresh {
   retry() {
     if (!this.stopped && this.scope) this.start(this.scope, 0, 0);
   }
+  /**
+   * #166: re-read the selection without clearing the cards (no "loading" in between), so the home can pick up
+   * store settings changed in Insight without a refresh button. Failures keep the current cards; a cart change
+   * meanwhile is handled by update().
+   */
+  refreshQuietly() {
+    const scope = this.scope;
+    if (this.stopped || !scope || this.quiet || this.timer || this.request) return;
+    const serial = this.serial;
+    const controller = new AbortController(); this.quiet = controller;
+    void this.options.load(controller.signal).then(data => {
+      if (this.stopped || controller.signal.aborted || serial !== this.serial || !sameRecommendationScope(this.scope, scope)) return;
+      if (data.visitId === scope.visitId && data.cartVersion === scope.cartVersion) this.options.publish({ status: "ready", scope, data });
+    }, () => undefined).finally(() => { if (this.quiet === controller) this.quiet = null; });
+  }
   private cancel() {
     ++this.serial;
     clearTimeout(this.timer); this.timer = undefined;
     this.request?.abort(); this.request = null;
+    this.quiet?.abort(); this.quiet = null;
   }
   private start(scope: RecommendationScope, delay: number, retry: number) {
     this.cancel();
     const serial = this.serial;
     const controller = new AbortController(); this.request = controller;
     this.options.publish({ status: "loading", scope });
-    this.timer = setTimeout(() => { void this.load(scope, serial, controller, retry); }, delay);
+    this.timer = setTimeout(() => { this.timer = undefined; void this.load(scope, serial, controller, retry); }, delay);
   }
   private async load(scope: RecommendationScope, serial: number, controller: AbortController, retry: number) {
+    try { await this.loadOnce(scope, serial, controller, retry); }
+    finally { if (this.request === controller) this.request = null; }
+  }
+  private async loadOnce(scope: RecommendationScope, serial: number, controller: AbortController, retry: number) {
     const current = () => !this.stopped && !controller.signal.aborted && serial === this.serial && sameRecommendationScope(this.scope, scope);
     try {
       const data = await this.options.load(controller.signal);

@@ -10,8 +10,18 @@
 .regular-reminder-card>small{font-size:11px;color:#5C6C7A;text-align:center}
 @media(max-height:760px){.regular-reminder-card{padding:9px 12px;gap:3px}.regular-reminder-card h2{font-size:16px}.regular-reminder-label{font-size:10px;padding:2px 6px}.regular-reminder-product h3{font-size:13px}.regular-reminder-product strong{font-size:19px}.regular-reminder-product p{font-size:11px}.regular-reminder-card>button{min-height:29px;font-size:11px}.regular-reminder-card>small{font-size:10px}}
 
-.shopping-card-stack:has(.regular-reminder-card) .shopping-stack-motion{bottom:72px;right:7px;width:20px;height:20px;font-size:10px}
-@media(max-height:760px){.shopping-card-stack:has(.regular-reminder-card) .shopping-stack-motion{bottom:62px}}
+
 
 .regular-reminder-card{padding:12px;gap:4px}.regular-reminder-product h3{line-height:1.25}.regular-reminder-product strong{display:block;font-size:22px;line-height:1.2}.regular-reminder-product p{font-size:11px;white-space:nowrap}
 @media(max-height:760px){.regular-reminder-card{padding:9px 12px;gap:3px}.regular-reminder-product strong{font-size:19px}.regular-reminder-product p{font-size:11px}.regular-reminder-product h3{font-size:13px}}
+
+/* #166：読み取りの枠と広告の枠を同じ比率にしたので、背の低い画面では中身を詰めて広告の枠に収める
+   （注記は見出し「そろそろ買う頃です」で意味が伝わるので隠す） */
+@media(max-height:620px){
+.regular-reminder-card{padding:7px 11px;gap:2px}
+.regular-reminder-card>small{display:none}
+.regular-reminder-card h2{font-size:14px;line-height:1.2}
+.regular-reminder-product{gap:6px}
+.regular-reminder-product h3{font-size:12px}.regular-reminder-product strong{font-size:16px}.regular-reminder-product p{font-size:10px;line-height:1.3}
+.regular-reminder-card>button{min-height:27px;font-size:11px;padding:3px 8px}.regular-reminder-card>button svg{width:15px;height:15px}
+}
