@@ -23,6 +23,8 @@ const nextConfig: NextConfig = {
       beforeFiles: [
         ...(insightOrigin ? [{ source: "/insight/:path*", destination: `${new URL(insightOrigin).origin}/insight/:path*` }] : []),
         ...(adsOrigin ? [
+          // On Vercel an empty :path* becomes "/ads/", which Ads redirects back to "/ads" forever.
+          { source: "/ads", destination: `${new URL(adsOrigin).origin}/ads` },
           { source: "/ads/:path*", destination: `${new URL(adsOrigin).origin}/ads/:path*` },
           { source: "/ads-static/:path*", destination: `${new URL(adsOrigin).origin}/ads-static/:path*` },
           { source: "/ad-assets/:path*", destination: `${new URL(adsOrigin).origin}/ad-assets/:path*` },

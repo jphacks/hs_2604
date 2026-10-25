@@ -12,6 +12,7 @@
 ## 転送と認証
 
 - `/ads/:path*` はAdsの同じパスへ転送し、画面内のリンク・クエリ文字列を維持します。
+- 入口の `/ads` は個別の規則で `/ads` へ転送します。Vercelでは `/ads/:path*` の空のpathが `/ads/` になり、Adsが `/ads` へ308で戻すためループします（#208）。
 - AdsのJavaScriptとCSSは `assetPrefix=/ads-static` で分離し、`/ads-static/:path*` をAdsへ転送します。Appの `/_next` と衝突しません。
 - デモ広告の `/ad-assets/:path*` もAdsへ転送します。Supabase Storageの署名付き画像URLは既存の処理を使用します。
 - Adsは `kago-ads-auth` という独立したCookie名を使い、App・Insightのログインを上書きしません。Adsと同じアプリにあるSignageでの利用も保つため、CookieのPathは `/` です。
