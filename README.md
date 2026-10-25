@@ -106,9 +106,18 @@ PCのKAGO/Insightでおすすめを設定し、スマホのKAGO/Appでスキャ�
 - 動作確認用の架空の商品・顧客・購買履歴データ。
 - デバイス：カメラ付きスマートフォン、店舗管理用PC。
 
-### ハッカソンで開発した機能・技術
+### 独自機能・技術（Hack Dayで開発）
 
-Hack Dayでは、認証・来店・かご・推薦・クーポン・疑似購入を共通DBにつなぐ実装と、店舗向け画面の開発に取り組んでいます。各機能の検証範囲は開発資料・対応PRに記録し、サービス全体の接続・検証状況は[デモ構成・確認範囲](docs/development/demo-video.md)に分けて記載しています。紹介LP・商品スキャン等の事前実装は[事前実装の記録](docs/development.md#prehack)で区別しています。
+KAGO/OSでは、買い物中のかごを起点に商品を提案し、その反応を店舗・メーカーの次の販促へつなげます。以下に、機能の内容と主な実装箇所、対応するコミットをまとめます。機能名から内容を確認し、実装リンクでコード、コミット番号で変更差分を参照できます。
+
+#### 買い物に合わせて変わる提案（KAGO/App）
+
+| 機能 | 内容・工夫 | 主な実装箇所 | 実装コミット |
+| --- | --- | --- | --- |
+| **かごに連動する3種類の提案** | かご・購入履歴・店舗の販促・承認済み広告から、通常のおすすめ／店舗のおすすめ／メーカー広告を分けて選定。提案理由・広告主を示し、かごの変更後には古い結果を取り下げます。 | [選定](kago-os/kago-app/src/features/recommendations/selection.ts)、[再選定](kago-os/kago-app/src/features/recommendations/refresh.ts) | [435d2e1](https://github.com/jphacks/hs_2604/commit/435d2e1)、[e37b81c](https://github.com/jphacks/hs_2604/commit/e37b81c) |
+| **利用者ごとに選ぶゲリラクーポン** | 「商品の関連性 × 利用者にとっての新しさ × 割引のお得さ」で候補を評価。通常の選定では定期購入品を除き、まだ買ったことのない商品との出会いを促します。購入履歴の利用をOFFにすると履歴を使いません。 | [配布先・スコア判定](kago-os/kago-app/src/features/offers/targeting.ts)、[仕様](docs/specs/app-coupon-targeting.md) | [8323261](https://github.com/jphacks/hs_2604/commit/8323261) |
+
+**デモでの扱い：** 公開デモでは、スパゲッティがかごにある間はトマトパスタソースのクーポンを優先する固定設定を使用しています。この経路では利用者ごとのスコアに関係なく選定します（[48a319d](https://github.com/jphacks/hs_2604/commit/48a319d)）。販促効果のダッシュボードはサンプルデータです。サービス全体の接続・検証状況は[デモ構成・確認範囲](docs/development/demo-video.md)、紹介LP・商品スキャン等の事前実装は[事前実装の記録](docs/development.md#prehack)を参照してください。
 
 ## 開発資料
 
