@@ -1,6 +1,7 @@
 import { signInBackend } from "@kago/backend";
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerBackendClient } from "@/lib/backend/server";
+import { insightPath } from "@/lib/paths";
 import { demoCredentials, safeNextPath } from "@/lib/demo";
 
 /**
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest) {
 
   // 環境変数が無ければデモ接続は無効。通常のログイン画面へ。
   if (!credentials) {
-    return NextResponse.redirect(new URL("/login", request.nextUrl.origin));
+    return NextResponse.redirect(new URL(insightPath("/login"), request.nextUrl.origin));
   }
 
   try {
@@ -22,8 +23,8 @@ export async function GET(request: NextRequest) {
     await signInBackend(client, credentials.email, credentials.password, "store_staff");
   } catch {
     // 失敗したまま元の画面へ戻すと往復し続けるので、ログイン画面で止める。
-    return NextResponse.redirect(new URL("/login?demo=failed", request.nextUrl.origin));
+    return NextResponse.redirect(new URL(insightPath("/login?demo=failed"), request.nextUrl.origin));
   }
 
-  return NextResponse.redirect(new URL(next, request.nextUrl.origin));
+  return NextResponse.redirect(new URL(insightPath(next), request.nextUrl.origin));
 }
