@@ -2,7 +2,7 @@
 // ADS-01：募集の詳細（募集条件・公開される成果・店舗情報）から申請へ進む
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { usePortalRepository, usePortalSession } from "@/features/auth/ads-runtime";
+import { useAdsRuntime, usePortalRepository, usePortalSession } from "@/features/auth/ads-runtime";
 import { canApplyTo, callPhase, periodLabel, storeLabel } from "@/lib/domain/rules";
 import { CHANNEL_LABEL, DISCLOSURE_LABEL } from "@/lib/domain/types";
 import { ChannelTags, PhaseBadge } from "@/components/badges";
@@ -11,6 +11,7 @@ import { useLoad } from "@/lib/use-load";
 
 export function RecruitmentDetail() {
   const getRepository = usePortalRepository();
+  const { source } = useAdsRuntime();
   const id = useSearchParams().get("id") ?? "";
   const session = usePortalSession();
   const { state } = useLoad(async () => {
@@ -63,8 +64,9 @@ export function RecruitmentDetail() {
             <dd>{c.categories.join("・")}</dd>
             <dt className="text-muted">素材の仕様</dt>
             <dd>
-              {c.channels.includes("signage") && <p>Signage：1920×1080 の画像（2MB以下）、または MP4 動画（15秒以内・20MB以下）</p>}
-              {c.channels.includes("app") && <p>App：800×800 の画像（2MB以下）</p>}
+              {source === "supabase" && <p>App・Signage共通の画像1枚（PNG・JPEG・WebP、5MiB以下）。動画は使えません。画像全体を表示枠に収めます。</p>}
+              {source === "mock" && c.channels.includes("signage") && <p>Signage：1920×1080 の画像（2MB以下）、または MP4 動画（15秒以内・20MB以下）</p>}
+              {source === "mock" && c.channels.includes("app") && <p>App：800×800 の画像（2MB以下）</p>}
               <p className="text-xs text-muted">価格と「広告｜提供」の表記は画面側で重ねるので、素材には入れないでください。</p>
             </dd>
             <dt className="text-muted">公開される成果</dt>

@@ -3,18 +3,18 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { getRepository } from "@/lib/data";
+import { useMakerRepository, usePortalSession as useSession } from "@/features/auth/ads-runtime";
 import type { CreativeVersionInput } from "@/lib/data/repository";
 import { CHANNEL_LABEL, CHANNELS } from "@/lib/domain/types";
-import { useSession } from "@/lib/session";
-import { AdMedia } from "@/components/ad-media";
-import { AssetPicker } from "@/features/creatives/asset-picker";
+import { ConnectedAdMedia as AdMedia } from "./connected-media";
+import { CreativeAssetsPicker } from "./creative-assets-picker";
 import { Button, Card, ErrorList, Field, inputClass, Loading, NeedRole } from "@/components/parts";
 import { errorMessages, useLoad } from "@/lib/use-load";
 
 export function AdDetail() {
   const id = useSearchParams().get("id") ?? "";
   const session = useSession();
+  const getRepository = useMakerRepository();
   const { state, reload } = useLoad(async () => {
     if (session.role !== "maker_staff") return null;
     const repo = getRepository();
@@ -34,6 +34,8 @@ export function AdDetail() {
 
   const [draft, setDraft] = useState<CreativeVersionInput | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [requestId, setRequestId] = useState(() => crypto.randomUUID());
 
   if (session.role !== "maker_staff") return <NeedRole role="メーカー" />;
   if (state.status === "loading") return <Loading />;
@@ -45,15 +47,16 @@ export function AdDetail() {
   const latest = versions[versions.length - 1];
 
   const save = async () => {
-    if (!draft) return;
+    if (!draft || saving) return;
+    setSaving(true);
     setErrors([]);
     try {
-      await getRepository().addCreativeVersion(session, creative.id, draft);
+      await getRepository().addCreativeVersion(session, creative.id, draft, requestId);
       setDraft(null);
       reload();
     } catch (e) {
       setErrors(errorMessages(e));
-    }
+    } finally { setSaving(false); }
   };
 
   return (
@@ -70,12 +73,12 @@ export function AdDetail() {
           </p>
         </div>
         {!draft && (
-          <Button onClick={() => setDraft({ headline: latest.headline, assets: { ...latest.assets }, note: "" })}>新しい版を作る</Button>
+          <Button onClick={() => { setRequestId(crypto.randomUUID()); setDraft({ headline: latest.headline, assets: { ...latest.assets }, note: "" }); }}>新しい版を作る</Button>
         )}
       </div>
 
       {draft && (
-        <Card className="space-y-4">
+        <Card className="space-y-4"><fieldset disabled={saving} className="contents">
           <h2 className="font-bold">第{latest.version + 1}版を作る</h2>
           <p className="text-sm text-muted">
             新しい版を申請に使うには、申請の詳細から再申請してください。新しい版が承認されるまで、今承認されている版の配信が続きます。
@@ -83,19 +86,18 @@ export function AdDetail() {
           <Field label="見出し">
             <input className={inputClass} value={draft.headline} onChange={(e) => setDraft({ ...draft, headline: e.target.value })} />
           </Field>
-          <AssetPicker channel="signage" makerName={data.makerName} value={draft.assets.signage} onChange={(a) => setDraft({ ...draft, assets: { ...draft.assets, signage: a } })} />
-          <AssetPicker channel="app" makerName={data.makerName} value={draft.assets.app} onChange={(a) => setDraft({ ...draft, assets: { ...draft.assets, app: a } })} />
+          <CreativeAssetsPicker makerName={data.makerName} value={draft.assets} onChange={assets => setDraft({ ...draft, assets })} />
           <Field label="版のメモ" hint="何を変えたか（審査する店舗にも見えます）">
             <input className={inputClass} value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} />
           </Field>
           <ErrorList errors={errors} />
           <div className="flex gap-2">
-            <Button onClick={save}>この版を保存</Button>
+            <Button disabled={saving} onClick={save}>この版を保存</Button>
             <Button variant="secondary" onClick={() => setDraft(null)}>
               やめる
             </Button>
           </div>
-        </Card>
+        </fieldset></Card>
       )}
 
       <section className="space-y-3">
@@ -108,6 +110,7 @@ export function AdDetail() {
                 {v.headline}｜{v.note || "メモなし"}
               </span>
             </p>
+            {v.image_error && <ErrorList errors={[v.image_error]} />}
             <div className="mt-3 flex flex-wrap items-start gap-4">
               {CHANNELS.map((ch) => (
                 <div key={ch}>

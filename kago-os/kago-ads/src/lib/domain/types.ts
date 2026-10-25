@@ -80,6 +80,10 @@ export type MediaAsset = {
   bytes: number;
   duration_sec?: number;
   file_name: string;
+  /** 実接続のStorage相対パス。署名付きURLをDBへ保存しない。 */
+  storage_path?: string;
+  /** 登録画面内だけで保持する未送信の画像。永続化しない。 */
+  upload?: Blob;
 };
 
 /** 広告素材 creatives（店舗から独立したメーカーの持ち物） */
@@ -92,6 +96,7 @@ export type CreativeVersion = {
   version: number;
   headline: string;
   assets: Partial<Record<Channel, MediaAsset>>;
+  image_error?: string;
   /** 提案：何を変えた版か */
   note: string;
   created_at: Timestamp;
@@ -140,7 +145,7 @@ export type AdApplication = {
 };
 
 /** 配信対象の状態（共通仕様書 6）。expired は保存せず期間から判定する */
-export type PlacementStatus = "active" | "suspended" | "superseded";
+export type PlacementStatus = "active" | "suspended" | "superseded" | "expired";
 
 /** 配信対象 ad_placements（INS-01 の承認で DB-08 が作る）。channels は申請の一部に絞れる */
 export type AdPlacement = {
@@ -156,6 +161,8 @@ export type AdPlacement = {
   approved_at: Timestamp;
   /** 提案：停止の理由 */
   suspend_reason?: string;
+  suspended_by?: string | null;
+  suspended_at?: Timestamp | null;
 };
 
 /** 店舗販促の版の状態（docs/specs/database-design.md の promotion_versions.status） */

@@ -3,10 +3,9 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { getRepository } from "@/lib/data";
+import { useMakerRepository, usePortalSession as useSession } from "@/features/auth/ads-runtime";
 import type { ApplicationInput } from "@/lib/data/repository";
 import { canApplyTo, dayStart, storeLabel, today } from "@/lib/domain/rules";
-import { useSession } from "@/lib/session";
 import { Button, ButtonLink, Card, Empty, ErrorList, Field, inputClass, Loading, NeedRole, PageTitle } from "@/components/parts";
 import { errorMessages, useLoad } from "@/lib/use-load";
 import { ApplicationFields } from "./application-fields";
@@ -14,6 +13,7 @@ import { ApplicationFields } from "./application-fields";
 export function NewApplication() {
   const callId = useSearchParams().get("call") ?? "";
   const session = useSession();
+  const getRepository = useMakerRepository();
   const router = useRouter();
   const { state } = useLoad(async () => {
     if (session.role !== "maker_staff") return null;
@@ -69,7 +69,7 @@ export function NewApplication() {
   };
 
   const submit = async () => {
-    if (!form) return;
+    if (!form || saving) return;
     setSaving(true);
     setErrors([]);
     try {
@@ -84,7 +84,7 @@ export function NewApplication() {
   return (
     <>
       <PageTitle title="募集に申請する" lead={`${storeLabel(store)}｜${call.title}`} />
-      <Card className="space-y-5">
+      <Card className="space-y-5"><fieldset disabled={saving} className="contents">
         {creatives.length === 0 ? (
           <Empty>
             申請できる広告素材がありません。
@@ -120,7 +120,7 @@ export function NewApplication() {
             </div>
           </>
         )}
-      </Card>
+      </fieldset></Card>
     </>
   );
 }

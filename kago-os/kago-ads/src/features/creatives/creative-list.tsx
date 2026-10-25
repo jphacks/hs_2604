@@ -1,15 +1,15 @@
 "use client";
 // ADS-03：自社の広告素材（creatives）と版の一覧
 import Link from "next/link";
-import { getRepository } from "@/lib/data";
+import { useMakerRepository, usePortalSession as useSession } from "@/features/auth/ads-runtime";
 import { CHANNELS } from "@/lib/domain/types";
-import { useSession } from "@/lib/session";
-import { AdMedia } from "@/components/ad-media";
+import { ConnectedAdMedia as AdMedia } from "./connected-media";
 import { ButtonLink, Card, Empty, ErrorList, Loading, NeedRole, PageTitle } from "@/components/parts";
 import { useLoad } from "@/lib/use-load";
 
 export function AdList() {
   const session = useSession();
+  const getRepository = useMakerRepository();
   const { state } = useLoad(async () => {
     if (session.role !== "maker_staff") return null;
     const repo = getRepository();
@@ -42,6 +42,7 @@ export function AdList() {
                   </p>
                   <p className="mt-1 font-bold">{product?.name}</p>
                   <p className="text-sm text-muted">{latest.headline}</p>
+                  {latest.image_error && <ErrorList errors={[latest.image_error]} />}
                   <div className="mt-3 flex items-start gap-3">
                     {CHANNELS.map((ch) =>
                       latest.assets[ch] ? <AdMedia key={ch} asset={latest.assets[ch]!} channel={ch} className={ch === "app" ? "w-24" : "w-44"} /> : null,
