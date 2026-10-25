@@ -2,11 +2,11 @@ import assert from "node:assert/strict";
 import {spawn} from "node:child_process";
 import {mkdir} from "node:fs/promises";
 import {chromium} from "playwright";
-const base="http://127.0.0.1:3236";
-const server=spawn(process.execPath,["node_modules/next/dist/bin/next","start","--hostname","127.0.0.1","--port","3236"],{stdio:"ignore",windowsHide:true});
+const base="http://127.0.0.1:3237";
+const server=spawn(process.execPath,["node_modules/next/dist/bin/next","start","--hostname","127.0.0.1","--port","3237"],{stdio:"ignore",windowsHide:true});
 let browser;const checks:string[]=[];
 try{
- for(let n=0;n<100;n++){try{if((await fetch(base+"/ad-design")).ok)break;}catch{}if(n===99)throw Error("Server startup timed out");await new Promise(r=>setTimeout(r,200));}
+ for(let n=0;n<100;n++){if(server.exitCode!==null)throw Error("Preview test server failed");try{if((await fetch(base+"/ad-design")).ok)break;}catch{}if(n===99)throw Error("Server startup timed out");await new Promise(r=>setTimeout(r,200));}
  browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH??"/usr/bin/google-chrome"});
  const context=await browser.newContext(),errors:string[]=[],external:string[]=[];
  await context.route("**/*",r=>{if(new URL(r.request().url()).origin===base)return r.continue();external.push(new URL(r.request().url()).origin);return r.abort();});
