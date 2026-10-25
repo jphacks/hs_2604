@@ -15,7 +15,8 @@ type Props={
 };
 export function StoreEntry({context,qrStore,error,onDetected,onClearQr,onStart,onLogout}:Props){
  const [choice,setChoice]=useState<string|null>(null);
- const selected=qrStore??choice??context.activeVisits[0]?.store_id??context.stores[0]?.id;
+ const stores=[...context.stores].sort((a,b)=>Number(b.name==="広島デモ店"||b.branch_name==="広島デモ店")-Number(a.name==="広島デモ店"||a.branch_name==="広島デモ店"));
+ const selected=qrStore??choice??context.activeVisits[0]?.store_id??stores[0]?.id;
  const active=context.activeVisits.find(visit=>visit.store_id===selected);
  const chosen=context.stores.find(store=>store.id===selected);
  const start=(startNew=false)=>{
@@ -34,7 +35,7 @@ export function StoreEntry({context,qrStore,error,onDetected,onClearQr,onStart,o
 
      <section className="store-entry-options" aria-labelledby="entry-stores-heading">
        <h2 id="entry-stores-heading">デモ用の店舗を選択</h2>
-       <div className="store-entry-chips">{context.stores.map(store=><button key={store.id} type="button" aria-pressed={selected===store.id} onClick={()=>{setChoice(store.id);if(qrStore)onClearQr();}}>
+       <div className="store-entry-chips">{stores.map(store=><button key={store.id} type="button" aria-pressed={selected===store.id} onClick={()=>{setChoice(store.id);if(qrStore)onClearQr();}}>
          <ShoppingIcon name="store"/><span>{store.branch_name||store.name}</span>{selected===store.id&&<span className="store-entry-check" aria-hidden="true">✓</span>}
        </button>)}</div>
        {context.stores.length===0&&<p className="store-entry-help">利用できる店舗がありません。店舗の登録をお待ちください。</p>}
