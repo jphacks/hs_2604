@@ -26,4 +26,4 @@ export function AdsHomeView({role}:{role:Role}){
   <aside className="ads-process-note"><AdsIcon name="check"/><div><strong>{store?"広告の審査は KAGO/Insight で":"掲載前に、お店が内容を確認します"}</strong><p>{store?"募集の公開と、広告の掲載承認は別の操作です。届いた申請の承認・却下はInsightで行ってください。":"広告は申請しただけでは掲載されません。店舗の承認後、選ばれた掲載先（App／Signage）に表示されます。"}</p></div></aside>
  </>;
 }
-export function AdsHome(){const session=useSession();return <AdsHomeView role={session.role}/>;}
+export function AdsHome(){const session=useSession();const role=session.role==="store_staff"?"store_staff":session.role==="maker_staff"?"maker_staff":"guest";return <AdsHomeView role={role}/>;}
