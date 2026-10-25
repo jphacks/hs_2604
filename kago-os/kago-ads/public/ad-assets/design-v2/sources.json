@@ -1,0 +1,14 @@
+{
+  "sauce": {
+    "source": "kago-app/public/images/products/catalog-v1/tomato-sauce.webp",
+    "sha256": "aca6f5920e49841b887e7efa42bfd36b6f68d99588339407549e1953d6486578"
+  },
+  "bread": {
+    "source": "kago-app/public/images/products/catalog-v1/bread.webp",
+    "sha256": "a108bd05b4cbbb69f6683c464d8073196bde3a1a7c4681aef95d18222dad9c8e"
+  },
+  "basket": {
+    "source": "kago-app/public/images/shopping/store-recommendation-v2/c-basket.webp",
+    "sha256": "5d514993f41c2f1945491cdd6aa4628ad8bc23642098697159b17fbb349369c6"
+  }
+}
