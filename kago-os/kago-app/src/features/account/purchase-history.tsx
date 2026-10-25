@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { ShoppingIcon } from "@/components/shopping-icons";
 import { useShoppingSession } from "../shopping/session-provider";
 import { usePersonalization } from "../recommendations/personalization-provider";
 import { accountRequest, accountFailureMessage, isAccountAuthFailure } from "./client";
@@ -12,6 +14,9 @@ const date = new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", dateStyl
 export function PurchaseHistorySection() {
   const session = useShoppingSession();
   const { settings } = usePersonalization();
+  const [selectedStore,setSelectedStore]=useState("all");
+  const [period,setPeriod]=useState<"all"|"week"|"month">("all");
+  const [now]=useState(()=>Date.now());
   const [orders, setOrders] = useState<PurchaseOrder[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -24,7 +29,7 @@ export function PurchaseHistorySection() {
     active.current?.abort(); const controller = new AbortController(); active.current = controller;
     retryCursor.current = next; setLoading(true); setError("");
     try {
-      const data: PurchaseHistory & { scope: AccountScope } = await accountRequest(`/api/account?history=1${next ? `&cursor=${encodeURIComponent(next)}` : ""}`, undefined, controller.signal);
+      const data: PurchaseHistory & { scope: AccountScope } = await accountRequest(`/api/account?history=1&store=${encodeURIComponent(selectedStore)}${next ? `&cursor=${encodeURIComponent(next)}` : ""}`, undefined, controller.signal);
       if (controller.signal.aborted) return;
       if (data.scope.userId !== session.userId || data.scope.visitId !== session.visit!.id) throw { code: "visit_unavailable" };
       setOrders(previous => next ? [...previous, ...data.orders] : data.orders); setCursor(data.nextCursor); setLoaded(true);
@@ -34,30 +39,59 @@ export function PurchaseHistorySection() {
     } finally { if (!controller.signal.aborted) setLoading(false); }
   };
   useEffect(() => {
-    const boot = window.setTimeout(() => { void load(); }, 0);
+    const boot = window.setTimeout(() => { setOrders([]); setCursor(null); setLoaded(false); void load(); }, 0);
     return () => { window.clearTimeout(boot); active.current?.abort(); };
     // The session provider owns the identity/visit boundary.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [selectedStore]);
 
-  return <section aria-labelledby="history-heading" className="rounded-3xl border border-slate-200 bg-white p-5 sm:p-6">
-    <p className="text-xs font-black tracking-wider text-emerald-700">PURCHASE HISTORY</p>
-    <h2 id="history-heading" className="mt-1 text-xl font-black">この店舗での購入履歴</h2>
-    <p className="mt-2 text-sm leading-6 text-slate-600">今回の来店より前の購入記録です。商品名と価格は購入時の内容です。</p>
-    {settings && !settings.usePurchaseHistory && <p className="mt-3 rounded-xl bg-slate-100 p-3 text-sm text-slate-700">履歴のおすすめ利用はOFFです。購入履歴はここで確認できます。</p>}
-    {error && <div role="alert" className="mt-4 rounded-xl bg-red-50 p-3 text-sm text-red-800"><p>{error}</p><button type="button" onClick={() => { void load(retryCursor.current); }} className="mt-2 min-h-11 font-bold underline">購入履歴を再試行</button></div>}
-    {loaded && !loading && !error && orders.length === 0 && <p className="mt-5 rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-600">この店舗での過去の購入履歴はまだありません。</p>}
-    <div className="mt-4 grid gap-4">
-      {orders.map(order => <article key={order.id} aria-label={`${date.format(new Date(order.orderedAt))}の購入`} className="overflow-hidden rounded-2xl border border-slate-200">
-        <div className="flex flex-wrap items-center justify-between gap-2 bg-emerald-50 px-4 py-3"><time dateTime={order.orderedAt} className="text-sm font-bold text-emerald-950">{date.format(new Date(order.orderedAt))}</time><span className="rounded-full bg-white px-2 py-1 text-[10px] font-bold text-slate-600">{order.dataOrigin==="operated"?"Appでの疑似購入":"デモの購入記録"}</span></div>
-        <ul className="divide-y divide-slate-100 px-4">
-          {order.items.map(item => <li key={item.productId} className="flex justify-between gap-3 py-3"><div className="min-w-0"><p className="break-words text-sm font-semibold">{item.name}</p><p className="mt-1 text-xs text-slate-500">{yen.format(item.unitPrice)} × {item.quantity}点</p></div><p className="shrink-0 text-sm font-bold">{yen.format(item.unitPrice * item.quantity)}</p></li>)}
-        </ul>
-        {order.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0) > order.total && <p className="flex justify-between border-t border-slate-100 px-4 pt-3 text-sm font-bold text-pink-700"><span>クーポン・セール割引</span><span>−{yen.format(order.items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0) - order.total)}</span></p>}
-        <p className="flex justify-between border-t border-slate-100 px-4 py-3 text-sm font-black"><span>購入合計</span><span>{yen.format(order.total)}</span></p>
-      </article>)}
+
+  const store=session.stores.find(item=>item.id===session.visit?.store_id);
+  const storeName=[store?.name,store?.branch_name].filter(Boolean).join(" ");
+  const localNow=new Date(now+9*60*60*1000);
+  const weekStart=Date.UTC(localNow.getUTCFullYear(),localNow.getUTCMonth(),localNow.getUTCDate()-(localNow.getUTCDay()+6)%7)-9*60*60*1000;
+  const monthStart=Date.UTC(localNow.getUTCFullYear(),localNow.getUTCMonth(),1)-9*60*60*1000;
+  const visible=orders.filter(order=>period==="all"||new Date(order.orderedAt).getTime()>=(period==="week"?weekStart:monthStart));
+  const monthFormat=new Intl.DateTimeFormat("ja-JP",{timeZone:"Asia/Tokyo",year:"numeric",month:"long"});
+
+  return <section aria-labelledby="history-heading">
+    <div className="account-title"><h1 id="history-heading">購入履歴</h1><p>これまでのお買い物を確認できます</p></div>
+    <details className="account-store-picker">
+      <summary><ShoppingIcon name="store"/><span>{selectedStore==="all"?"すべての店舗":session.stores.find(item=>item.id===selectedStore)?.branch_name||session.stores.find(item=>item.id===selectedStore)?.name||"店舗を選択"}</span><ShoppingIcon name="arrow"/></summary>
+      <div className="account-store-options" role="group" aria-label="購入履歴の店舗">
+        {[{id:"all",name:"すべての店舗",branch_name:""},...session.stores].map(item=><button key={item.id} type="button" aria-pressed={selectedStore===item.id} onClick={event=>{setSelectedStore(item.id);const picker=event.currentTarget.closest("details");if(picker)picker.open=false;}}>
+          <ShoppingIcon name="store"/><span>{[item.name,item.branch_name].filter(Boolean).join(" ")}</span><span className="account-store-check" aria-hidden="true">{selectedStore===item.id?"✓":""}</span>
+        </button>)}
+      </div>
+    </details>
+    <div className="account-periods" aria-label="購入履歴の期間">
+      {([["all","すべて"],["week","今週"],["month","今月"]] as const).map(([value,label])=><button key={value} type="button" aria-pressed={period===value} onClick={()=>setPeriod(value)}>{label}</button>)}
     </div>
-    {loading && <p role="status" className="py-5 text-sm text-slate-600">購入履歴を読み込んでいます…</p>}
-    {cursor && !error && <button type="button" disabled={loading} onClick={() => { void load(cursor); }} className="mt-4 min-h-11 w-full rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-bold text-emerald-800 disabled:opacity-40">以前の購入を表示</button>}
+    {settings&&!settings.usePurchaseHistory&&<div className="account-history-off"><span>履歴のおすすめ利用はOFFです。</span><Link href="/App/account#preferences-heading">設定はこちら<ShoppingIcon name="arrow"/></Link></div>}
+    {error&&<div role="alert" className="account-note account-note-error"><p>{error}</p><button type="button" onClick={()=>{void load(retryCursor.current);}} className="account-retry">購入履歴を再試行</button></div>}
+    {loaded&&!loading&&!error&&visible.length===0&&<p className="account-note">{orders.length===0?"この店舗での購入履歴はまだありません。":"表示中の記録には、この期間の購入がありません。以前の購入も読み込めます。"}</p>}
+    <div className="account-order-list">
+      {visible.map((order,index)=>{
+        const orderStore=session.stores.find(item=>item.id===order.storeId);
+        const orderStoreName=orderStore?[orderStore.name,orderStore.branch_name].filter(Boolean).join(" "):order.storeId?"過去に利用した店舗":storeName;
+        const month=monthFormat.format(new Date(order.orderedAt));
+        const subtotal=order.items.reduce((sum,item)=>sum+item.unitPrice*item.quantity,0);
+        return <div key={order.id}>
+          {(index===0||month!==monthFormat.format(new Date(visible[index-1].orderedAt)))&&<h2 className="account-month">{month}</h2>}
+          <article className="account-order" aria-label={date.format(new Date(order.orderedAt))+"の購入"}>
+            <div className="account-order-top"><ShoppingIcon name="store"/><div><h3>{orderStoreName}</h3><time dateTime={order.orderedAt}>{date.format(new Date(order.orderedAt))}</time></div><strong>{yen.format(order.total)}</strong></div>
+            <div className="account-order-bottom"><span>{order.items.reduce((sum,item)=>sum+item.quantity,0)}点のお買い物</span>{order.dataOrigin!=="operated"&&<span className="account-origin">デモの購入記録</span>}</div>
+            <details className="account-receipt">
+              <summary><span className="account-receipt-open">詳細を見る</span><span className="account-receipt-close">詳細を閉じる</span><ShoppingIcon name="arrow"/></summary>
+              <ul>{order.items.map(item=><li key={item.productId}><div><strong>{item.name}</strong><small>{yen.format(item.unitPrice)} × {item.quantity}点</small></div><span>{yen.format(item.unitPrice*item.quantity)}</span></li>)}</ul>
+              {subtotal>order.total&&<p className="account-receipt-saving"><span>クーポン・セール割引</span><span>−{yen.format(subtotal-order.total)}</span></p>}
+              <p className="account-receipt-total"><span>購入合計</span><span>{yen.format(order.total)}</span></p>
+            </details>
+          </article>
+        </div>;
+      })}
+    </div>
+    {loading&&<p role="status" className="account-note">購入履歴を読み込んでいます…</p>}
+    {cursor&&!error&&<button type="button" disabled={loading} onClick={()=>{void load(cursor);}} className="account-more">以前の購入を表示</button>}
   </section>;
 }

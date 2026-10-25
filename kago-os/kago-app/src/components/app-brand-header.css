@@ -1,0 +1,7 @@
+
+:root{--app-brand-header-height:clamp(60px,9dvh,78px)}
+.app-brand-header{box-sizing:border-box;display:flex;align-items:center;flex:none;height:var(--app-brand-header-height);min-height:var(--app-brand-header-height);padding:8px 18px}
+.app-brand-logo{display:block;width:clamp(160px,48vw,220px);max-width:100%;height:auto}
+.store-entry>.app-brand-header,.session-screen>.app-brand-header{height:var(--app-brand-header-height);min-height:var(--app-brand-header-height);padding:8px 18px}
+.store-entry>.app-brand-header img,.shopping-header .app-brand-logo,.session-screen .app-brand-logo{width:clamp(160px,48vw,220px);height:auto}
+@media(max-height:650px){:root{--app-brand-header-height:54px}}

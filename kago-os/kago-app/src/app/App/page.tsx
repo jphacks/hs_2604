@@ -1,52 +1,81 @@
 "use client";
 
 import Image from "next/image";
+import "@/components/app-brand-header.css";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { productGenre } from "@/lib/product-genres";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { cartRequest, useCart } from "@/features/cart/cart-provider";
 import { cartMessages, type ProductPage, type StoreProduct } from "@/features/cart/contracts";
+import { SuggestionDetail } from "@/features/recommendations/suggestion-detail";
+import type { SavedSelectionItem } from "@/features/recommendations/selection-contracts";
+import { useAppEvents } from "@/features/events/event-provider";
+import { ProductScanDialog } from "@/features/scanner/product-scan-dialog";
 import { BarcodeScanner } from "@/features/scanner/barcode-scanner";
-import { SerendipityOffers } from "@/features/offers/serendipity-offers";
 import { SuggestionCards } from "@/features/recommendations/suggestion-cards";
-import { RegularReminders } from "@/features/recommendations/regular-reminders";
 import { offerKindLabel } from "@/features/offers/contracts";
 import { useShoppingSession } from "@/features/shopping/session-provider";
-import { productIcon } from "@/lib/product-visuals";
-import { PRODUCT_GENRES, productGenre, type ProductGenreId } from "@/lib/product-genres";
+import { productIcon, MENU_PRODUCT_IMAGES } from "@/lib/product-visuals";
+import { ShoppingIcon } from "@/components/shopping-icons";
+import { HomeCardStack } from "@/features/shopping/home-card-stack";
+import "./shopping-home.css";
 
 const yen = new Intl.NumberFormat("ja-JP", { style: "currency", currency: "JPY" });
-const button = "min-h-11 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white disabled:opacity-40";
+const button = "min-h-11 rounded-xl bg-[#019FA3] px-4 py-2 text-sm font-bold text-white disabled:opacity-40";
+
+type Category = "all" | "fruit" | "deli" | "vegetables" | "bread" | "meat" | "fish";
+const categories: {id:Exclude<Category,"all">;label:string;image:string}[] = [
+  {id:"fruit",label:"果物",image:"/images/shopping/category-fruit.png"},
+  {id:"deli",label:"惣菜",image:"/images/products/karaage.png"},
+  {id:"vegetables",label:"野菜",image:"/images/shopping/category-vegetables.png"},
+  {id:"bread",label:"パン",image:"/images/shopping/category-bread.png"},
+  {id:"meat",label:"肉",image:"/images/products/karaage.png"},
+  {id:"fish",label:"魚",image:"/images/shopping/category-vegetables.png"},
+];
+function inCategory(product:StoreProduct, category:Category){
+  if(category==="meat"||category==="fish")return productGenre(product)===category;
+  const fruit=/果物|フルーツ/.test(product.category) || (/青果|野菜/.test(product.category) && /りんご|リンゴ|バナナ|みかん|オレンジ|いちご|ぶどう|キウイ|梨|メロン|すいか|スイカ|もも|桃|柿|レモン/.test(product.name));
+  if(category==="fruit")return fruit;
+  if(category==="vegetables")return /青果|野菜/.test(product.category)&&!fruit;
+  if(category==="deli")return /惣菜/.test(product.category);
+  if(category==="bread")return /パン/.test(product.category);
+  return true;
+}
 
 export default function Home() {
   const cart = useCart();
+  const router=useRouter();
+  const track=useAppEvents();
+  const [homeDetail,setHomeDetail]=useState<{item:SavedSelectionItem;version:number}|null>(null);
+  const [scanSelectionId,setScanSelectionId]=useState<string|null>(null);
   const session = useShoppingSession();
+  const [scanProduct,setScanProduct]=useState<StoreProduct|null>(null);
   const [cartOpen, setCartOpen] = useState(false);
+  const [dismissedError,setDismissedError]=useState<string|null>(null);
+  const [panel, setPanel] = useState<"products"|"recommendations"|null>(null);
+  const errorPopupOpen=!panel&&!cartOpen&&!!cart.error&&dismissedError!==cart.message;
+  const [category, setCategory] = useState<Category>("all");
   const [barcode, setBarcode] = useState("");
   const [query, setQuery] = useState("");
   const [products, setProducts] = useState<StoreProduct[]>([]);
-  const [genre, setGenre] = useState<ProductGenreId>("vegetable");
-  const [searched, setSearched] = useState("");
+  const [hasMore, setHasMore] = useState(false);
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [catalogError, setCatalogError] = useState("");
   const catalogRequest = useRef<AbortController | null>(null);
-  const search = useRef({ query: "" });
+  const search = useRef({ query: "", offset: 0 });
   const closeButton = useRef<HTMLButtonElement>(null);
 
-  // The menu shows genres (#144), so the whole store list is read once (50 per page, at most 20 pages).
-  const loadProducts = async (q: string) => {
+  const loadProducts = async (q: string, offset = 0) => {
     catalogRequest.current?.abort();
     const controller = new AbortController(); catalogRequest.current = controller;
-    search.current = { query: q };
-    setCatalogLoading(true); setCatalogError(""); setProducts([]);
+    search.current = { query: q, offset };
+    setCatalogLoading(true); setCatalogError("");
+    if (offset === 0) setProducts([]);
     try {
-      const all: StoreProduct[] = [];
-      for (let page = 0; page < 20; page++) {
-        const data: ProductPage = await cartRequest(`/api/cart?products=1&q=${encodeURIComponent(q)}&offset=${all.length}`, undefined, controller.signal);
-        if (controller.signal.aborted) return;
-        all.push(...data.products);
-        if (!data.hasMore) break;
-      }
-      setProducts(all); setSearched(q);
+      const data: ProductPage = await cartRequest(`/api/cart?products=1&q=${encodeURIComponent(q)}&offset=${offset}`, undefined, controller.signal);
+      if (controller.signal.aborted) return;
+      setProducts(previous => offset ? [...previous, ...data.products] : data.products); setHasMore(data.hasMore);
     } catch (failure) {
       if (controller.signal.aborted) return;
       const code = (failure as { code?: string })?.code;
@@ -55,21 +84,26 @@ export default function Home() {
     } finally { if (!controller.signal.aborted) setCatalogLoading(false); }
   };
   useEffect(() => {
-    const boot = window.setTimeout(() => { void loadProducts(""); }, 0);
+    const boot = window.setTimeout(() => {
+      const url=new URL(window.location.href);
+      if(url.searchParams.get("cart")==="open"){
+        setCartOpen(true);url.searchParams.delete("cart");window.history.replaceState(null,"",url);
+      }
+      void loadProducts("");
+    }, 0);
     return () => { window.clearTimeout(boot); catalogRequest.current?.abort(); };
     // Identity and visit changes unmount the shopping page.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  // Only vegetables / meat / fish are listed (#144); search also stays within these genres.
-  const shown = products.filter(product => searched ? productGenre(product) !== null : productGenre(product) === genre);
   useEffect(() => {
-    if (!cartOpen) return;
+    if (!cartOpen && !panel && !errorPopupOpen) return;
     const previous = document.activeElement as HTMLElement | null;
     closeButton.current?.focus();
     const close = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setCartOpen(false);
-      if (event.key === "Tab") {
-        const controls = Array.from(document.querySelectorAll<HTMLElement>('[role="dialog"] button:not(:disabled), [role="dialog"] a[href]'));
+      const activeDialog = Array.from(document.querySelectorAll<HTMLElement>('[role="dialog"][aria-modal="true"],[role="alertdialog"][aria-modal="true"]')).at(-1);
+      if (event.key === "Escape" && activeDialog?.hasAttribute("data-home-dialog")) { setCartOpen(false); setPanel(null); setDismissedError(cart.message); }
+      if (event.key === "Tab" && activeDialog?.hasAttribute("data-home-dialog")) {
+        const controls = Array.from(activeDialog.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], input:not(:disabled), summary'));
         const first = controls[0], last = controls.at(-1);
         if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
         if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
@@ -77,93 +111,136 @@ export default function Home() {
     };
     document.body.style.overflow = "hidden"; window.addEventListener("keydown", close);
     return () => { document.body.style.overflow = ""; window.removeEventListener("keydown", close); previous?.focus(); };
-  }, [cartOpen]);
+  }, [cartOpen, panel, errorPopupOpen, cart.message]);
   const submitCode = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); if (cart.canEdit && barcode.trim()) cart.scan(barcode.trim());
   };
-  const status = <div className={`rounded-2xl border p-4 ${cart.error ? "border-red-200 bg-red-50 text-red-900" : "border-emerald-100 bg-emerald-50 text-emerald-950"}`}>
+  const visibleProducts = products.filter(product => inCategory(product, category));
+  const store = session.stores.find(s=>s.id===session.visit?.store_id);
+  const storeName = [store?.name,store?.branch_name].filter(Boolean).join(" ");
+  const status = <div className={`shopping-feedback ${cart.error ? "shopping-error border border-red-200 bg-red-50 text-red-900" : "border-emerald-100 bg-emerald-50 text-emerald-950"}`}>
     <p role={cart.error ? "alert" : "status"} className="text-sm font-semibold">{cart.message}</p>
     {cart.pending && <button type="button" disabled={cart.busy} onClick={cart.retry} className={`${button} mt-3`}>同じ操作を再試行</button>}
     {!cart.pending && cart.error && <button type="button" disabled={cart.busy} onClick={cart.reload} className={`${button} mt-3`}>かごを再読み込み</button>}
   </div>;
 
-  return <main className="min-h-screen overflow-x-hidden bg-[#f4f7f5] pb-28 text-slate-950">
-    <header className="sticky top-0 z-30 border-b border-emerald-100 bg-white/95 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-xl items-center justify-between gap-3 px-4 py-4">
-        <div><h1><Image src="/brand/light/logo-kago-app.png" alt="KAGO/App" width={2124} height={384} className="h-auto w-40" priority /></h1>
-          <p className="mt-1 text-[11px] font-bold text-slate-500">ログイン中の利用者の買い物</p></div>
-        <div className="flex gap-2"><Link href="/App/account" className="grid size-11 place-items-center rounded-full bg-emerald-50 font-bold text-emerald-800" aria-label="マイページを開く">人</Link>
-          <button type="button" onClick={() => setCartOpen(true)} className="min-h-11 rounded-full bg-slate-950 px-4 text-sm font-bold text-white" aria-label={`買い物かごを開く、現在${cart.itemCount}点`}>かご {cart.itemCount}</button></div>
-      </div>
+  return <main id="shopping-top" className="shopping-home" data-testid="shopping-home">
+    <header className="shopping-header app-brand-header" inert={cartOpen || panel!==null || errorPopupOpen}>
+      <h1><Image src="/brand/light/logo-kago-app.png" alt="KAGO/App" width={2124} height={384} className="shopping-logo app-brand-logo" priority /></h1>
+      <div className="shopping-store" aria-label={"ご利用店舗 "+storeName}><span>ご利用店舗</span><strong>{storeName}</strong></div>
     </header>
-    <div className="mx-auto grid max-w-xl gap-7 px-4 py-5">
-      <section aria-labelledby="scan-heading">
-        <p className="text-xs font-black tracking-wider text-emerald-700">SCAN</p>
-        <h2 id="scan-heading" className="mb-3 text-2xl font-black">商品をスキャン</h2>
-        <BarcodeScanner onDetected={cart.scan} onReadFailure={cart.scanFailed} disabled={!cart.canEdit} />
+    <div className="shopping-content" inert={cartOpen || panel!==null || errorPopupOpen}>
+      <section aria-label="商品をスキャン">
+        <BarcodeScanner onDetected={code=>{setDismissedError(null);cart.scan(code);}} onReadFailure={reason=>{setDismissedError(null);cart.scanFailed(reason);}} disabled={!cart.canEdit} appearance="shopping" />
+      </section>
+      <form role="search" onSubmit={event => { event.preventDefault(); setCategory("all"); void loadProducts(query); setPanel("products"); }} className="shopping-search">
+        <ShoppingIcon name="search" />
+        <input aria-label="商品名・商品コードで検索" value={query} onChange={e => setQuery(e.target.value)} maxLength={100} placeholder="商品を検索" />
+        <button type="submit" aria-label="検索" disabled={catalogLoading}><ShoppingIcon name="search" /></button>
+      </form>
+      <section aria-label="カテゴリーから探す" className="shopping-categories">
+        {categories.slice(0,4).map(item => <button key={item.id} type="button" className="shopping-category" aria-label={item.label+"から探す"} onClick={() => {
+          setCategory(item.id); setQuery(""); void loadProducts(""); setPanel("products");
+        }}>
+          <span className="shopping-category-photo"><Image src={item.image} alt="" fill sizes="100px" /></span><strong>{item.label}</strong><ShoppingIcon name="arrow" />
+        </button>)}
+      </section>
+      <HomeCardStack onScan={product=>{setScanSelectionId(null);setScanProduct(product);}} onOpen={item=>{if(item)setHomeDetail({item,version:cart.version});else setPanel("recommendations");}} blocked={cartOpen||panel!==null||homeDetail?.version===cart.version}/>
+    </div>
+    {cart.itemCount > 0 && <div className="shopping-cart-summary" inert={cartOpen || panel!==null || errorPopupOpen}>
+      <button type="button" onClick={() => setCartOpen(true)} aria-label={`買い物かごを開く、現在${cart.itemCount}点`}>
+        <ShoppingIcon name="cart" /><span className="shopping-basket-label">買い物かご · {cart.itemCount}点</span>
+        <span className="shopping-basket-price">{yen.format(cart.total)}</span><ShoppingIcon name="arrow" className="shopping-basket-chevron" />
+      </button>
+    </div>}
+    <nav className="shopping-nav" aria-label="買い物ナビ" inert={cartOpen || panel!==null || errorPopupOpen}><div>
+      <Link href="/App/history" aria-label="りれき"><span><ShoppingIcon name="history" /></span>りれき</Link>
+      <Link href="/App" aria-current="page" aria-label="ホーム"><span><ShoppingIcon name="home" /></span>ホーム</Link>
+      <Link href="/App/account" aria-label="マイページ"><span><ShoppingIcon name="user" /></span>マイページ</Link>
+    </div></nav>
+    <div className="sr-only" role="status" aria-live="polite">{cart.message}</div>
+    {errorPopupOpen && <div className="shopping-error-toast">
+      <button type="button" tabIndex={-1} aria-label="お知らせを閉じる" className="shopping-error-backdrop" onClick={()=>setDismissedError(cart.message)}/>
+      <section role="alertdialog" aria-modal="true" aria-label="お買い物のお知らせ" data-home-dialog className="shopping-error-card">
+        <button ref={closeButton} type="button" className="shopping-error-close" aria-label="閉じる" onClick={()=>setDismissedError(cart.message)}>×</button>
+        {status}
+        <button type="button" onClick={()=>{setDismissedError(cart.message);setPanel("products");}} className="shopping-error-alternative">商品コードを入力・商品を選ぶ</button>
+      </section>
+    </div>}
+    {panel && <div className="shopping-sheet-overlay">
+      <button type="button" tabIndex={-1} aria-label="画面を閉じる" onClick={()=>setPanel(null)} />
+      <section role="dialog" aria-modal="true" aria-labelledby="shopping-panel-title" data-home-dialog className="shopping-sheet">
+        <header className="shopping-sheet-header"><h2 id="shopping-panel-title">{panel==="products"?(category==="all"?"商品を探す":categories.find(c=>c.id===category)!.label+"から探す"):"おすすめ商品"}</h2><button ref={closeButton} type="button" aria-label="閉じる" onClick={()=>setPanel(null)}>×</button></header>
+        <div className="shopping-sheet-scroll">
+          {panel==="products"?<>
+            <form role="search" onSubmit={event=>{event.preventDefault();setCategory("all");void loadProducts(query);}} className="shopping-search">
+              <ShoppingIcon name="search"/><input aria-label="検索結果を絞り込む" value={query} onChange={e=>setQuery(e.target.value)} placeholder="商品を検索" maxLength={100}/><button type="submit" aria-label="商品一覧を検索" disabled={catalogLoading}><ShoppingIcon name="search"/></button>
+            </form>
+            <div className="shopping-catalog-tabs" aria-label="商品のカテゴリ">
+              {[{id:"all" as Category,label:"すべて"},...categories].map(item=><button key={item.id} type="button" aria-pressed={category===item.id} onClick={()=>setCategory(item.id)}>{item.label}</button>)}
+            </div>
+            <details className="shopping-code"><summary>バーコードが読み取れないとき</summary>
         <form onSubmit={submitCode} className="mt-3 flex items-end gap-2">
           <label className="grid min-w-0 flex-1 gap-1 text-sm font-bold">商品コードを入力<input value={barcode} onChange={e => setBarcode(e.target.value)} required maxLength={100} autoComplete="off" className="min-h-11 min-w-0 rounded-xl border border-slate-300 bg-white px-3 font-normal" placeholder="バーコードの数字など" /></label>
           <button className={button} disabled={!cart.canEdit || !barcode.trim()}>コードで追加</button>
         </form>
-        <a href="#manual-products" className="mt-3 block py-2 text-sm font-bold text-emerald-800 underline">読み取れない・バーコードがない商品は一覧から選ぶ ↓</a>
-      </section>
-      {!cartOpen && status}
-      <RegularReminders />
-      <SuggestionCards />
-      <SerendipityOffers />
-      {(session.demo || process.env.NODE_ENV === "development") && <Link href="/App/demo-offers" className="min-h-11 py-2 text-sm font-bold text-emerald-800 underline">セット割・タイムセールの試し方（デモ）</Link>}
-      <section id="manual-products" className="scroll-mt-24" aria-labelledby="products-heading">
-        <p className="text-xs font-black tracking-wider text-emerald-700">PRODUCT MENU</p>
-        <h2 id="products-heading" className="text-2xl font-black">商品から選ぶ</h2>
-        <p className="mt-1 text-sm text-slate-600">ジャンルを選ぶと、選択中の店舗で取り扱っている商品と価格が表示されます。</p>
-        <form onSubmit={event => { event.preventDefault(); void loadProducts(query); }} className="my-4 flex gap-2">
-          <input aria-label="商品名・商品コードで検索" value={query} onChange={e => setQuery(e.target.value)} maxLength={100} placeholder="商品名・商品コードで検索" className="min-h-11 min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 text-sm" />
-          <button className={button} disabled={catalogLoading}>検索</button>
-        </form>
-        {!searched && <div role="group" aria-label="ジャンル" className="mb-4 grid grid-cols-3 gap-2">
-          {PRODUCT_GENRES.map(g => <button key={g.id} type="button" aria-pressed={genre === g.id} onClick={() => setGenre(g.id)}
-            className={`grid min-h-20 place-items-center rounded-2xl border-2 p-2 font-black ${genre === g.id ? "border-emerald-700 bg-emerald-700 text-white" : "border-slate-200 bg-white text-slate-800"}`}>
-            <span aria-hidden="true" className="text-3xl">{g.icon}</span><span>{g.label}</span>
-          </button>)}
-        </div>}
-        {searched && <div className="mb-3 flex items-center justify-between gap-2 text-sm"><p className="font-bold">「{searched}」の検索結果</p>
-          <button type="button" className="min-h-11 px-2 font-bold text-emerald-800 underline" onClick={() => { setQuery(""); void loadProducts(""); }}>ジャンルに戻る</button></div>}
-        {catalogError && <div role="alert" className="mb-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900"><p>{catalogError}</p><button type="button" onClick={() => { void loadProducts(search.current.query); }} className={`${button} mt-3`}>商品一覧を再試行</button></div>}
-        <div className="grid grid-cols-3 gap-2">
-          {shown.map(product => <article key={product.productId} className="flex min-w-0 flex-col rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
-            <div className="grid h-14 place-items-center rounded-xl bg-emerald-50 text-3xl" aria-hidden="true">{productIcon(product)}</div>
-            <h3 className="mt-2 min-h-10 break-words text-xs font-bold leading-snug">{product.name}</h3>
-            <p className="mt-1 text-sm font-black text-emerald-800">{yen.format(product.price)}</p>
-            <button type="button" className="mt-2 min-h-11 w-full rounded-xl bg-emerald-700 text-sm font-bold text-white disabled:opacity-40" disabled={!cart.canEdit} onClick={() => cart.addProduct(product)} aria-label={`${product.name}をかごに追加`}>追加</button>
+            </details>
+            {cart.error&&<div className="mb-3">{status}</div>}
+      <section id="manual-products" className="shopping-products" aria-labelledby="products-heading">
+        <div className="shopping-catalog-heading"><h2 id="products-heading">{category==="all"?"すべての商品":categories.find(c=>c.id===category)!.label}</h2><span>{catalogLoading?"読み込み中":visibleProducts.length+"件"}</span></div>
+        {catalogError && <div role="alert" className="mb-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-900"><p>{catalogError}</p><button type="button" onClick={() => { void loadProducts(search.current.query, search.current.offset); }} className={`${button} mt-3`}>商品一覧を再試行</button></div>}
+        <div className="shopping-product-grid">
+          {visibleProducts.map(product => <article key={product.productId} className="shopping-product rounded-2xl bg-white p-4">
+            <div className="shopping-product-image" aria-hidden="true">{MENU_PRODUCT_IMAGES[product.code] ? <Image src={MENU_PRODUCT_IMAGES[product.code]} alt="" fill sizes="200px" /> : productIcon(product)}</div>
+            <p className="mt-3 text-xs text-slate-500">{product.category}</p><h3 className="mt-1 min-h-10 text-sm font-bold">{product.name}</h3>
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2"><p className="shopping-product-price">{yen.format(product.price)}</p>
+              <button type="button" className="shopping-product-add" disabled={!cart.canEdit} onClick={() => {setScanSelectionId(null);setScanProduct(product);}} aria-label={`${product.name}をスキャンして追加`}><span aria-hidden="true">＋</span> スキャンして追加</button></div>
           </article>)}
         </div>
         {catalogLoading && <p role="status" className="py-5 text-sm">商品を読み込んでいます…</p>}
-        {!catalogLoading && !catalogError && shown.length === 0 && <p className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-600">{searched ? "該当する商品がありません" : "このジャンルの商品はまだありません"}</p>}
+        {!catalogLoading && !catalogError && visibleProducts.length === 0 && <p className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-600">該当する商品がありません</p>}
+        {hasMore && !catalogError && <button type="button" className={`${button} mt-4 w-full`} disabled={catalogLoading} onClick={() => { void loadProducts(search.current.query, products.length); }}>さらに表示</button>}
       </section>
-    </div>
-    {cart.itemCount > 0 && <div className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-      <button type="button" onClick={() => setCartOpen(true)} className="mx-auto flex w-full max-w-xl items-center justify-between rounded-2xl bg-emerald-700 px-5 py-4 font-black text-white"><span>買い物かご・{cart.itemCount}点</span><span>{yen.format(cart.total)} ›</span></button>
+          </>:<div className="space-y-5"><SuggestionCards/></div>}
+        </div>
+        {panel==="products"&&cart.itemCount>0&&<div className="shopping-sheet-cart"><button type="button" onClick={()=>{setPanel(null);setCartOpen(true);}} aria-label={`買い物かごを開く、現在${cart.itemCount}点`}>買い物かご · {cart.itemCount}点　{yen.format(cart.total)}</button></div>}
+      </section>
     </div>}
-    {cartOpen && <div className="fixed inset-0 z-50 flex items-end justify-center">
-      <button type="button" tabIndex={-1} className="absolute inset-0 bg-slate-950/50 backdrop-blur-sm" onClick={() => setCartOpen(false)} aria-label="買い物かごを閉じる" />
-      <section role="dialog" aria-modal="true" aria-labelledby="cart-heading" className="relative flex max-h-[90dvh] w-full max-w-xl flex-col rounded-t-3xl bg-white shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-100 p-5"><h2 id="cart-heading" className="text-2xl font-black">買い物かご</h2><button ref={closeButton} type="button" onClick={() => setCartOpen(false)} className="size-11 rounded-full bg-slate-100 text-xl" aria-label="閉じる">×</button></div>
-        <div className="overflow-y-auto p-4">
-          {status}
-          {cart.lines.length === 0 ? <p className="py-14 text-center font-bold">かごは空です</p> : <ul className="divide-y divide-slate-100">
-            {cart.lines.map(line => <li key={line.productId} className="py-4">
-              <div className="flex justify-between gap-3"><div><h3 className="font-bold">{line.name}</h3><p className="mt-1 text-sm text-slate-500">{yen.format(line.price)} / 点</p>{!line.available && <p className="mt-1 text-sm font-bold text-red-700">取扱停止中・削除してください</p>}{!!line.discount && line.offerKind && <p className="mt-1 text-sm font-bold text-pink-700">{offerKindLabel[line.offerKind]} −{yen.format(line.discount)}</p>}</div><div className="text-right">{!!line.discount && <p className="text-xs text-slate-400 line-through">{yen.format(line.price * line.quantity)}</p>}<p className="font-bold">{yen.format(line.price * line.quantity - (line.discount ?? 0))}</p></div></div>
-              <div className="mt-3 flex items-center justify-between gap-3"><button type="button" disabled={!cart.canEdit} onClick={() => cart.setQuantity(line.productId, 0)} className="min-h-11 px-2 text-sm text-red-700 underline disabled:opacity-40" aria-label={`${line.name}を削除`}>削除</button>
-                <div className="flex items-center rounded-full border border-emerald-200 bg-emerald-50"><button type="button" disabled={!cart.canEdit || (!line.available && line.quantity > 1)} onClick={() => cart.setQuantity(line.productId, line.quantity - 1)} aria-label={`${line.name}を1点減らす`} className="size-11 text-xl disabled:opacity-40">−</button><span className="w-9 text-center font-bold" aria-label={`${line.name}の数量`}>{line.quantity}</span><button type="button" disabled={!cart.canEdit || !line.available || line.quantity >= 999} onClick={() => cart.setQuantity(line.productId, line.quantity + 1)} aria-label={`${line.name}を1点増やす`} className="size-11 text-xl disabled:opacity-40">＋</button></div>
-              </div>
-            </li>)}
+    {cartOpen && <div className="shopping-basket-overlay">
+      <button type="button" tabIndex={-1} className="shopping-basket-backdrop" onClick={() => setCartOpen(false)} aria-label="買い物かごを閉じる" />
+      <section role="dialog" aria-modal="true" aria-labelledby="cart-heading" data-home-dialog className="shopping-basket-sheet">
+        <div className="shopping-basket-handle" aria-hidden="true"/>
+        <header className="shopping-basket-header"><h2 id="cart-heading">買い物かご</h2><span>{cart.itemCount}点</span><button ref={closeButton} type="button" onClick={() => setCartOpen(false)} aria-label="閉じる">×</button></header>
+        <div className="shopping-basket-body">
+          <div className="shopping-coupon-notice"><span className="shopping-coupon-symbol"><ShoppingIcon name="coupon"/></span><div>
+            <strong>{cart.discountTotal>0?"クーポンが適用されました":"クーポンでもっとお得に"}</strong>
+            <p>{cart.discountTotal>0?yen.format(cart.discountTotal)+" OFF":"商品を追加すると、おすすめが届きます"}</p>
+          </div></div>
+          {cart.error&&<div className="mb-3">{status}</div>}
+          {cart.lines.length === 0 ? <p className="shopping-basket-empty">かごは空です</p> : <ul className="shopping-basket-lines">
+            {cart.lines.map(line => {
+              const photo=MENU_PRODUCT_IMAGES[line.code] ?? (/パン/.test(line.category)?"/images/shopping/category-bread.png":/青果|果物/.test(line.category)?"/images/shopping/category-fruit.png":/惣菜/.test(line.category)?"/images/products/karaage.png":undefined);
+              return <li key={line.productId} className="shopping-basket-line">
+                <div className="shopping-basket-photo" aria-hidden="true">{photo?<Image src={photo} alt="" fill sizes="80px"/>:productIcon(line)}</div>
+                <div className="shopping-basket-product"><h3>{line.name}</h3><p>{yen.format(line.price*line.quantity-(line.discount??0))}</p>
+                  {!line.available&&<span className="shopping-basket-warning">取扱停止中</span>}
+                  {!!line.discount&&line.offerKind&&<span className="shopping-basket-discount">{offerKindLabel[line.offerKind]}</span>}
+                </div>
+                <div className="shopping-basket-quantity"><button type="button" disabled={!cart.canEdit||(!line.available&&line.quantity>1)} onClick={()=>cart.setQuantity(line.productId,line.quantity-1)} aria-label={line.name+"を1点減らす"}>−</button><span aria-label={line.name+"の数量"}>{line.quantity}</span><button type="button" disabled={!cart.canEdit||!line.available||line.quantity>=999} onClick={()=>{setScanSelectionId(null);setScanProduct(line);}} aria-label={line.name+"を1点増やす"}>＋</button></div>
+                <button type="button" className="shopping-basket-delete" disabled={!cart.canEdit} onClick={()=>cart.setQuantity(line.productId,0)} aria-label={line.name+"を削除"}><ShoppingIcon name="trash"/></button>
+              </li>;
+            })}
           </ul>}
         </div>
-        <div className="border-t border-slate-200 p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">{cart.discountTotal > 0 && <div className="mb-2 grid gap-1 text-sm"><p className="flex justify-between"><span>小計</span><span>{yen.format(cart.subtotal)}</span></p><p className="flex justify-between font-bold text-pink-700"><span>クーポン・セール割引</span><span>−{yen.format(cart.discountTotal)}</span></p></div>}<div className="flex justify-between text-lg font-black"><span>合計 {cart.itemCount}点</span><span>{yen.format(cart.total)}</span></div><button type="button" disabled={cart.busy} onClick={cart.reload} className="mt-3 min-h-11 w-full text-sm text-emerald-800 underline">かごを最新にする</button>
-          {cart.canEdit&&cart.itemCount>0&&cart.lines.every(line=>line.available)?<Link href="/App/checkout" className="mt-2 block min-h-12 rounded-xl bg-emerald-700 px-4 py-3 text-center text-sm font-black text-white">疑似購入の確認へ</Link>:<button type="button" disabled className="mt-2 min-h-12 w-full rounded-xl bg-emerald-700 px-4 py-3 text-sm font-black text-white opacity-40">疑似購入の確認へ</button>}
-          <p className="mt-2 text-center text-xs text-slate-500">デモ用の疑似購入です。実際の支払いは発生しません。</p>
-        </div>
+        <footer className="shopping-basket-footer">
+          {cart.discountTotal>0&&<p className="shopping-basket-saving"><span>クーポン・セール割引</span><span>−{yen.format(cart.discountTotal)}</span></p>}
+          <div className="shopping-basket-total"><span>合計</span><strong>{yen.format(cart.total)}</strong></div>
+          <button type="button" onClick={()=>{router.push("/App/checkout");}} className="shopping-checkout-button" disabled={cart.lines.length===0||cart.busy} aria-describedby="shopping-checkout-note">レジに進む</button>
+          <span id="shopping-checkout-note" className="sr-only">商品と合計を確認してから確定します。</span>
+        </footer>
       </section>
     </div>}
+    {homeDetail&&homeDetail.version===cart.version&&<SuggestionDetail scanRequired item={homeDetail.item} label={homeDetail.item.placementType==="sponsored"?"広告":homeDetail.item.placementType==="store_promo"?"店舗からのおすすめ":"あなたへのおすすめ"} added={cart.lines.some(line=>line.productId===homeDetail.item.product.productId)} disabled={!cart.canEdit} onClose={()=>setHomeDetail(null)} onAdd={()=>{setScanSelectionId(homeDetail.item.selectionItemId);setScanProduct({...homeDetail.item.product,available:true});}}/>}
+    {scanProduct&&<ProductScanDialog product={scanProduct} disabled={!cart.canEdit} onClose={()=>setScanProduct(null)} onVerified={()=>{if(scanSelectionId){track({event_type:"recommendation_click",selection_item_id:scanSelectionId,product_id:scanProduct.productId,payload:{target:"add_button"}});cart.addRecommendation(scanProduct.productId,scanSelectionId);}else cart.setQuantity(scanProduct.productId,(cart.lines.find(line=>line.productId===scanProduct.productId)?.quantity??0)+1);setHomeDetail(null);}}/>}
   </main>;
 }

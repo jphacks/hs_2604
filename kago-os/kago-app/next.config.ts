@@ -7,6 +7,7 @@ if (insightOrigin) {
 }
 
 const nextConfig: NextConfig = {
+  devIndicators: false,
   // Keep browser checks/builds separate from a developer's running server.
   distDir: process.env.KAGO_NEXT_DIST_DIR ?? ".next",
   transpilePackages: ["@kago/backend"],

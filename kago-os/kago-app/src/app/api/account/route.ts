@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     const client = await createServerBackendClient({ writableCookies: true });
     const visit = request.cookies.get("kago-app-visit")?.value;
     const data = request.nextUrl.searchParams.has("history")
-      ? await loadPurchaseHistory(client, visit, request.nextUrl.searchParams.get("cursor"))
+      ? await loadPurchaseHistory(client, visit, request.nextUrl.searchParams.get("cursor"), request.nextUrl.searchParams.get("store"))
       : await loadAccountSettings(client, visit);
     return NextResponse.json(data, { headers });
   } catch (error) { return failure(error); }

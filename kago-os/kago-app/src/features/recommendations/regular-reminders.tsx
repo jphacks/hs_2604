@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { cartRequest, useCart } from "@/features/cart/cart-provider";
 import { useShoppingSession } from "@/features/shopping/session-provider";
 import { MENU_PRODUCT_IMAGES, productIcon } from "@/lib/product-visuals";
@@ -14,7 +14,7 @@ const day = new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", month: "n
 // #152: regular purchases due now, shown from the first moment of the visit (even with an empty cart).
 // The list is read once per visit; products put into the cart disappear from it right away.
 // Nothing is shown when history use is off, the request fails, or nothing is due: it is a helper, not a gate.
-export function RegularReminders() {
+export function RegularReminders({renderItems}:{renderItems?:(items:RegularReminderResponse["items"])=>ReactNode}) {
   const cart = useCart();
   const session = useShoppingSession();
   const visitId = session.visit!.id;
@@ -29,6 +29,7 @@ export function RegularReminders() {
 
   const inCart = new Set(cart.lines.map(line => line.productId));
   const items = data?.visitId === visitId ? data.items.filter(item => !inCart.has(item.product.productId)) : [];
+  if(renderItems)return renderItems(items);
   if (!items.length) return null;
 
   return <section aria-labelledby="regular-heading" className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm">

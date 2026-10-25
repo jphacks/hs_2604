@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { UtilityShell } from "@/components/utility-shell";
 import { ChangeEvent, FormEvent, useMemo, useState } from "react";
 
 import { StoreProfile, useStore } from "@/features/store/store-provider";
@@ -149,16 +150,16 @@ export default function StorePage() {
   };
 
   return (
-    <main className="min-h-screen bg-[#f4f7f5] pb-16 text-slate-950">
-      <header className="sticky top-0 z-30 border-b border-emerald-100/80 bg-white/95 backdrop-blur-xl">
+    <UtilityShell kind="store"><main className="min-h-screen bg-[#f4f7f5] pb-16 text-slate-950">
+      <header className="utility-toolbar">
         <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-4 pb-3.5 pt-[max(0.875rem,env(safe-area-inset-top))] sm:px-6">
-          <div><p className="text-[11px] font-black tracking-[0.18em] text-emerald-700">KAGO/OS</p><h1 className="text-xl font-black tracking-[-0.04em]">KAGO/Store</h1></div>
+          <div><h1 className="text-xl font-black">店舗・商品管理</h1></div>
           <Link href="/App" className="rounded-full bg-slate-950 px-4 py-2.5 text-xs font-black text-white">買い物画面を見る</Link>
         </div>
       </header>
 
       <div className="mx-auto grid w-full max-w-3xl gap-8 px-4 py-6 sm:px-6">
-        <section className="rounded-3xl bg-gradient-to-br from-emerald-800 to-emerald-600 p-6 text-white shadow-lg">
+        <section className="utility-hero rounded-3xl bg-gradient-to-br from-emerald-800 to-emerald-600 p-6 text-white shadow-lg">
           <p className="text-xs font-black tracking-[0.15em] text-emerald-200">STORE SETUP</p>
           <h2 className="mt-2 text-3xl font-black tracking-[-0.05em]">売り場をKAGO/OSにつなぐ</h2>
           <p className="mt-3 max-w-xl text-sm font-semibold leading-6 text-emerald-50">店舗情報と商品マスタを登録すると、KAGO/Appのスキャン、レコメンド、購入分析に同じデータを利用できます。</p>
@@ -209,6 +210,6 @@ export default function StorePage() {
           </div>
         </section>
       </div>
-    </main>
+    </main></UtilityShell>
   );
 }

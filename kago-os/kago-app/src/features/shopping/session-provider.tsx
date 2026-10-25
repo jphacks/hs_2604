@@ -1,14 +1,14 @@
 "use client";
 
+import { SessionScreen } from "./session-screen";
 import { createContext, Fragment, useCallback, useContext, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
-import { BarcodeScanner } from "@/features/scanner/barcode-scanner";
+import { StoreEntry } from "./store-entry";
 import { parseStoreQr } from "./store-qr";
 import type { ShoppingContext } from "./service";
 
 type Failure = { code: string; message: string };
 type State = { kind: "loading" } | { kind: "login"; error?: string } | { kind: "error"; error: Failure } | { kind: "connected"; context: ShoppingContext };
-const ShoppingSession = createContext<(ShoppingContext & { revalidate: () => void }) | null>(null);
-const button = "min-h-12 rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-bold text-white disabled:opacity-50";
+const ShoppingSession = createContext<(ShoppingContext & { revalidate: () => void; chooseStore:()=>void; logout:()=>void }) | null>(null);
 
 async function request(body?: Record<string, unknown>, signal?: AbortSignal) {
   const response = await fetch("/api/shopping", {
@@ -151,8 +151,8 @@ export function ShoppingSessionProvider({ children }: { children: ReactNode }) {
   if (state.kind === "connected" && state.context.visit && (state.context.demo || !choosingStore)) {
     const context = state.context;
     const store = context.stores.find(s => s.id === context.visit!.store_id)!;
-    return <ShoppingSession.Provider value={{ ...context, revalidate: () => { void check(); } }}>
-      <div className="border-b border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950">
+    return <ShoppingSession.Provider value={{ ...context, revalidate: () => { void check(); }, chooseStore:()=>setChoosingStore(true), logout }}>
+      <div className="shopping-session-bar border-b border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-950">
         <div className="mx-auto flex max-w-xl flex-wrap items-center justify-between gap-2">
           <span className="font-bold">{store.name} {store.branch_name}</span>
           {context.demo ? <div className="flex flex-wrap items-center gap-2">
@@ -169,71 +169,22 @@ export function ShoppingSessionProvider({ children }: { children: ReactNode }) {
     </ShoppingSession.Provider>;
   }
 
-  return <main className="min-h-screen bg-[#f4f7f5] px-4 py-12 text-slate-950">
-    <div className="mx-auto max-w-md rounded-3xl border border-emerald-100 bg-white p-6 shadow-sm">
-      <p className="text-xs font-black tracking-widest text-emerald-700">KAGO/APP</p>
-      {state.kind === "loading" && <p role="status" className="mt-6">ログインと買い物の状態を確認しています…</p>}
-      {state.kind === "login" && <>
-        <h1 className="mt-3 text-2xl font-black">買い物をはじめる</h1>
-        <p className="mt-3 text-sm leading-6 text-slate-600">ログイン後、店舗のQRコードを読み取るか、デモ用の店舗選択から買い物を開始できます。</p>
-        {state.error && <p role="alert" className="mt-4 text-sm text-red-700">{state.error}</p>}
-        <form onSubmit={login} className="mt-6 grid gap-4">
-          <label className="grid gap-2 text-sm font-bold">メールアドレス<input name="email" type="email" required maxLength={254} autoComplete="username" className="min-h-12 rounded-xl border border-slate-300 px-3" /></label>
-          <label className="grid gap-2 text-sm font-bold">パスワード<input name="password" type="password" required maxLength={1024} autoComplete="current-password" className="min-h-12 rounded-xl border border-slate-300 px-3" /></label>
-          <button className={button}>ログイン</button>
-        </form>
-      </>}
-      {state.kind === "error" && <>
-        <h1 className="mt-3 text-2xl font-black">買い物を開けませんでした</h1>
-        <p role="alert" className="mt-4 text-sm leading-6 text-slate-600">{state.error.message}</p>
-        <div className="mt-6 grid gap-3"><button type="button" onClick={() => { void transition(); }} className={button}>再試行</button><button type="button" onClick={logout} className="min-h-12 text-sm underline">ログアウトして別のアカウントを使う</button></div>
-      </>}
-      {state.kind === "connected" && <>
-        <h1 className="mt-3 text-2xl font-black">お買い物の店舗を選ぶ</h1>
-        <p className="mt-3 text-sm leading-6 text-slate-600">続きから開くと、同じ来店のかごを復元します。</p>
-        <div className="mt-6 grid gap-4">
-          <BarcodeScanner purpose="store" onDetected={(value) => {
-            const id = parseStoreQr(value, window.location.origin);
-            if (!id || !state.context.stores.some(store => store.id === id)) {
-              setQrError("利用できる店舗のQRコードではありません。店頭のQRを読み直してください。");
-              return;
-            }
-            setQrStore(id);
-            setQrError("");
-            const url = new URL(window.location.href);
-            url.searchParams.set("store", id);
-            window.history.replaceState(null, "", url);
-          }} />
-          <p className="text-xs leading-5 text-slate-500">カメラを利用できない場合は、スマートフォンのカメラでQRを開くか、下のデモ用店舗選択をご利用ください。</p>
-          {qrError && <p role="alert" className="text-sm text-red-700">{qrError}</p>}
-          {qrStore && !state.context.stores.some(store => store.id === qrStore) && <p role="alert" className="text-sm text-red-700">QRの店舗は現在利用できません。別のQRを読み取るか、デモ用の店舗選択をご利用ください。</p>}
-          {qrStore && state.context.stores.some(store => store.id === qrStore) && <p role="status" className="font-bold text-emerald-800">QRの店舗を確認しました。下のボタンで買い物を開始してください。</p>}
-          {qrStore && <button type="button" onClick={() => {
-            setQrStore(null); setQrError("");
-            const url = new URL(window.location.href);
-            url.searchParams.delete("store");
-            window.history.replaceState(null, "", url);
-          }} className="min-h-11 text-sm underline">デモ用の店舗選択に戻る</button>}
-          {!qrStore && <h2 className="font-bold">店舗を選んで来店する（デモ用・一時対応）</h2>}
-          {state.context.stores.filter(store => !qrStore || store.id === qrStore).map(store => {
-            const active = state.context.activeVisits.find(v => v.store_id === store.id);
-            const start = (startNew: boolean) => {
-              if (startNew && active && !window.confirm("進行中の来店を終了し、空のかごで新しい買い物を始めます。よろしいですか？")) return;
-              void transition({ action: "start_visit", storeId: store.id, startNew, previousVisitId: active?.id ?? null });
-            };
-            return <section key={store.id} className="grid gap-3 rounded-2xl border border-slate-200 p-4">
-              <h2 className="font-bold">{store.name} {store.branch_name}</h2>
-              {active && <p className="text-xs text-slate-500">進行中の買い物があります</p>}
-              <button type="button" onClick={() => start(false)} className={button}>{active ? "続きから開く" : "この店舗で買い物を始める"}</button>
-              {active && <button type="button" onClick={() => start(true)} className="min-h-11 text-sm underline">空のかごで新しく来店する</button>}
-            </section>;
-          })}
-          {state.context.stores.length === 0 && <p role="status" className="text-sm">利用できる店舗がありません。店舗の登録をお待ちください。</p>}
-        </div>
-        <button type="button" onClick={logout} className="mt-6 min-h-11 text-sm underline">ログアウト</button>
-      </>}
-    </div>
-  </main>;
+  if(state.kind==="connected"){
+    return <StoreEntry context={state.context} qrStore={qrStore} error={qrError|| (qrStore&&!state.context.stores.some(store=>store.id===qrStore)?"QRの店舗は現在利用できません。別のQRを読み取るか、店舗を選択してください。":"")}
+      onDetected={value=>{
+        const id=parseStoreQr(value,window.location.origin);
+        if(!id||!state.context.stores.some(store=>store.id===id)){setQrError("利用できる店舗のQRコードではありません。店頭のQRを読み直してください。");return;}
+        setQrStore(id);setQrError("");
+        const url=new URL(window.location.href);url.searchParams.set("store",id);window.history.replaceState(null,"",url);
+      }}
+      onClearQr={()=>{setQrStore(null);setQrError("");const url=new URL(window.location.href);url.searchParams.delete("store");window.history.replaceState(null,"",url);}}
+      onStart={(storeId,startNew,previousVisitId)=>{void transition({action:"start_visit",storeId,startNew,previousVisitId});}}
+      onLogout={logout}/>;
+  }
+
+  return <SessionScreen kind={state.kind} error={state.kind==="error"?state.error.message:state.kind==="login"?state.error:undefined}
+    onLogin={login} onRetry={()=>{void transition();}} onLogout={logout}/>;
+
 }
 
 export function useShoppingSession() {

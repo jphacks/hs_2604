@@ -35,22 +35,29 @@ try {
   const sticker = () => page.getByRole("button", { name: /^ゲリラクーポン：/ });
   const dialog = () => page.getByRole("dialog", { name: "生バジル 25% OFF", exact: true });
   const ready = () => page.getByText("かごを最新の状態にしました。", { exact: true }).waitFor();
-  const scan = async () => {
-    await page.getByLabel("商品コードを入力", { exact: true }).fill("2900000000100");
-    await page.getByRole("button", { name: "コードで追加", exact: true }).click();
-    await page.getByText("かごを保存しました。", { exact: true }).waitFor();
-    await sticker().waitFor();
+  const addCode = async(code:string) => {
+    await page.getByRole("textbox",{name:"商品名・商品コードで検索",exact:true}).fill("");
+    await page.getByRole("button",{name:"検索",exact:true}).click();
+    const panel=page.getByRole("dialog",{name:"商品を探す",exact:true});
+    await panel.locator(".shopping-code summary").click();
+    await panel.getByLabel("商品コードを入力",{exact:true}).fill(code);
+    await panel.getByRole("button",{name:"コードで追加",exact:true}).click();
+    await page.getByText("かごを保存しました。",{exact:true}).waitFor();
+    await panel.getByRole("button",{name:"閉じる",exact:true}).click();
   };
+  const scan=async()=>{await addCode("2900000000100");await sticker().waitFor();};
   const reload = async () => {
     const offers = page.waitForResponse(r => r.url().endsWith("/api/offers") && r.request().method() === "GET");
     await page.reload(); await ready(); await offers;
-    await page.getByRole("heading", { name: "商品から選ぶ", exact: true }).waitFor();
+    await page.getByTestId("shopping-home").waitFor();
   };
   const newVisit = async () => {
+    await page.getByRole("link",{name:"マイページ",exact:true}).click();
     await page.getByRole("button", { name: "店舗・来店を選ぶ", exact: true }).click();
+    await page.locator(".store-entry-extra summary").click();
     page.once("dialog", d => { void d.accept(); });
     await page.getByRole("button", { name: "空のかごで新しく来店する", exact: true }).first().click();
-    await ready(); await scan();
+    await page.getByRole("heading",{name:"マイページ",exact:true}).waitFor();await page.getByRole("link",{name:"ホーム",exact:true}).click();await ready(); await scan();
   };
   const eventCount = async (type: string, user = 3) => (await fixture.db.query<{ n: number }>(
     "select count(*)::int n from offer_events where offer_id=$1 and user_id=$2 and event_type=$3", [OFFER.coupon, id(user), type])).rows[0].n;
@@ -58,7 +65,7 @@ try {
   await page.getByLabel("メールアドレス").fill("user3@example.test");
   await page.getByLabel("パスワード", { exact: true }).fill("fixture-password");
   await page.getByRole("button", { name: "ログイン", exact: true }).click();
-  await page.getByRole("button", { name: "続きから開く", exact: true }).first().click();
+  await page.getByRole("button", { name: "前回の店舗から再開", exact: true }).first().click();
   await ready(); await scan();
   await page.screenshot({ path: resolve(output, "before-open-mobile.png") });
   await sticker().click(); await dialog().waitFor();
@@ -72,7 +79,7 @@ try {
   pass("coupon-only details open; closing with X and reloading keep the sticker hidden without a dismissal event");
 
   const refreshed = page.waitForResponse(r => r.url().endsWith("/api/offers") && r.request().method() === "GET");
-  await page.getByRole("button", { name: "検証ミルクをかごに追加", exact: true }).click();
+  await addCode("4900000000016");
   await page.getByText("かごを保存しました。", { exact: true }).waitFor(); await refreshed;
   assert.equal(await sticker().count(), 0);
   pass("a saved cart update does not restore the opened sticker");
@@ -88,21 +95,24 @@ try {
   pass("closing by tapping the backdrop also leaves the sticker hidden");
 
   await newVisit(); await sticker().click(); await dialog().waitFor();
+  await dialog().getByRole("button",{name:"クーポンを受け取る",exact:true}).click();
   await page.getByLabel("クーポン対象の商品コードを入力", { exact: true }).fill("2900000000179");
   await page.getByRole("button", { name: "商品を確認", exact: true }).click();
   await page.getByText("対象商品を確認しました：生バジル", { exact: true }).waitFor();
-  await page.getByRole("button", { name: "割引付きでかごに追加", exact: true }).click();
+  await page.getByRole("button", { name: "この商品にクーポンを使う", exact: true }).click();
   await page.getByText("かごを保存しました。", { exact: true }).waitFor();
   const snapshot = await (await context.request.get(origin + "/api/cart")).json();
   assert.equal(snapshot.cart.find((l: { productId: string }) => l.productId === PRODUCT.basil).discount, 49);
   await reload(); assert.equal(await sticker().count(), 0);
   pass("opening consumes only the sticker: adding from details still saves the DB discount");
 
+  await page.getByRole("link",{name:"マイページ",exact:true}).click();
   await page.getByRole("button", { name: "ログアウト", exact: true }).click();
   await page.getByLabel("メールアドレス").fill("user4@example.test");
   await page.getByLabel("パスワード", { exact: true }).fill("fixture-password");
   await page.getByRole("button", { name: "ログイン", exact: true }).click();
-  await page.getByRole("button", { name: "続きから開く", exact: true }).first().click();
+  await page.getByRole("button", { name: "前回の店舗から再開", exact: true }).first().click();
+  await page.getByRole("heading",{name:"マイページ",exact:true}).waitFor();await page.getByRole("link",{name:"ホーム",exact:true}).click();
   await ready(); await scan(); await sticker().click(); await dialog().waitFor();
   await page.getByRole("button", { name: "今回は見送る", exact: true }).click();
   await reload(); assert.equal(await sticker().count(), 0);
@@ -120,7 +130,7 @@ try {
   await newVisit(); await sticker().click(); await dialog().waitFor();
   await dialog().getByRole("button", { name: "閉じる", exact: true }).click();
   const storageRefresh = page.waitForResponse(r => r.url().endsWith("/api/offers") && r.request().method() === "GET");
-  await page.getByRole("button", { name: "検証ミルクをかごに追加", exact: true }).click();
+  await addCode("4900000000016");
   await page.getByText("かごを保存しました。", { exact: true }).waitFor(); await storageRefresh;
   assert.equal(await sticker().count(), 0);
   pass("if saving the display preference fails, a cart refresh still preserves the in-memory choice");
