@@ -20,6 +20,7 @@ export function Portal() {
     return { calls, stores, categories };
   }, []);
   const [filter, setFilter] = useState<PortalFilter>(initial);
+  const [filtersOpen,setFiltersOpen]=useState(false);
   const set = <K extends keyof PortalFilter>(k: K, v: PortalFilter[K]) => setFilter((f) => ({ ...f, [k]: v }));
 
   return (
@@ -37,7 +38,7 @@ export function Portal() {
       {state.status === "error" && <ErrorList errors={[state.error]} />}
       {state.status === "ready" && (
         <div className="ads-portal-grid">
-          <Card className="ads-filter space-y-4">
+          <div className="ads-filter-column"><button type="button" className="ads-filter-toggle" aria-expanded={filtersOpen} aria-controls="ads-portal-filters" onClick={()=>setFiltersOpen(v=>!v)}>条件で絞り込む<span>{filtersOpen?"閉じる －":"開く ＋"}</span></button><div id="ads-portal-filters"><Card className={"ads-filter space-y-4"+(filtersOpen?" is-open":"")}>
             <p className="ads-filter-title">条件で絞り込む</p>
             <label className="ads-field"><span className="ads-field-label">キーワード</span><input className={inputClass} aria-label="キーワード" placeholder="募集名・キーワード" value={filter.keyword} onChange={e=>set("keyword",e.target.value)}/></label>
             <label className="ads-field"><span className="ads-field-label">カテゴリ</span><select className={inputClass} value={filter.category} onChange={e=>set("category",e.target.value)} aria-label="カテゴリ">
@@ -52,7 +53,7 @@ export function Portal() {
             <label className="ads-field"><span className="ads-field-label">掲載したい日</span><input type="date" aria-label="この日に掲載できる募集" className={inputClass} value={filter.date} onChange={e=>set("date",e.target.value)}/></label>
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={filter.includeEnded} onChange={e=>set("includeEnded",e.target.checked)}/>終了した募集も表示</label>
             <button className="ads-filter-reset" onClick={()=>setFilter(initial)}>条件をクリア</button>
-          </Card>
+          </Card></div></div>
           <Results filter={filter} calls={state.data.calls} stores={state.data.stores} />
         </div>
       )}
