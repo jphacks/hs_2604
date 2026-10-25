@@ -1,4 +1,5 @@
 import { Product } from "@/lib/products";
+import { GENERATED_PRODUCT_IMAGES } from "./generated-product-photos";
 
 const PRODUCT_ICONS: Record<string, string> = {
   飲料: "🥤",
@@ -57,6 +58,7 @@ export const RECOMMENDATION_IMAGES: Record<string, string> = {
   "2900000000063": "/images/recommendations/eggs-flyer.jpg",
   "2900000000070": "/images/recommendations/yogurt-flyer.jpg",
   "2900000000087": "/images/recommendations/banana-flyer.jpg",
+  ...GENERATED_PRODUCT_IMAGES,
 };
 
 export const MENU_PRODUCT_IMAGES: Record<string, string> = {
@@ -66,4 +68,5 @@ export const MENU_PRODUCT_IMAGES: Record<string, string> = {
   "PLU-2001": "/images/products/croquette.png",
   "PLU-2002": "/images/products/karaage.png",
   "PLU-3001": "/images/products/shio-pan.png",
+  ...GENERATED_PRODUCT_IMAGES,
 };

@@ -1,0 +1,402 @@
+[
+  {
+    "code": "2900000000018",
+    "name": "KAGO 緑茶 500ml",
+    "category": "飲料",
+    "price": 138,
+    "slug": "green-tea",
+    "image": "/images/products/catalog-v1/green-tea.webp"
+  },
+  {
+    "code": "2900000000025",
+    "name": "KAGO 天然水 550ml",
+    "category": "飲料",
+    "price": 98,
+    "slug": "water",
+    "image": "/images/products/catalog-v1/water.webp"
+  },
+  {
+    "code": "2900000000032",
+    "name": "KAGO カフェラテ",
+    "category": "飲料",
+    "price": 178,
+    "slug": "cafe-latte",
+    "image": "/images/products/catalog-v1/cafe-latte.webp"
+  },
+  {
+    "code": "2900000000049",
+    "name": "成分無調整牛乳 1L",
+    "category": "乳製品",
+    "price": 238,
+    "slug": "milk",
+    "image": "/images/products/catalog-v1/milk.webp"
+  },
+  {
+    "code": "2900000000056",
+    "name": "もっちり食パン 6枚切",
+    "category": "パン",
+    "price": 228,
+    "slug": "bread",
+    "image": "/images/products/catalog-v1/bread.webp"
+  },
+  {
+    "code": "2900000000063",
+    "name": "新鮮たまご 10個",
+    "category": "卵",
+    "price": 298,
+    "slug": "eggs",
+    "image": "/images/products/catalog-v1/eggs.webp"
+  },
+  {
+    "code": "2900000000070",
+    "name": "プレーンヨーグルト",
+    "category": "乳製品",
+    "price": 188,
+    "slug": "yogurt",
+    "image": "/images/products/catalog-v1/yogurt.webp"
+  },
+  {
+    "code": "2900000000087",
+    "name": "フィリピン産バナナ",
+    "category": "青果",
+    "price": 198,
+    "slug": "banana",
+    "image": "/images/products/catalog-v1/banana.webp"
+  },
+  {
+    "code": "2900000000094",
+    "name": "中辛ビーフカレー",
+    "category": "加工食品",
+    "price": 258,
+    "slug": "beef-curry",
+    "image": "/images/products/catalog-v1/beef-curry.webp"
+  },
+  {
+    "code": "2900000000100",
+    "name": "スパゲッティ 500g",
+    "category": "乾麺",
+    "price": 248,
+    "slug": "spaghetti",
+    "image": "/images/products/catalog-v1/spaghetti.webp"
+  },
+  {
+    "code": "2900000000117",
+    "name": "うすしおポテトチップス",
+    "category": "菓子",
+    "price": 178,
+    "slug": "potato-chips",
+    "image": "/images/products/catalog-v1/potato-chips.webp"
+  },
+  {
+    "code": "2900000000124",
+    "name": "ミルクチョコレート",
+    "category": "菓子",
+    "price": 158,
+    "slug": "chocolate",
+    "image": "/images/products/catalog-v1/chocolate.webp"
+  },
+  {
+    "code": "2900000000131",
+    "name": "箱ティッシュ 5個組",
+    "category": "日用品",
+    "price": 398,
+    "slug": "tissues",
+    "image": "/images/products/catalog-v1/tissues.webp"
+  },
+  {
+    "code": "2900000000148",
+    "name": "液体洗濯洗剤 詰替",
+    "category": "日用品",
+    "price": 498,
+    "slug": "detergent",
+    "image": "/images/products/catalog-v1/detergent.webp"
+  },
+  {
+    "code": "2900000000155",
+    "name": "不織布マスク 30枚",
+    "category": "衛生用品",
+    "price": 598,
+    "slug": "masks",
+    "image": "/images/products/catalog-v1/masks.webp"
+  },
+  {
+    "code": "2900000000162",
+    "name": "トマトパスタソース",
+    "category": "調味料",
+    "price": 298,
+    "slug": "tomato-sauce",
+    "image": "/images/products/catalog-v1/tomato-sauce.webp"
+  },
+  {
+    "code": "2900000000179",
+    "name": "生バジル",
+    "category": "青果",
+    "price": 198,
+    "slug": "basil",
+    "image": "/images/products/catalog-v1/basil.webp"
+  },
+  {
+    "code": "PLU-1001",
+    "name": "玉ねぎ 1個",
+    "category": "青果",
+    "price": 78,
+    "slug": "onion",
+    "image": "/images/products/catalog-v1/onion.webp"
+  },
+  {
+    "code": "PLU-1002",
+    "name": "国産りんご 1個",
+    "category": "青果",
+    "price": 158,
+    "slug": "apple",
+    "image": "/images/products/catalog-v1/apple.webp"
+  },
+  {
+    "code": "PLU-1003",
+    "name": "アボカド 1個",
+    "category": "青果",
+    "price": 198,
+    "slug": "avocado",
+    "image": "/images/products/catalog-v1/avocado.webp"
+  },
+  {
+    "code": "PLU-2001",
+    "name": "お店のコロッケ 1個",
+    "category": "惣菜",
+    "price": 98,
+    "slug": "croquette",
+    "image": "/images/products/catalog-v1/croquette.webp"
+  },
+  {
+    "code": "PLU-2002",
+    "name": "若鶏の唐揚げ 100g",
+    "category": "惣菜",
+    "price": 218,
+    "slug": "karaage",
+    "image": "/images/products/catalog-v1/karaage.webp"
+  },
+  {
+    "code": "PLU-3001",
+    "name": "焼きたて塩パン 1個",
+    "category": "パン",
+    "price": 130,
+    "slug": "shio-pan",
+    "image": "/images/products/catalog-v1/shio-pan.webp"
+  },
+  {
+    "code": "PLU-4001",
+    "name": "トマト 1個",
+    "category": "野菜",
+    "price": 98,
+    "slug": "tomato",
+    "image": "/images/products/catalog-v1/tomato.webp"
+  },
+  {
+    "code": "PLU-4002",
+    "name": "なす 1本",
+    "category": "野菜",
+    "price": 68,
+    "slug": "eggplant",
+    "image": "/images/products/catalog-v1/eggplant.webp"
+  },
+  {
+    "code": "PLU-4003",
+    "name": "きゅうり 1本",
+    "category": "野菜",
+    "price": 58,
+    "slug": "cucumber",
+    "image": "/images/products/catalog-v1/cucumber.webp"
+  },
+  {
+    "code": "PLU-4004",
+    "name": "キャベツ 1玉",
+    "category": "野菜",
+    "price": 198,
+    "slug": "cabbage",
+    "image": "/images/products/catalog-v1/cabbage.webp"
+  },
+  {
+    "code": "PLU-4005",
+    "name": "にんじん 1本",
+    "category": "野菜",
+    "price": 48,
+    "slug": "carrot",
+    "image": "/images/products/catalog-v1/carrot.webp"
+  },
+  {
+    "code": "PLU-4006",
+    "name": "じゃがいも 1個",
+    "category": "野菜",
+    "price": 38,
+    "slug": "potato",
+    "image": "/images/products/catalog-v1/potato.webp"
+  },
+  {
+    "code": "PLU-4007",
+    "name": "ピーマン 1袋",
+    "category": "野菜",
+    "price": 128,
+    "slug": "green-peppers",
+    "image": "/images/products/catalog-v1/green-peppers.webp"
+  },
+  {
+    "code": "PLU-4008",
+    "name": "ほうれん草 1束",
+    "category": "野菜",
+    "price": 158,
+    "slug": "spinach",
+    "image": "/images/products/catalog-v1/spinach.webp"
+  },
+  {
+    "code": "PLU-4009",
+    "name": "ブロッコリー 1株",
+    "category": "野菜",
+    "price": 198,
+    "slug": "broccoli",
+    "image": "/images/products/catalog-v1/broccoli.webp"
+  },
+  {
+    "code": "PLU-5001",
+    "name": "豚バラ薄切り 200g",
+    "category": "肉",
+    "price": 398,
+    "slug": "pork-belly",
+    "image": "/images/products/catalog-v1/pork-belly.webp"
+  },
+  {
+    "code": "PLU-5002",
+    "name": "豚こま切れ 200g",
+    "category": "肉",
+    "price": 298,
+    "slug": "pork-pieces",
+    "image": "/images/products/catalog-v1/pork-pieces.webp"
+  },
+  {
+    "code": "PLU-5003",
+    "name": "豚ロース とんかつ用 2枚",
+    "category": "肉",
+    "price": 458,
+    "slug": "pork-loin",
+    "image": "/images/products/catalog-v1/pork-loin.webp"
+  },
+  {
+    "code": "PLU-5004",
+    "name": "鶏もも肉 300g",
+    "category": "肉",
+    "price": 378,
+    "slug": "chicken-thigh",
+    "image": "/images/products/catalog-v1/chicken-thigh.webp"
+  },
+  {
+    "code": "PLU-5005",
+    "name": "鶏むね肉 300g",
+    "category": "肉",
+    "price": 258,
+    "slug": "chicken-breast",
+    "image": "/images/products/catalog-v1/chicken-breast.webp"
+  },
+  {
+    "code": "PLU-5006",
+    "name": "鶏手羽元 500g",
+    "category": "肉",
+    "price": 348,
+    "slug": "chicken-drumettes",
+    "image": "/images/products/catalog-v1/chicken-drumettes.webp"
+  },
+  {
+    "code": "PLU-5007",
+    "name": "牛こま切れ 200g",
+    "category": "肉",
+    "price": 598,
+    "slug": "beef-pieces",
+    "image": "/images/products/catalog-v1/beef-pieces.webp"
+  },
+  {
+    "code": "PLU-5008",
+    "name": "合いびき肉 250g",
+    "category": "肉",
+    "price": 348,
+    "slug": "ground-meat",
+    "image": "/images/products/catalog-v1/ground-meat.webp"
+  },
+  {
+    "code": "PLU-5009",
+    "name": "ロースハム 4枚",
+    "category": "肉",
+    "price": 198,
+    "slug": "ham",
+    "image": "/images/products/catalog-v1/ham.webp"
+  },
+  {
+    "code": "PLU-6001",
+    "name": "生鮭 切身 2切",
+    "category": "魚",
+    "price": 398,
+    "slug": "salmon",
+    "image": "/images/products/catalog-v1/salmon.webp"
+  },
+  {
+    "code": "PLU-6002",
+    "name": "さば 切身 2切",
+    "category": "魚",
+    "price": 298,
+    "slug": "mackerel",
+    "image": "/images/products/catalog-v1/mackerel.webp"
+  },
+  {
+    "code": "PLU-6003",
+    "name": "ぶり 切身 2切",
+    "category": "魚",
+    "price": 458,
+    "slug": "yellowtail",
+    "image": "/images/products/catalog-v1/yellowtail.webp"
+  },
+  {
+    "code": "PLU-6004",
+    "name": "まぐろ赤身 刺身",
+    "category": "魚",
+    "price": 598,
+    "slug": "tuna-sashimi",
+    "image": "/images/products/catalog-v1/tuna-sashimi.webp"
+  },
+  {
+    "code": "PLU-6005",
+    "name": "かつおのたたき",
+    "category": "魚",
+    "price": 498,
+    "slug": "bonito-tataki",
+    "image": "/images/products/catalog-v1/bonito-tataki.webp"
+  },
+  {
+    "code": "PLU-6006",
+    "name": "あじ 2尾",
+    "category": "魚",
+    "price": 258,
+    "slug": "horse-mackerel",
+    "image": "/images/products/catalog-v1/horse-mackerel.webp"
+  },
+  {
+    "code": "PLU-6007",
+    "name": "むきえび 150g",
+    "category": "魚",
+    "price": 398,
+    "slug": "shrimp",
+    "image": "/images/products/catalog-v1/shrimp.webp"
+  },
+  {
+    "code": "PLU-6008",
+    "name": "するめいか 1杯",
+    "category": "魚",
+    "price": 298,
+    "slug": "squid",
+    "image": "/images/products/catalog-v1/squid.webp"
+  },
+  {
+    "code": "PLU-6009",
+    "name": "釜揚げしらす 50g",
+    "category": "魚",
+    "price": 298,
+    "slug": "whitebait",
+    "image": "/images/products/catalog-v1/whitebait.webp"
+  }
+]

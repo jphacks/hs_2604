@@ -1,0 +1,283 @@
+{
+  "mode": "built-in image_gen",
+  "date": "2026-10-25",
+  "productPhotos": {
+    "basePrompt": "Use case: product-mockup. Create ONE square photorealistic supermarket catalog product photograph for KAGO/App. SUBJECT: {subject}. Studio seamless pure white background (#FFFFFF), soft diffused daylight from upper left, gentle subtle contact shadow, realistic color and material texture. A slightly elevated three-quarter product view. Entire single product or specified retail set centered and fully visible, consistent 12 percent empty white margin on all four sides. Clean friendly high-quality grocery catalog photography. No illustrations, emoji, people, hands, writing, letters, numbers, logos, brand marks, prices, watermarks, frames or UI. Blank unbranded packaging only when specified. Square 1024x1024 or higher. Fictional demo product photo.",
+    "subjects": [
+      [
+        "2900000000018",
+        "green-tea",
+        "One clear 500ml plastic bottle of pale golden-green Japanese green tea, green screw cap and a small plain green paper band, no markings"
+      ],
+      [
+        "2900000000025",
+        "water",
+        "One clear 550ml bottled mineral water PET bottle with a pale blue screw cap, colorless clean water and plain transparent unprinted label"
+      ],
+      [
+        "2900000000032",
+        "cafe-latte",
+        "One chilled cafe latte cup, short tan paper cup with white sealed plastic lid and transparent straw alongside, plain without print"
+      ],
+      [
+        "2900000000049",
+        "milk",
+        "One Japanese 1-liter whole milk paper carton, upright white with a simple blue color band, folded top, blank packaging"
+      ],
+      [
+        "2900000000056",
+        "bread",
+        "A small loaf of soft Japanese shokupan milk bread, exactly six thick slices arranged together slightly fanned, golden crust and fluffy white crumb"
+      ],
+      [
+        "2900000000063",
+        "eggs",
+        "Exactly ten fresh light-brown chicken eggs in one open transparent supermarket egg carton, two neat rows of five, all eggs clearly visible"
+      ],
+      [
+        "2900000000070",
+        "yogurt",
+        "One plain white 400g yogurt tub with simple blue band, lid partly open to reveal smooth plain white yogurt, no printing"
+      ],
+      [
+        "2900000000087",
+        "banana",
+        "One natural bunch of four ripe yellow Philippine bananas, intact curved stems, slight authentic speckles"
+      ],
+      [
+        "2900000000094",
+        "beef-curry",
+        "One unbranded plain deep-red retort curry pouch beside a small white shallow bowl of Japanese beef curry with visible beef and carrot, no rice, product is ready-made medium-hot curry"
+      ],
+      [
+        "2900000000100",
+        "spaghetti",
+        "One bundle of straight uncooked golden spaghetti, 500g, partially within plain transparent unprinted long pasta sleeve, a few parallel strands visible at its open end"
+      ],
+      [
+        "2900000000117",
+        "potato-chips",
+        "One plain cream-colored potato chip bag, open at top, with a small natural pile of thin lightly salted golden potato chips in front, blank package"
+      ],
+      [
+        "2900000000124",
+        "chocolate",
+        "One milk chocolate bar with rectangular breakable segments, partially unwrapped from plain silver foil, no branding"
+      ],
+      [
+        "2900000000131",
+        "tissues",
+        "A neat stacked five-pack of rectangular facial tissue boxes in white and pale blue, one white tissue gently emerging from top box, clear outer multipack wrap, no printing"
+      ],
+      [
+        "2900000000148",
+        "detergent",
+        "One upright flexible refill pouch of liquid laundry detergent, white with teal color panel and small plastic spout at upper corner, blank unbranded packaging"
+      ],
+      [
+        "2900000000155",
+        "masks",
+        "One plain white and pale blue rectangular box of thirty disposable nonwoven face masks, three clean white pleated masks neatly placed in front, elastic ear loops visible, no printing"
+      ],
+      [
+        "2900000000162",
+        "tomato-sauce",
+        "One plain unlabeled clear glass jar filled with deep red tomato pasta sauce with small tomato pieces and visible herbs, silver screw lid, no whole tomatoes or other garnish"
+      ],
+      [
+        "2900000000179",
+        "basil",
+        "One small bunch of fresh green basil sprigs, broad identifiable basil leaves, natural stems, neatly arranged as one market bunch, no pot"
+      ],
+      [
+        "PLU-1001",
+        "onion",
+        "One whole golden-brown yellow onion, dry papery skin and intact top, a single supermarket onion"
+      ],
+      [
+        "PLU-1002",
+        "apple",
+        "One whole ripe red Japanese apple with natural red and golden mottled skin, small dark stem, no cut slices"
+      ],
+      [
+        "PLU-1003",
+        "avocado",
+        "One ripe dark-green avocado, one half showing creamy green flesh and round brown pit with the other half behind, represents one avocado"
+      ],
+      [
+        "PLU-2001",
+        "croquette",
+        "One oval Japanese potato croquette, crisp golden panko crust, one end slightly broken to reveal fluffy pale potato filling, plain white paper liner"
+      ],
+      [
+        "PLU-2002",
+        "karaage",
+        "A small unbranded kraft paper supermarket deli tray holding approximately five bite-size pieces of Japanese fried chicken karaage, realistic crisp golden irregular coating, no garnish"
+      ],
+      [
+        "PLU-3001",
+        "shio-pan",
+        "One Japanese crescent-shaped shio-pan salt butter roll, glossy golden-brown crust and a few visible coarse salt crystals"
+      ],
+      [
+        "PLU-4001",
+        "tomato",
+        "One whole ripe red tomato with natural green calyx, fresh supermarket tomato"
+      ],
+      [
+        "PLU-4002",
+        "eggplant",
+        "One slender Japanese eggplant, glossy deep purple skin and green calyx"
+      ],
+      [
+        "PLU-4003",
+        "cucumber",
+        "One whole fresh Japanese cucumber, natural slightly curved dark green bumpy skin"
+      ],
+      [
+        "PLU-4004",
+        "cabbage",
+        "One whole round green cabbage, pale green tightly layered crinkled outer leaves"
+      ],
+      [
+        "PLU-4005",
+        "carrot",
+        "One whole orange carrot without leafy tops, clean natural skin and a short trimmed stem"
+      ],
+      [
+        "PLU-4006",
+        "potato",
+        "One whole medium Japanese potato, natural tan skin with subtle eyes, clean but unpeeled"
+      ],
+      [
+        "PLU-4007",
+        "green-peppers",
+        "One clear unprinted produce bag holding four small glossy Japanese green bell peppers, product shapes clearly visible"
+      ],
+      [
+        "PLU-4008",
+        "spinach",
+        "One fresh bunch of Japanese spinach, crisp dark green leaves and fine pinkish-red root ends, neatly gathered with a small plain paper band"
+      ],
+      [
+        "PLU-4009",
+        "broccoli",
+        "One whole fresh broccoli head with short thick green stalk, dense dark green florets"
+      ],
+      [
+        "PLU-5001",
+        "pork-belly",
+        "A plain small white supermarket tray holding 200g of raw pork belly sliced very thin, pink meat with distinct alternating creamy white fat layers, neat overlapping slices"
+      ],
+      [
+        "PLU-5002",
+        "pork-pieces",
+        "A plain small white supermarket tray holding 200g of raw thin irregular pork slices, natural pink pork and modest white fat, loose small cut pieces, distinct from pork belly strips"
+      ],
+      [
+        "PLU-5003",
+        "pork-loin",
+        "Exactly two raw pork loin cutlets for tonkatsu on a small plain white supermarket tray, thick round pink meat with white fat rim"
+      ],
+      [
+        "PLU-5004",
+        "chicken-thigh",
+        "One raw boneless chicken thigh, approximately 300g, light pink meat with pale cream skin, on a small plain white supermarket tray"
+      ],
+      [
+        "PLU-5005",
+        "chicken-breast",
+        "One raw boneless skinless chicken breast, approximately 300g, smooth pale pink lean meat, on a small plain white supermarket tray"
+      ],
+      [
+        "PLU-5006",
+        "chicken-drumettes",
+        "A plain small white supermarket tray of approximately six raw chicken wing drumettes, small pink bone-in meaty wing pieces, not full-size leg drumsticks"
+      ],
+      [
+        "PLU-5007",
+        "beef-pieces",
+        "A plain small white supermarket tray of 200g raw thin irregular beef slices, deep natural red meat with modest white marbling, loose small cut pieces"
+      ],
+      [
+        "PLU-5008",
+        "ground-meat",
+        "A plain small white supermarket tray of 250g raw mixed ground beef and pork, fine curly mince texture, natural pink-red mixture, no garnish"
+      ],
+      [
+        "PLU-5009",
+        "ham",
+        "Exactly four thin round slices of Japanese cooked pork loin ham slightly overlapped on a small plain white supermarket tray, delicate pink meat and thin pale outer edge"
+      ],
+      [
+        "PLU-6001",
+        "salmon",
+        "Exactly two raw salmon cutlet pieces with vivid orange-pink flesh, natural pale fat lines and silver skin along one edge, on a small plain white supermarket tray"
+      ],
+      [
+        "PLU-6002",
+        "mackerel",
+        "Exactly two raw mackerel fillet portions, one skin-side up showing silvery blue striped pattern, one flesh-side up, on a plain white supermarket tray"
+      ],
+      [
+        "PLU-6003",
+        "yellowtail",
+        "Exactly two thick raw Japanese yellowtail buri cutlet portions, pale rose and ivory meat with gray-silver skin edge, on a small plain white supermarket tray"
+      ],
+      [
+        "PLU-6004",
+        "tuna-sashimi",
+        "A small plain white supermarket tray of six thick raw lean red tuna sashimi slices, deep ruby red and natural moist texture, no garnish or soy sauce"
+      ],
+      [
+        "PLU-6005",
+        "bonito-tataki",
+        "A small plain white supermarket tray of six seared bonito tataki slices, dark lightly seared outer edge and deep-red raw centers, no garnish"
+      ],
+      [
+        "PLU-6006",
+        "horse-mackerel",
+        "Exactly two whole raw Japanese horse mackerel aji, small silver-blue fish with intact natural tails and fins, neatly parallel on one plain white supermarket tray"
+      ],
+      [
+        "PLU-6007",
+        "shrimp",
+        "A small plain white supermarket tray of 150g raw peeled shrimp, translucent pale gray-pink curled shrimp without heads or shells, natural moist texture"
+      ],
+      [
+        "PLU-6008",
+        "squid",
+        "One whole fresh Japanese flying squid with intact mantle and neatly gathered tentacles, natural ivory and mottled brown skin, on one plain white supermarket tray"
+      ],
+      [
+        "PLU-6009",
+        "whitebait",
+        "A small plain white supermarket tray of 50g boiled whitebait shirasu, tiny delicate opaque white fish in a natural loose mound"
+      ]
+    ],
+    "overrides": {
+      "2900000000049": "Use case: product-mockup. Create ONE square photorealistic supermarket catalog product photograph for KAGO/App. Subject: one Japanese 1-liter whole milk paper carton, upright, white carton with a simple small blue color band and folded top, unbranded and entirely without text. Studio seamless pure white background, soft natural diffused daylight from upper left, subtle soft contact shadow, realistic materials, three-quarter eye-level view, entire product centered, uniform 12 percent white margin on every side. Clean friendly grocery catalog photography, not illustration, not emoji, no hands, people, labels, numbers, logos, prices, watermarks, props, frames or UI. Square 1024x1024 or higher. This is a fictional demo product, not a real brand advertisement.",
+      "2900000000131": "Use case: product-mockup. Create ONE square photorealistic supermarket catalog product photograph for KAGO/App. SUBJECT: EXACTLY FIVE rectangular facial tissue boxes stacked VERTICALLY, five separately countable front faces and FOUR clearly visible horizontal seams between them, all five boxes completely visible. Plain white and pale blue design. One tissue emerging from the TOP box only. Five-pack household supermarket product, without any plastic outer bag, writing or logos. Do not make four boxes. Studio seamless pure white background (#FFFFFF), soft diffused daylight from upper left, gentle subtle contact shadow, realistic color and material texture. A slightly elevated three-quarter product view. Entire single product or specified retail set centered and fully visible, consistent 12 percent empty white margin on all four sides. Clean friendly high-quality grocery catalog photography. No illustrations, emoji, people, hands, writing, letters, numbers, logos, brand marks, prices, watermarks, frames or UI. Blank unbranded packaging only when specified. Square 1024x1024 or higher. Fictional demo product photo."
+    }
+  },
+  "storeRecommendationImages": [
+    {
+      "slug": "a-staff",
+      "label": "A：お店の人が選ぶおすすめ",
+      "prompt": "Use case: ads-marketing. Asset type: background photo for the existing KAGO/App 'store recommendations' card. Primary request: create ONE new image conveying a friendly store recommending everyday groceries, usable for any product category. Reference image role: composition, brightness and friendly photographic mood only; do not copy identities. Scene: A friendly fictional Japanese supermarket staff member wearing a simple teal apron stands behind a clean grocery counter at the right side, warmly presenting a small basket of varied everyday groceries including vegetables, apples, a bread loaf and a blank milk carton. Softly blurred supermarket shelves in the background. A welcoming neighborhood store atmosphere, candid natural smile, realistic approachable lifestyle photography. Composition: landscape 3:2. Keep the left 40 percent softly lit, pale off-white/mint and uncluttered, with no main subjects there, for existing application text. Put all people and the main grocery basket in the right half, faces and groceries comfortably inside the frame. Colors: gentle natural whites, fresh greens, subtle teal accents. Lighting: bright soft daylight. Constraints: image asset only, no words, labels, signs, numbers, logos, typography, prices, discounts, badge graphics, frames, buttons, UI, watermarks, brand packaging or collages. No single product hero shot. Preserve the warm familiar and approachable feel of the original.",
+      "file": "kago-os/kago-app/public/images/shopping/store-recommendation-v2/a-staff.webp"
+    },
+    {
+      "slug": "b-family",
+      "label": "B：お店から、家族の食卓へ",
+      "prompt": "Use case: ads-marketing. Asset type: background photo for the existing KAGO/App 'store recommendations' card. Primary request: create ONE new image conveying a friendly store recommending everyday groceries, usable for any product category. Reference image role: composition, brightness and friendly photographic mood only; do not copy identities. Scene: A fictional Japanese mother and her young daughter joyfully unpack everyday groceries together in a bright home kitchen on the right side. A reusable grocery bag with a bread loaf, blank milk carton, apples and colorful fresh vegetables sits on the counter. Natural affectionate interaction, warm wholesome family feeling, photorealistic lifestyle photography similar in mood to the reference image, while showing groceries broadly rather than one dish. Composition: landscape 3:2. Keep the left 40 percent softly lit, pale off-white/mint and uncluttered, with no main subjects there, for existing application text. Put all people and the main grocery basket in the right half, faces and groceries comfortably inside the frame. Colors: gentle natural whites, fresh greens, subtle teal accents. Lighting: bright soft daylight. Constraints: image asset only, no words, labels, signs, numbers, logos, typography, prices, discounts, badge graphics, frames, buttons, UI, watermarks, brand packaging or collages. No single product hero shot. Preserve the warm familiar and approachable feel of the original.",
+      "file": "kago-os/kago-app/public/images/shopping/store-recommendation-v2/b-family.webp"
+    },
+    {
+      "slug": "c-basket",
+      "label": "C：今日のおすすめが集まる売り場",
+      "prompt": "Use case: ads-marketing. Asset type: background photo for the existing KAGO/App 'store recommendations' card. Primary request: create ONE new image conveying a friendly store recommending everyday groceries, usable for any product category. Reference image role: composition, brightness and friendly photographic mood only; do not copy identities. Scene: An inviting supermarket recommendation display on the right side: a natural woven grocery basket containing a baguette, a plain unbranded milk carton, apples, leafy vegetables and tomatoes, with a small plain deli paper package beside it. Bright clean wooden counter, softly blurred neighborhood supermarket shelves in the distance, no people. Realistic warm grocery lifestyle photography that clearly feels selected and recommended by the shop. Composition: landscape 3:2. Keep the left 40 percent softly lit, pale off-white/mint and uncluttered, with no main subjects there, for existing application text. Put all people and the main grocery basket in the right half, faces and groceries comfortably inside the frame. Colors: gentle natural whites, fresh greens, subtle teal accents. Lighting: bright soft daylight. Constraints: image asset only, no words, labels, signs, numbers, logos, typography, prices, discounts, badge graphics, frames, buttons, UI, watermarks, brand packaging or collages. No single product hero shot. Preserve the warm familiar and approachable feel of the original.",
+      "file": "kago-os/kago-app/public/images/shopping/store-recommendation-v2/c-basket.webp"
+    }
+  ]
+}

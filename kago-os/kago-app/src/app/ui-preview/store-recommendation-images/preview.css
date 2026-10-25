@@ -1,0 +1,13 @@
+/* #166: comparison page only; the App card styles are reused unchanged. */
+html:has(.si166-page),body:has(.si166-page){height:auto;overflow:auto;background:var(--kago-bg)}
+.si166-page{max-width:1120px;margin:auto;padding:28px 18px 56px;color:var(--kago-text)}
+.si166-page>header{margin-bottom:24px}
+.si166-page>header h1{font-size:24px;font-weight:850;color:var(--kago-navy)}
+.si166-page>header p{margin-top:8px;font-size:14px;color:var(--kago-gray);line-height:1.7}
+.si166-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(334px,100%),1fr));gap:26px 20px}
+.si166-options figure{margin:0;min-width:0}
+.si166-options figcaption{min-height:89px}
+.si166-options figcaption h2{font-size:16px;font-weight:800;color:var(--kago-navy)}
+.si166-options figcaption p{font-size:13px;line-height:1.7;color:var(--kago-gray);margin:7px 0 14px}
+.si166-frame{width:334px;max-width:100%;height:266px;position:relative}
+.si166-options figure>a{display:inline-block;font-size:13px;color:#07576B;font-weight:750;margin-top:12px;text-decoration:underline;text-underline-offset:3px}
