@@ -10,6 +10,9 @@ import { shortProductName } from "../../lib/product-name.ts";
 import { cycleRatio, isReplenishmentDue, replenishmentReason } from "./purchase-cycle.ts";
 
 export const MAX_SLOTS = 3;
+// Demo (#189): the store pick is always spaghetti while the store has an active App promotion for it
+// (seed app_demo_spaghetti_store_pick.sql), whatever the other promotions' priority. Empty = normal selection.
+export const DEMO_PINNED_STORE_PICKS: readonly string[] = ["2900000000100"];
 const INITIAL_STRENGTH = 1.5;
 
 export type SelectionInput = {
@@ -32,7 +35,8 @@ function strongestRelation(rules: AssociationRuleSet, cartCodes: Set<string>, ta
   return best;
 }
 
-export function selectRecommendations(input: SelectionInput, rules: AssociationRuleSet): Selection {
+export function selectRecommendations(input: SelectionInput, rules: AssociationRuleSet,
+  pinnedStorePicks: readonly string[] = DEMO_PINNED_STORE_PICKS): Selection {
   const { candidates, settings } = input;
   const byId = new Map(candidates.listings.map(l => [l.productId, l]));
   const byCode = new Map(candidates.listings.map(l => [l.code, l]));
@@ -44,10 +48,13 @@ export function selectRecommendations(input: SelectionInput, rules: AssociationR
     ({ placementType: "organic", reasonCode, reasonText, product, adPlacementId: null, promotionVersionId: null, sponsor: null, evidence });
 
   // 1. Store promotion: store intent, chosen by its priority (then relevance to the cart, then id).
+  //    The demo pick (#189) comes first while it is offered and not in the cart.
   let promo: Draft | null = null;
+  const pinned = (productId: string) => pinnedStorePicks.includes(byId.get(productId)!.code) ? 1 : 0;
   const promos = candidates.promotions.filter(p => available(p.productId)).map(p => ({
     p, strength: strongestRelation(rules, cartCodes, byId.get(p.productId)!.code)?.strength ?? 0 }))
-    .sort((a, b) => b.p.priority - a.p.priority || b.strength - a.strength || a.p.promotionVersionId.localeCompare(b.p.promotionVersionId));
+    .sort((a, b) => pinned(b.p.productId) - pinned(a.p.productId) || b.p.priority - a.p.priority || b.strength - a.strength
+      || a.p.promotionVersionId.localeCompare(b.p.promotionVersionId));
   if (promos[0]) {
     const { p } = promos[0];
     promo = { placementType: "store_promo", reasonCode: "store_pick", reasonText: p.reasonText, product: byId.get(p.productId)!,
