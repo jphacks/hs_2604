@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 
 export function PageTitle({ title, lead, action }: { title: string; lead?: string; action?: ReactNode }) {
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+    <div className="ads-page-title">
       <div>
         <h1 className="text-2xl font-bold">{title}</h1>
         {lead && <p className="mt-1 text-sm text-muted">{lead}</p>}
@@ -15,7 +15,7 @@ export function PageTitle({ title, lead, action }: { title: string; lead?: strin
 }
 
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`rounded-xl border border-line bg-surface p-5 ${className}`}>{children}</div>;
+  return <div className={`ads-card ${className}`}>{children}</div>;
 }
 
 const TONES = {
@@ -29,16 +29,16 @@ export type Tone = keyof typeof TONES;
 
 export function Badge({ tone = "gray", children }: { tone?: Tone; children: ReactNode }) {
   return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ${TONES[tone]}`}>
+    <span className={`ads-badge ring-1 ${TONES[tone]}`}>
       {children}
     </span>
   );
 }
 
 const BTN = {
-  primary: "bg-brand text-white hover:bg-brand-strong",
-  secondary: "border border-line bg-surface hover:bg-gray-50",
-  danger: "border border-red-300 bg-surface text-red-700 hover:bg-red-50",
+  primary: "ads-button-primary",
+  secondary: "ads-button-secondary",
+  danger: "ads-button-danger",
 } as const;
 
 export function Button({
@@ -48,7 +48,7 @@ export function Button({
 }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: keyof typeof BTN }) {
   return (
     <button
-      className={`inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${BTN[variant]} ${className}`}
+      className={`ads-button ${BTN[variant]} ${className}`}
       {...props}
     />
   );
@@ -64,7 +64,7 @@ export function ButtonLink({
   children: ReactNode;
 }) {
   return (
-    <Link href={href} className={`inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold transition ${BTN[variant]}`}>
+    <Link href={href} className={`ads-button ${BTN[variant]}`}>
       {children}
     </Link>
   );
@@ -72,16 +72,16 @@ export function ButtonLink({
 
 export function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
-    <label className="block">
-      <span className="text-sm font-semibold">{label}</span>
-      {hint && <span className="ml-2 text-xs text-muted">{hint}</span>}
-      <div className="mt-1">{children}</div>
+    <label className="ads-field">
+      <span className="ads-field-label">{label}</span>
+      {hint && <span className="ads-field-hint">{hint}</span>}
+      <div className="ads-field-control">{children}</div>
     </label>
   );
 }
 
 export const inputClass =
-  "w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20";
+  "ads-input";
 
 export function ErrorList({ errors }: { errors: string[] }) {
   if (errors.length === 0) return null;
@@ -97,11 +97,11 @@ export function ErrorList({ errors }: { errors: string[] }) {
 }
 
 export function Empty({ children }: { children: ReactNode }) {
-  return <div className="rounded-xl border border-dashed border-line p-8 text-center text-sm text-muted">{children}</div>;
+  return <div className="ads-empty">{children}</div>;
 }
 
 export function Loading() {
-  return <p className="py-8 text-center text-sm text-muted">読み込み中…</p>;
+  return <p className="ads-loading">読み込み中…</p>;
 }
 
 /** 役割が違うときの案内（ログインが必要な画面） */

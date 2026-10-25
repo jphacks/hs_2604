@@ -1,5 +1,7 @@
 "use client";
 import Link from "next/link";
+import {AdsTopbar} from "@/features/shell/ads-navigation";
+import {AdsHomeView} from "@/features/shell/ads-home";
 import { usePathname } from "next/navigation";
 import { createContext, useContext, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { BackendError, signInBackend, signOutBackend, toBackendError } from "@kago/backend";
@@ -174,7 +176,7 @@ function Login() {
     try { await login(email, password, role); }
     finally { setPassword(""); setBusy(false); }
   }
-  return <div className="mx-auto max-w-md">
+  return <div className="ads-login mx-auto max-w-md">
     <PageTitle title={role === "store_staff" ? "店舗担当者としてログイン" : "メーカーとしてログイン"} lead="メーカーは募集を探せます。店舗担当者は自店の募集を作成・公開できます。" />
     <Card>
       {state.status === "guest" && state.error && <ErrorList errors={[state.error]} />}
@@ -199,12 +201,7 @@ export function AdsAccess({ children }: { children: ReactNode }) {
   if (state.status === "loading") return <Loading />;
   if (state.status !== "ready") return <Login />;
   const store = state.identity.role === "store_staff";
-  if (pathname === "/ads") return <>
-    <PageTitle title="KAGO/Ads" lead={store ? "自店の広告募集を作成・公開・終了できます。" : "店舗の募集を比較し、掲載条件を確認できます。"} />
-    <Card><h2 className="font-bold">{store ? "広告を募集する" : "広告を出す店舗を探す"}</h2>
-      <p className="my-3 text-sm text-muted">募集は共有DBへ保存されます。募集の公開は、広告の掲載承認とは異なります。</p>
-      <ButtonLink href={store ? "/ads/store/calls" : "/ads/portal"}>{store ? "自店の募集を見る" : "募集を探す"}</ButtonLink></Card>
-  </>;
+  if (pathname === "/ads") return <AdsHomeView role={state.identity.role}/>;
   if (pathname === "/ads/portal" || pathname.startsWith("/ads/portal/")) {
     if (store) return <Card><p>募集ポータルはメーカー向けです。自店の募集は「自店の募集」で確認できます。</p><ButtonLink href="/ads/store/calls">自店の募集を見る</ButtonLink></Card>;
     return <div key={state.identity.userId}>{children}</div>;
@@ -232,32 +229,23 @@ export function ConnectedAdsHeader() {
   const { state, logout, storeId, selectStore } = useAdsRuntime();
   const identity = state.status === "ready" ? state.identity : null;
   const store = identity?.role === "store_staff" ? identity : null;
-  return <header className="border-b border-line bg-surface">
-    <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-4 px-4 py-3">
-      <Link href="/ads" className="font-bold"><span className="text-brand">KAGO</span>/Ads</Link>
-      {store ? <Link href="/ads/store/calls" className="text-sm text-brand">自店の募集</Link> : <>
-        <Link href="/ads/portal" className="text-sm text-brand">募集を探す</Link>
-        <Link href="/ads/portal/stores" className="text-sm text-brand">店舗一覧</Link>
-        {identity && <>
-          <Link href="/ads/maker/creatives" className="text-sm text-brand">広告素材</Link>
-          <Link href="/ads/maker/applications" className="text-sm text-brand">申請一覧</Link>
-          <Link href="/ads/maker/results" className="text-sm text-brand">広告の成果</Link>
-        </>}
-      </>}
-      <span className="ml-auto text-xs text-muted">{identity ? (store ? "店舗担当者としてログイン中" : "メーカーとしてログイン中") : "募集ポータル"}</span>
-      {store && <label className="flex items-center gap-2 text-sm">操作する店舗
-        <select className="max-w-64 rounded-md border border-line p-2" value={storeId ?? ""} onChange={(e) => selectStore(e.target.value)}>
-          {store.stores.map((s) => <option key={s.id} value={s.id}>{storeLabel(s)}</option>)}
-        </select>
-      </label>}
-      {identity && <Button variant="secondary" onClick={() => { void logout(); }}>ログアウト</Button>}
-    </div>
-  </header>;
+  const nav=store?[{href:"/ads/store/calls",label:"自店の募集"}]:[
+    {href:"/ads/portal",label:"募集を探す"},{href:"/ads/portal/stores",label:"店舗一覧"},
+    ...(identity?[{href:"/ads/maker/creatives",label:"広告素材"},{href:"/ads/maker/applications",label:"申請一覧"},{href:"/ads/maker/results",label:"広告の成果"}]:[])
+  ];
+  return <AdsTopbar nav={nav} account={identity?(store?"店舗担当者":"メーカー"):"募集ポータル"}>
+    {store && <label>操作する店舗
+      <select aria-label="操作する店舗" value={storeId??""} onChange={e=>selectStore(e.target.value)}>
+        {store.stores.map(s=><option key={s.id} value={s.id}>{storeLabel(s)}</option>)}
+      </select>
+    </label>}
+    {identity && <Button variant="secondary" onClick={()=>{void logout();}}>ログアウト</Button>}
+  </AdsTopbar>;
 }
 
 export function AdsFooter() {
   const { source } = useAdsRuntime();
-  return <footer className="border-t border-line px-6 py-4 text-center text-xs text-muted">
+  return <footer className="ads-footer">
     {source === "mock"
       ? "仮データで動いています。店舗・メーカー・商品はデモ用の架空のものです。"
       : "募集・広告素材・申請は共有DBへ保存します。掲載には店舗の承認が必要です。"}
