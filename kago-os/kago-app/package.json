@@ -6,6 +6,7 @@
     "node": ">=22.13.0 <23"
   },
   "scripts": {
+    "test:ads-public:e2e": "node --experimental-strip-types tests/ads-public-path.e2e.mts",
     "dev": "node scripts/sync-lp.mjs && next dev",
     "build": "node scripts/sync-lp.mjs && next build",
     "start": "next start",
