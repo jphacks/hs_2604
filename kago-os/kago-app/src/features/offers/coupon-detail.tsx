@@ -15,7 +15,7 @@ export function CouponDetail({offer,disabled,onClose,onClaim,onDismiss,closeButt
  return <div className="coupon-detail-overlay">
    <button type="button" tabIndex={-1} className="coupon-detail-backdrop" onClick={onClose} aria-label="クーポンを閉じる"/>
    <div className="coupon-detail-group">{previewControls}
-     <section role="dialog" aria-modal="true" aria-label={offer.headline} className={"coupon-detail-sheet"+(appearance==="guerrilla"?" coupon-detail-guerrilla":"")}>
+     <section role="dialog" aria-modal="true" aria-label={offer.headline} className={"coupon-detail-sheet"+(appearance==="guerrilla"?" coupon-detail-guerrilla":"")+(redemption?" coupon-detail-scanning":"")}>
        <div className="coupon-detail-handle" aria-hidden="true"/>
        <header className="coupon-detail-header"><span><ShoppingIcon name="coupon"/>{appearance==="guerrilla"?"ゲリラクーポン":offer.kind==="guerrilla_coupon"?"クーポン":offerKindLabel[offer.kind]}</span><button ref={closeButtonRef} type="button" onClick={onClose} aria-label="閉じる">×</button></header>
        <div className="coupon-detail-body">
@@ -29,7 +29,7 @@ export function CouponDetail({offer,disabled,onClose,onClaim,onDismiss,closeButt
          <p className="coupon-detail-deadline"><ShoppingIcon name="history"/><span>1点まで · <time dateTime={offer.endsAt}>{date.format(new Date(offer.endsAt))}</time>まで</span></p>
          </>}
        </div>
-       <footer className="coupon-detail-footer">{scanRequired&&<p className="coupon-scan-guidance">対象商品をスキャンすると、割引が適用されます。</p>}{!redemption&&<button type="button" disabled={disabled} onClick={onClaim} className="coupon-detail-claim"><ShoppingIcon name={scanRequired?"coupon":"cart"}/>{scanRequired?"クーポンを受け取る":offer.action==="apply"?"かごの商品に割引を適用":"割引付きでかごに追加"}</button>}<button type="button" onClick={onDismiss} className="coupon-detail-dismiss">今回は見送る</button></footer>
+       <footer className="coupon-detail-footer">{scanRequired&&!redemption&&<p className="coupon-scan-guidance">対象商品をスキャンすると、割引が適用されます。</p>}{!redemption&&<button type="button" disabled={disabled} onClick={onClaim} className="coupon-detail-claim"><ShoppingIcon name={scanRequired?"coupon":"cart"}/>{scanRequired?"クーポンを受け取る":offer.action==="apply"?"かごの商品に割引を適用":"割引付きでかごに追加"}</button>}<button type="button" onClick={onDismiss} className="coupon-detail-dismiss">今回は見送る</button></footer>
      </section>
    </div>
  </div>;

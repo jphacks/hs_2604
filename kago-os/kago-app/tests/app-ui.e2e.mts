@@ -63,6 +63,16 @@ try{
  await page.setViewportSize({width:390,height:844});await page.getByRole("button",{name:"カメラで読み取る",exact:true}).waitFor();
  await page.waitForFunction(()=>{const button=Array.from(document.querySelectorAll<HTMLButtonElement>("button")).find(b=>b.textContent?.includes("カメラで読み取る"));const card=document.querySelector<HTMLElement>('.shopping-stack-card[aria-hidden="false"]');const image=card?.querySelector("img");if(!card||!image?.complete||!image.naturalWidth||!button||button.disabled)return false;const a=card.getBoundingClientRect(),b=card.parentElement!.getBoundingClientRect();return a.top<b.bottom&&a.bottom>b.top;});await page.screenshot({path:out+"/home.png"});
  pass("ホームは5サイズで収まり、店舗選択とロゴサイズが一致する");
+ await page.evaluate(()=>{const original=navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);(window as unknown as {restoreCamera:()=>void}).restoreCamera=()=>{navigator.mediaDevices.getUserMedia=original;};navigator.mediaDevices.getUserMedia=async()=>{throw new DOMException("denied","NotAllowedError");};});
+ await page.getByRole("button",{name:"カメラで読み取る",exact:true}).click();
+ const warning=page.getByRole("alertdialog",{name:"お買い物のお知らせ",exact:true});
+ await warning.waitFor();
+ const message=warning.getByRole("alert");await message.waitFor();assert.ok((await message.innerText()).trim().length>0);
+ await page.screenshot({path:out+"/camera-warning.png"});
+ await warning.getByRole("button",{name:"閉じる",exact:true}).click();
+ await page.evaluate(()=>(window as unknown as {restoreCamera:()=>void}).restoreCamera());
+ pass("カメラ拒否の警告文が空にならず表示される");
+
  const catalog=await (await context.request.get(base+"/api/cart?products=1")).json();
  const apple=catalog.products.find((p:{productId:string})=>p.productId===id(21));assert.ok(apple);
  const milk=catalog.products.find((p:{productId:string})=>p.productId===id(20));assert.ok(milk);
@@ -102,6 +112,24 @@ try{
  await waitCart(apple.productId,appleBefore+1);
  await page.getByRole("dialog",{name:"果物から探す",exact:true}).getByRole("button",{name:"閉じる",exact:true}).click();
  pass("商品を選ぶだけでは追加されず、別商品は拒否、対象バーコード確認後だけ1点追加される");
+ // Exercise the visible decrease/delete controls and compare with the authoritative DB snapshot.
+ await fixture.rpc("app_set_cart_item",[id(13),crypto.randomUUID(),milk.productId,2,(await cart()).visit.cart_version,"manual",null]);
+ await page.reload();await page.getByTestId("shopping-home").waitFor();
+ await page.getByRole("button",{name:/買い物かごを開く/}).click();
+ const basket=page.getByRole("dialog",{name:"買い物かご",exact:true});
+ const milkLine=basket.locator(".shopping-basket-line").filter({has:page.getByRole("heading",{name:milk.name,exact:true})});
+ const milkQuantity=(await cart()).cart.find((line:{productId:string})=>line.productId===milk.productId).quantity;
+ await milkLine.getByRole("button",{name:milk.name+"を1点減らす",exact:true}).click();
+ await waitCart(milk.productId,milkQuantity-1);
+ if(milkQuantity>1)await milkLine.getByLabel(milk.name+"の数量",{exact:true}).filter({hasText:String(milkQuantity-1)}).waitFor();
+ await basket.getByRole("button",{name:apple.name+"を削除",exact:true}).click();
+ await waitCart(apple.productId,0);
+ await basket.getByRole("heading",{name:apple.name,exact:true}).waitFor({state:"detached"});
+ await basket.getByRole("button",{name:"閉じる",exact:true}).click();
+ await page.reload();await page.getByTestId("shopping-home").waitFor();
+ assert.equal((await cart()).cart.some((line:{productId:string})=>line.productId===apple.productId),false);
+ pass("かごの減算・ごみ箱削除がDBへ保存され、再読込でも戻らない");
+
  await page.getByRole("link",{name:"マイページ",exact:true}).click();await page.getByRole("heading",{name:"マイページ",exact:true}).waitFor();
  const historySwitch=page.getByRole("switch",{name:"購入履歴をおすすめに使う",exact:true});await historySwitch.click();await page.getByRole("status").filter({hasText:"設定を保存しました"}).waitFor();
  await page.locator(".account-cart-link").click();await page.getByRole("dialog",{name:"買い物かご",exact:true}).waitFor();
@@ -154,6 +182,15 @@ try{
  const coupon=page.getByRole("dialog",{name:"生バジル 25% OFF",exact:true});await coupon.waitFor();
  const beforeCoupon=await cart();assert.equal(beforeCoupon.cart.some((line:{productId:string})=>line.productId===PRODUCT.basil),false);
  await coupon.getByRole("button",{name:"クーポンを受け取る",exact:true}).click();
+ for(const size of [{width:390,height:844},{width:375,height:667},{width:320,height:568},{width:430,height:932}]){
+  await page.setViewportSize(size);
+  assert.equal(await coupon.locator(".coupon-detail-body").evaluate(el=>el.scrollHeight<=el.clientHeight+1),true,"Coupon scan fits "+JSON.stringify(size));
+  assert.equal(await coupon.locator(".scanner-idle").evaluate(el=>el.scrollHeight<=el.clientHeight+1),true,"Camera fits "+JSON.stringify(size));
+  await page.screenshot({path:out+"/coupon-scan-"+size.width+".png"});
+ }
+ await page.setViewportSize({width:390,height:844});
+ pass("クーポン読取画面は4サイズでカメラ・入力・使用ボタンがスクロールなしで収まる");
+
  assert.equal((await cart()).cart.some((line:{productId:string})=>line.productId===PRODUCT.basil),false);
  await coupon.getByLabel("クーポン対象の商品コードを入力",{exact:true}).fill(milk.code);await coupon.getByRole("button",{name:"商品を確認",exact:true}).click();
  await coupon.getByRole("alert").filter({hasText:"クーポン対象の商品ではありません"}).waitFor();

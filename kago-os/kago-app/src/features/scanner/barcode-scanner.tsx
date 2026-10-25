@@ -2,6 +2,7 @@
 
 import { BrowserMultiFormatReader, IScannerControls } from "@zxing/browser";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ShoppingIcon } from "@/components/shopping-icons";
 import "./scanner-toast.css";
 
@@ -191,11 +192,11 @@ export function BarcodeScanner({ onDetected, onReadFailure, disabled = false, pu
             </div>
           </div>
           {/* #166：エラーは読み取りの枠の中に差し込まず、画面の上に重ねて出す（枠の中の並びを崩さない） */}
-          {status === "error" && !toastClosed && (
+          {status === "error" && !toastClosed && createPortal(
             <div role="alert" className="scanner-toast">
-              <p>{errorMessage}</p>
+              <p>{errorMessage.trim() || "カメラを開始できませんでした。ブラウザのカメラ設定を確認して、もう一度お試しください。"}</p>
               <button type="button" onClick={() => setToastClosed(true)} aria-label="お知らせを閉じる">×</button>
-            </div>
+            </div>, document.body
           )}
           <button
             type="button"
