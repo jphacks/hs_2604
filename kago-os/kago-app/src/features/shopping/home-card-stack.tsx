@@ -17,6 +17,10 @@ import type {SerendipityOffer} from "@/features/offers/contracts";
 import type {SavedSelectionItem} from "@/features/recommendations/selection-contracts";
 import {ShoppingIcon} from "@/components/shopping-icons";
 
+// #166：「店舗からのおすすめ」の背景（商品を限定しない共通の3枚）。カードごとの ID から1枚を選ぶ
+// （おすすめが選び直されると変わる。描画のたびに選び直すとちらつくので、乱数ではなく ID から決める）
+const STORE_RECOMMENDATION_IMAGES=["/images/shopping/store-recommendation-v2/a-staff.webp","/images/shopping/store-recommendation-v2/b-family.webp","/images/shopping/store-recommendation-v2/c-basket.webp"];
+export function storeRecommendationImage(id:string){let h=0;for(const c of id)h=(h*31+c.charCodeAt(0))>>>0;return STORE_RECOMMENDATION_IMAGES[h%STORE_RECOMMENDATION_IMAGES.length];}
 function subscribeMotion(change:()=>void){const media=window.matchMedia("(prefers-reduced-motion: reduce)");media.addEventListener("change",change);return()=>media.removeEventListener("change",change);}
 const motionSnapshot=()=>window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 export function HomeCardStack({onOpen,onScan,blocked=false}:{onOpen:(item?:SavedSelectionItem)=>void;onScan:(product:StoreProduct)=>void;blocked?:boolean}){
@@ -24,24 +28,34 @@ export function HomeCardStack({onOpen,onScan,blocked=false}:{onOpen:(item?:Saved
 }
 function CardStack({onOpen,blocked,offers,onUse,serverTime,reminders,onScan}:{onOpen:(item?:SavedSelectionItem)=>void;blocked:boolean;offers:SerendipityOffer[];onUse:(offer:SerendipityOffer)=>void;serverTime:string;reminders:RegularReminder[];onScan:(product:StoreProduct)=>void}){
  const cart=useCart();
- const {state,retry}=useRecommendations();
+ const {state,refreshQuietly}=useRecommendations();
  const track=useAppEvents();
  const container=useRef<HTMLElement>(null);
  const items=state.status==="ready"?[...state.data.items].sort((a,b)=>({sponsored:0,store_promo:1,organic:2}[a.placementType]-{sponsored:0,store_promo:1,organic:2}[b.placementType])||a.rank-b.rank):[];
- const recommendationCards=items.length?items.map(item=>({id:item.selectionItemId,image:MENU_PRODUCT_IMAGES[item.product.code]??"/images/shopping/fresh-family.png",label:item.placementType==="sponsored"?"広告":item.placementType==="store_promo"?"店舗からのおすすめ":"あなたへのおすすめ",kicker:item.placementType==="store_promo"?item.reasonText:item.sponsor?.headline??"今日のお買い物に",first:shortProductName(item.product.name),second:new Intl.NumberFormat("ja-JP",{style:"currency",currency:"JPY"}).format(item.product.price),button:"詳細を見る",item})): [{id:"fresh",image:"/images/shopping/fresh-family.png",label:"お買い物のヒント",kicker:"毎日の食卓を、もっとかんたんに",first:"新鮮な食材で",second:"家族の笑顔を。",button:"おすすめ商品を見る",item:undefined}];
+ const recommendationCards=items.length?items.map(item=>({id:item.selectionItemId,image:item.placementType==="store_promo"?storeRecommendationImage(item.selectionItemId):MENU_PRODUCT_IMAGES[item.product.code]??"/images/shopping/fresh-family.png",photo:item.placementType!=="store_promo"&&!!MENU_PRODUCT_IMAGES[item.product.code],label:item.placementType==="sponsored"?"広告":item.placementType==="store_promo"?"店舗からのおすすめ":"あなたへのおすすめ",kicker:item.placementType==="store_promo"?item.reasonText:item.sponsor?.headline??"今日のお買い物に",first:shortProductName(item.product.name),second:new Intl.NumberFormat("ja-JP",{style:"currency",currency:"JPY"}).format(item.product.price),button:"詳細を見る",item})): [{id:"fresh",image:"/images/shopping/fresh-family.png",label:"お買い物のヒント",kicker:"毎日の食卓を、もっとかんたんに",first:"新鮮な食材で",second:"家族の笑顔を。",button:"おすすめ商品を見る",item:undefined}];
  const cards=[...offers.map(offer=>({id:offer.offerId,label:offer.kind==="set_deal"?"セット割":"タイムセール",offer,item:undefined,reminder:undefined})),...reminders.map(reminder=>({id:"regular-"+reminder.product.productId,label:"いつもの商品",reminder,offer:undefined,item:undefined})),...recommendationCards.map(card=>({...card,offer:undefined,reminder:undefined}))];
  const [position,setPosition]=useState({active:0,previous:-1});
- const [hovered,setHovered]=useState(false),[focused,setFocused]=useState(false),[stopped,setStopped]=useState(false);
+ // #166：広告の停止ボタンはなし。マウスを乗せている間・操作中・動きを減らす設定のときは自動で切り替えない
+ const [hovered,setHovered]=useState(false),[focused,setFocused]=useState(false);
  const reduced=useSyncExternalStore(subscribeMotion,motionSnapshot,()=>true);
  const current=position.active%cards.length;
  useImpression(container,cards[current]?.item,!blocked);
  const wheelUntil=useRef(0),touch=useRef<{x:number;y:number}|null>(null);
  const move=useCallback((step:number)=>setPosition(p=>({previous:p.active,active:(p.active+step+cards.length)%cards.length})),[cards.length]);
+ // #166：「おすすめを更新」ボタンの代わりに、画面に戻ったとき・30秒ごとに、カードを消さずに取り直す（Insight の設定変更を反映する）
  useEffect(()=>{
-  if(blocked||hovered||focused||stopped||reduced||cards.length<2)return;
+  if(blocked)return;
+  let last=0;
+  const quiet=()=>{if(document.visibilityState!=="visible"||Date.now()-last<5000)return;last=Date.now();refreshQuietly();};
+  const timer=window.setInterval(quiet,30000);
+  window.addEventListener("focus",quiet);document.addEventListener("visibilitychange",quiet);
+  return()=>{window.clearInterval(timer);window.removeEventListener("focus",quiet);document.removeEventListener("visibilitychange",quiet);};
+ },[blocked,refreshQuietly]);
+ useEffect(()=>{
+  if(blocked||hovered||focused||reduced||cards.length<2)return;
   const timer=window.setInterval(()=>{if(document.visibilityState==="visible")move(1);},5000);
   return()=>window.clearInterval(timer);
- },[blocked,hovered,focused,stopped,reduced,move,cards.length]);
+ },[blocked,hovered,focused,reduced,move,cards.length]);
  return <section ref={container} className="shopping-card-stack" aria-label="広告とおすすめ" aria-roledescription="カルーセル"
   onPointerEnter={e=>{if(e.pointerType==="mouse")setHovered(true);}} onPointerLeave={()=>setHovered(false)}
   onFocusCapture={()=>setFocused(true)} onBlurCapture={e=>{if(!e.currentTarget.contains(e.relatedTarget))setFocused(false);}}>
@@ -53,10 +67,11 @@ function CardStack({onOpen,blocked,offers,onUse,serverTime,reminders,onScan}:{on
    {cards.map((card,index)=>{
     const offset=cards.length===1?0:((index-current+cards.length+1)%cards.length)-1;
     const animate=index===current||index===position.previous;
-    return <article data-selection-item-id={card.item?.selectionItemId} key={card.id} aria-label={card.item?`${card.label}：${card.item.product.name}`:card.label} className={"shopping-stack-card shopping-stack-card-"+card.id} aria-hidden={index!==current} inert={index!==current}
+    return <article data-selection-item-id={card.item?.selectionItemId} key={card.id} aria-label={card.item?`${card.label}：${card.item.product.name}`:card.label} className={"shopping-stack-card shopping-stack-card-"+card.id+("photo" in card&&card.photo?" shopping-stack-card-photo":"")} aria-hidden={index!==current} inert={index!==current}
      style={{transform:"translateY("+(-offset*104)+"%)",transition:animate&&!reduced?"transform 480ms cubic-bezier(.2,.75,.25,1)":"none"}}>
      {card.reminder?<RegularReminderCard item={card.reminder} disabled={!cart.canEdit} onScan={()=>onScan(card.reminder.product)}/>:card.offer?<StoreOfferCard offer={card.offer} disabled={!cart.canEdit} serverTime={serverTime} onUse={()=>onUse(card.offer)}/>:<>
-     <Image src={card.image} alt="" fill sizes="(max-width:520px) 94vw, 500px"/>
+     {/* #166：広告・あなたへのおすすめの商品写真は、枠いっぱいに広げず右側の決まった場所に商品全体を入れる（店舗からのおすすめは背景の画像） */}
+     {"photo" in card&&card.photo?<div className="shopping-stack-photo"><Image src={card.image} alt="" fill sizes="(max-width:520px) 45vw, 240px"/></div>:<Image src={card.image} alt="" fill sizes="(max-width:520px) 94vw, 500px"/>}
      <div className="shopping-stack-copy">
       <span className="shopping-stack-label">{card.label}</span><p>{card.kicker}</p>
       <h2>{card.first}<br/>{card.second}</h2>
@@ -64,9 +79,7 @@ function CardStack({onOpen,blocked,offers,onUse,serverTime,reminders,onScan}:{on
      </div></>}
     </article>;
    })}
-   <button type="button" className="shopping-stack-motion" aria-label={stopped?"広告の自動切替を再開":"広告の自動切替を停止"} aria-pressed={stopped} onClick={()=>setStopped(p=>!p)}>{stopped?"▶":"Ⅱ"}</button>
   </div>
   <div className="shopping-stack-dots" aria-label="表示するカード">{cards.map((card,index)=><button key={card.id} type="button" aria-label={(index+1)+"枚目："+card.label} aria-pressed={current===index} onClick={()=>setPosition(p=>({previous:p.active,active:index}))}><span/></button>)}</div>
-  <button type="button" onClick={retry} disabled={blocked||state.status==="loading"} className="shopping-stack-refresh col-span-2 h-11 self-start justify-self-end rounded-xl border border-emerald-200 bg-white px-3 text-xs font-bold text-emerald-800 disabled:opacity-40">おすすめを更新</button>
  </section>;
 }

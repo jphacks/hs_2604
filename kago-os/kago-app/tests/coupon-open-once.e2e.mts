@@ -72,27 +72,31 @@ try {
   assert.equal(await sticker().count(), 0);
   await page.screenshot({ path: resolve(output, "detail-mobile.png") });
   await dialog().getByRole("button", { name: "閉じる", exact: true }).click();
-  await dialog().waitFor({ state: "hidden" }); assert.equal(await sticker().count(), 0);
+  // #166: closing the details returns to the ticket; only using or「今回は見送る」removes it.
+  await dialog().waitFor({ state: "hidden" }); await sticker().waitFor(); assert.equal(await sticker().count(), 1);
   await page.screenshot({ path: resolve(output, "after-close-mobile.png") });
-  await reload(); assert.equal(await sticker().count(), 0);
+  await reload(); await sticker().waitFor(); assert.equal(await sticker().count(), 1);
   assert.equal(await eventCount("offer_opened"), 1); assert.equal(await eventCount("offer_dismissed"), 0);
-  pass("coupon-only details open; closing with X and reloading keep the sticker hidden without a dismissal event");
+  pass("coupon-only details open; closing with X returns to the ticket (also after reload) without a dismissal event");
 
   const refreshed = page.waitForResponse(r => r.url().endsWith("/api/offers") && r.request().method() === "GET");
   await addCode("4900000000016");
-  await page.getByText("かごを保存しました。", { exact: true }).waitFor(); await refreshed;
-  assert.equal(await sticker().count(), 0);
-  pass("a saved cart update does not restore the opened sticker");
+  await page.getByText("かごを保存しました。", { exact: true }).waitFor();
+  // The server re-chooses the coupon from the latest added product (DEMO-02), so the ticket follows its answer.
+  const offered = (await (await refreshed).json()).coupon;
+  if (offered) await sticker().waitFor(); else await page.waitForTimeout(500);
+  assert.equal(await sticker().count(), offered ? 1 : 0);
+  pass("after a saved cart update the ticket follows the server's coupon for the latest product (opening never hides it)");
 
   await newVisit(); await sticker().click(); await dialog().waitFor();
   await page.keyboard.press("Escape"); await dialog().waitFor({ state: "hidden" });
-  assert.equal(await sticker().count(), 0); await reload(); assert.equal(await sticker().count(), 0);
-  pass("a new visit shows the coupon again; Escape consumes it for that visit");
+  await sticker().waitFor(); assert.equal(await sticker().count(), 1); await reload(); await sticker().waitFor(); assert.equal(await sticker().count(), 1);
+  pass("a new visit shows the coupon again; Escape also returns to the ticket");
 
   await newVisit(); await sticker().click(); await dialog().waitFor();
   await page.getByRole("button", { name: "クーポンを閉じる", exact: true }).click({ position: { x: 10, y: 10 } });
-  await dialog().waitFor({ state: "hidden" }); assert.equal(await sticker().count(), 0);
-  pass("closing by tapping the backdrop also leaves the sticker hidden");
+  await dialog().waitFor({ state: "hidden" }); await sticker().waitFor(); assert.equal(await sticker().count(), 1);
+  pass("closing by tapping the backdrop also returns to the ticket");
 
   await newVisit(); await sticker().click(); await dialog().waitFor();
   await dialog().getByRole("button",{name:"クーポンを受け取る",exact:true}).click();
@@ -120,20 +124,7 @@ try {
   assert.equal(await eventCount("offer_dismissed"), 0);
   pass("another customer in the same tab can open their coupon; explicit dismissal remains recorded separately");
 
-  await page.evaluate(() => {
-    const save = Storage.prototype.setItem;
-    Storage.prototype.setItem = function (key, value) {
-      if (key.startsWith("kago-offers-opened:")) throw new DOMException("Test storage rejection", "QuotaExceededError");
-      save.call(this, key, value);
-    };
-  });
-  await newVisit(); await sticker().click(); await dialog().waitFor();
-  await dialog().getByRole("button", { name: "閉じる", exact: true }).click();
-  const storageRefresh = page.waitForResponse(r => r.url().endsWith("/api/offers") && r.request().method() === "GET");
-  await addCode("4900000000016");
-  await page.getByText("かごを保存しました。", { exact: true }).waitFor(); await storageRefresh;
-  assert.equal(await sticker().count(), 0);
-  pass("if saving the display preference fails, a cart refresh still preserves the in-memory choice");
+  // #166: the "opened" list is no longer stored (opening does not consume the ticket), so its storage-failure check was removed.
   assert.equal(errors.length, 0, errors.join("\n"));
   await writeFile(resolve(output, "result.json"), JSON.stringify({ passed }, null, 2));
 } finally { await browser?.close(); server.kill(); await fixture.close(); }

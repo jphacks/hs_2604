@@ -3,6 +3,7 @@
 import { BrowserMultiFormatReader, IScannerControls } from "@zxing/browser";
 import { useEffect, useRef, useState } from "react";
 import { ShoppingIcon } from "@/components/shopping-icons";
+import "./scanner-toast.css";
 
 type ScannerStatus = "idle" | "starting" | "scanning" | "error";
 
@@ -23,6 +24,7 @@ export function BarcodeScanner({ onDetected, onReadFailure, disabled = false, pu
   const timeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [status, setStatus] = useState<ScannerStatus>("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const [toastClosed, setToastClosed] = useState(false);
 
   const stopScanner = () => {
     generation.current++;
@@ -51,6 +53,7 @@ export function BarcodeScanner({ onDetected, onReadFailure, disabled = false, pu
     if (disabled || !videoRef.current || status === "starting" || status === "scanning") {
       return;
     }
+    setToastClosed(false);
 
     setStatus("starting");
     setErrorMessage("");
@@ -187,10 +190,12 @@ export function BarcodeScanner({ onDetected, onReadFailure, disabled = false, pu
               <p className="mt-1 text-xs leading-5 text-slate-300 sm:text-sm">{description ?? (purpose === "store" ? "店頭に設置されたQRコードを読み取ってください" : appearance === "shopping" ? "読み取り後、商品を自動で\nカートに追加します" : "読み取り後、商品を自動でかごへ追加します")}</p>
             </div>
           </div>
-          {status === "error" && (
-            <p className="scanner-error mt-3 rounded-xl bg-red-950/60 px-3 py-2 text-sm text-red-100">
-              {errorMessage}
-            </p>
+          {/* #166：エラーは読み取りの枠の中に差し込まず、画面の上に重ねて出す（枠の中の並びを崩さない） */}
+          {status === "error" && !toastClosed && (
+            <div role="alert" className="scanner-toast">
+              <p>{errorMessage}</p>
+              <button type="button" onClick={() => setToastClosed(true)} aria-label="お知らせを閉じる">×</button>
+            </div>
           )}
           <button
             type="button"

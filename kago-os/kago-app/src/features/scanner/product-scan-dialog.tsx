@@ -44,7 +44,8 @@ export function ProductScanDialog({product,disabled,onVerified,onClose}:{product
      <header><div><p>商品を手元にご用意ください</p><h2 id="target-scan-heading">{product.name}を読み取る</h2></div><button ref={close} type="button" onClick={onClose} aria-label="読み取りを閉じる">×</button></header>
      <div className="target-scan-camera"><BarcodeScanner appearance="shopping" disabled={disabled||busy} onDetected={value=>{setCode(value);void verify(value);}} description="選んだ商品のバーコードを読み取ると、かごに追加します。"/></div>
      <p className="target-scan-help">商品を画面で選ぶだけでは、かごに追加されません。</p>
-     {error&&<p role="alert" className="target-scan-error">{error}</p>}
+     {/* #166：エラーは読み取りの枠の下に差し込まず、画面の上に重ねて出す */}
+     {error&&<div role="alert" className="scanner-toast"><p>{error}</p><button type="button" onClick={()=>setError("")} aria-label="お知らせを閉じる">×</button></div>}
      <details><summary>カメラが使えないとき</summary><form onSubmit={event=>{event.preventDefault();void verify(code);}}><label>商品のバーコード番号<input value={code} onChange={event=>setCode(event.target.value)} maxLength={100} required disabled={busy} autoComplete="off" inputMode="numeric"/></label><button type="submit" disabled={disabled||busy||!code.trim()}>{busy?"確認しています…":"番号を確認して追加"}</button></form></details>
    </section>
  </div>;

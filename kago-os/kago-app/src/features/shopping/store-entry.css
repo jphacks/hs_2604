@@ -53,8 +53,6 @@ html:has(.store-entry),body:has(.store-entry){height:100%;overflow:hidden;backgr
 
 .store-scanner.shopping-scanner-active .scanner-target{width:calc(100% - 36px);height:calc(100% - 100px);max-height:none;transform:translateY(-5px)}
 
-.store-scanner .scanner-idle:has(.scanner-error) .scanner-intro{display:none}
-.store-scanner .scanner-error{display:flex;align-items:center;flex:1;margin:0;min-height:0;overflow:auto;padding:12px;font-size:13px;line-height:1.7;border-radius:16px}
 .store-entry-extra{margin:8px auto 0;text-align:center;color:#5C6C7A;font-size:11px}
 .store-entry-extra summary{cursor:pointer;min-height:32px;padding:8px}
 .store-entry-extra button{margin-top:2px}
@@ -109,3 +107,25 @@ html:has(.store-entry),body:has(.store-entry){height:100%;overflow:hidden;backgr
 .store-entry>header img,.shopping-session-logo{width:clamp(160px,48vw,220px);max-width:100%;height:auto}
 .store-scanner.shopping-scanner-active .scanner-target{top:38px;bottom:auto;height:calc(100% - 86px);width:auto;aspect-ratio:1;max-width:calc(100% - 36px)}
 @media(max-height:650px){.store-scanner.shopping-scanner-active .scanner-target{top:33px;height:calc(100% - 76px)}}
+
+
+/* #166：QR の枠は、下のデモ用の店舗選択が本番でなくなった場合と同じくらいの大きさで固定する。
+   枠は残りの高さを全部使い（中身やエラーで大きさを変えない）、画面の縦横比にだけ合わせる。デモ用の店舗選択は下に小さくまとめる */
+.store-entry-content{flex:1;display:flex;flex-direction:column;overflow:hidden;padding-bottom:max(12px,env(safe-area-inset-bottom))}
+.store-entry-title{flex:none;margin:0 3px}
+.store-entry-content>.store-scanner{flex:1 1 auto;height:auto;min-height:200px;max-height:none}
+.store-entry-help{flex:none;font-size:11px;line-height:1.6;margin:0 4px}
+.store-entry-options{flex:none;margin:0;padding-top:8px;display:flex;align-items:center;gap:8px}
+.store-entry-options h2{flex:none;margin:0;font-size:11px;font-weight:750;color:#5C6C7A}
+.store-entry-chips{display:flex;flex:1;min-width:0;flex-wrap:nowrap;gap:6px;overflow-x:auto;scrollbar-width:none;padding:2px 0}
+.store-entry-chips::-webkit-scrollbar{display:none}
+.store-entry-chips button{flex:none;min-height:32px;padding:4px 10px;gap:5px;border-radius:12px;font-size:12px}
+.store-entry-chips svg{width:15px;height:16px}
+.store-entry-check{width:15px;height:15px;font-size:10px}
+.store-entry-actions{flex:none;margin:0}
+.store-entry-resume{min-height:44px;padding:8px 12px;gap:9px;border-radius:16px;font-size:14px}
+.store-entry-resume>svg:first-child{width:20px;height:20px}
+.store-entry-extra{flex:none;margin-top:2px}
+.store-entry-extra summary{min-height:26px;padding:4px}
+.store-entry-options>.store-entry-help{margin:0}
+@media(max-height:680px){.store-entry h1{font-size:22px}.store-entry-content>.store-scanner{min-height:170px}}

@@ -179,12 +179,13 @@ export default function Home() {
             <div className="shopping-catalog-tabs" aria-label="商品のカテゴリ">
               {[{id:"all" as Category,label:"すべて"},...categories].map(item=><button key={item.id} type="button" aria-pressed={category===item.id} onClick={()=>setCategory(item.id)}>{item.label}</button>)}
             </div>
-            <details className="shopping-code"><summary>バーコードが読み取れないとき</summary>
+            {/* #166：分類（果物・惣菜・野菜・パン）から開いたときは出さない。検索（すべての商品）では、カメラで読めないときの代わりとして残す */}
+            {category==="all"&&<details className="shopping-code"><summary>バーコードが読み取れないとき</summary>
         <form onSubmit={submitCode} className="mt-3 flex items-end gap-2">
           <label className="grid min-w-0 flex-1 gap-1 text-sm font-bold">商品コードを入力<input value={barcode} onChange={e => setBarcode(e.target.value)} required maxLength={100} autoComplete="off" className="min-h-11 min-w-0 rounded-xl border border-slate-300 bg-white px-3 font-normal" placeholder="バーコードの数字など" /></label>
           <button className={button} disabled={!cart.canEdit || !barcode.trim()}>コードで追加</button>
         </form>
-            </details>
+            </details>}
             {cart.error&&<div className="mb-3">{status}</div>}
       <section id="manual-products" className="shopping-products" aria-labelledby="products-heading">
         <div className="shopping-catalog-heading"><h2 id="products-heading">{category==="all"?"すべての商品":categories.find(c=>c.id===category)!.label}</h2><span>{catalogLoading?"読み込み中":visibleProducts.length+"件"}</span></div>

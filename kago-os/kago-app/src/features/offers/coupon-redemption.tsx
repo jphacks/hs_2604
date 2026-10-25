@@ -66,7 +66,8 @@ export function CouponRedemption({ offer, visitId, canEdit, onClaim }: {
       <p className="mt-1 text-xs text-emerald-900">下のボタンで、読み取った1点に{offerName}を使えます。</p>
       <button type="button" onClick={() => { setVerified(null); setError(""); }} className="mt-2 min-h-11 text-sm underline">別のコードを確認</button>
     </div>}
-    {error && <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm text-red-800">{error}</p>}
+    {/* #166：エラーは読み取りの枠の下に差し込まず、画面の上に重ねて出す */}
+    {error && <div role="alert" className="scanner-toast"><p>{error}</p><button type="button" onClick={() => setError("")} aria-label="お知らせを閉じる">×</button></div>}
     <button type="button" disabled={!canEdit || busy || !verified} onClick={onClaim}
       className="mt-4 min-h-11 w-full rounded-xl bg-pink-600 px-4 py-2 text-sm font-black text-white disabled:opacity-40">この商品に{offerName}を使う</button>
   </div>;
