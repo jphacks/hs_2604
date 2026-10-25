@@ -1,0 +1,231 @@
+{
+  "schema_version": 1,
+  "as_of": "2026-10-25T18:00:00+09:00",
+  "source": "common-spec example; fictional offline explanation only",
+  "app": [
+    {
+      "store_id": "S1",
+      "channel": "app",
+      "data_origin": "synthetic",
+      "placement_type": "sponsored",
+      "ad_placement_id": "PL1",
+      "promotion_version_id": null,
+      "rule_version": null,
+      "impressions": 2,
+      "shown_visits": 2,
+      "clicks": 1,
+      "recommendation_adds": 1,
+      "adds_after_impression": 1,
+      "recommendation_removes": 0,
+      "purchases": 1,
+      "purchased_quantity": 1,
+      "purchase_amount": 298,
+      "small_sample": true,
+      "disclosed_metrics": [
+        "impressions",
+        "clicks",
+        "cart_adds",
+        "purchases"
+      ]
+    },
+    {
+      "store_id": "S1",
+      "channel": "app",
+      "data_origin": "synthetic",
+      "placement_type": "sponsored",
+      "ad_placement_id": "PL2",
+      "promotion_version_id": null,
+      "rule_version": null,
+      "impressions": 0,
+      "shown_visits": 0,
+      "clicks": 0,
+      "recommendation_adds": 0,
+      "adds_after_impression": 0,
+      "recommendation_removes": 0,
+      "purchases": 0,
+      "purchased_quantity": 0,
+      "purchase_amount": 0,
+      "small_sample": true,
+      "disclosed_metrics": [
+        "impressions",
+        "clicks",
+        "cart_adds",
+        "purchases"
+      ]
+    },
+    {
+      "store_id": "S1",
+      "channel": "app",
+      "data_origin": "synthetic",
+      "placement_type": "store_promo",
+      "ad_placement_id": null,
+      "promotion_version_id": "SP1-v1",
+      "rule_version": null,
+      "impressions": 2,
+      "shown_visits": 2,
+      "clicks": 1,
+      "recommendation_adds": 1,
+      "adds_after_impression": 1,
+      "recommendation_removes": 1,
+      "purchases": 0,
+      "purchased_quantity": 0,
+      "purchase_amount": 0,
+      "small_sample": true,
+      "disclosed_metrics": [
+        "impressions",
+        "clicks",
+        "cart_adds",
+        "purchases"
+      ]
+    },
+    {
+      "store_id": "S1",
+      "channel": "app",
+      "data_origin": "synthetic",
+      "placement_type": "organic",
+      "ad_placement_id": null,
+      "promotion_version_id": null,
+      "rule_version": 1,
+      "impressions": 2,
+      "shown_visits": 1,
+      "clicks": 0,
+      "recommendation_adds": 0,
+      "adds_after_impression": 0,
+      "recommendation_removes": 0,
+      "purchases": 0,
+      "purchased_quantity": 0,
+      "purchase_amount": 0,
+      "small_sample": true,
+      "disclosed_metrics": [
+        "impressions",
+        "clicks",
+        "cart_adds",
+        "purchases"
+      ]
+    }
+  ],
+  "signage": [
+    {
+      "store_id": "S1",
+      "channel": "signage",
+      "data_origin": "synthetic",
+      "device_id": "D1",
+      "hour_start": "2026-10-25T17:00:00+09:00",
+      "ad_placement_id": "PL1",
+      "promotion_version_id": null,
+      "mode": "schedule",
+      "plays": 20,
+      "play_seconds": 300,
+      "measured_plays": 0,
+      "not_measured_plays": 20,
+      "error_plays": 0,
+      "estimated_viewers": null,
+      "estimated_view_seconds": null,
+      "synthetic_estimates": 0,
+      "synthetic_viewers": null,
+      "synthetic_view_seconds": null,
+      "reference_sales_quantity": 1,
+      "disclosed_metrics": [
+        "signage_views",
+        "purchases"
+      ]
+    },
+    {
+      "store_id": "S1",
+      "channel": "signage",
+      "data_origin": "synthetic",
+      "device_id": "D1",
+      "hour_start": "2026-10-25T17:00:00+09:00",
+      "ad_placement_id": null,
+      "promotion_version_id": "SP1-v1",
+      "mode": "schedule",
+      "plays": 20,
+      "play_seconds": 300,
+      "measured_plays": 0,
+      "not_measured_plays": 20,
+      "error_plays": 0,
+      "estimated_viewers": null,
+      "estimated_view_seconds": null,
+      "synthetic_estimates": 0,
+      "synthetic_viewers": null,
+      "synthetic_view_seconds": null,
+      "reference_sales_quantity": 0,
+      "disclosed_metrics": [
+        "signage_views",
+        "purchases"
+      ]
+    }
+  ],
+  "orders": [
+    {
+      "data_origin": "synthetic",
+      "orders": 2,
+      "quantity": 3,
+      "amount": 794
+    }
+  ],
+  "selections": [
+    {
+      "store_id": "S1",
+      "day_jst": "2026-10-25",
+      "placement_type": "sponsored",
+      "ad_placement_id": "PL1",
+      "promotion_version_id": null,
+      "rule_version": null,
+      "data_origin": "unclassified",
+      "selected_slots": 3
+    },
+    {
+      "store_id": "S1",
+      "day_jst": "2026-10-25",
+      "placement_type": "store_promo",
+      "ad_placement_id": null,
+      "promotion_version_id": "SP1-v1",
+      "rule_version": null,
+      "data_origin": "unclassified",
+      "selected_slots": 3
+    },
+    {
+      "store_id": "S1",
+      "day_jst": "2026-10-25",
+      "placement_type": "organic",
+      "ad_placement_id": null,
+      "promotion_version_id": null,
+      "rule_version": 1,
+      "data_origin": "unclassified",
+      "selected_slots": 6
+    }
+  ],
+  "subjectNames": {
+    "PL1": "トマトパスタソース（架空メーカー）",
+    "PL2": "架空広告（0件の例）",
+    "SP1-v1": "店舗のおすすめ（架空）"
+  },
+  "maker": {
+    "placements": [
+      {
+        "id": "PL1",
+        "store_id": "S1",
+        "store_name": "架空の広島デモ店",
+        "call_title": "架空の広告募集",
+        "product_name": "トマトパスタソース",
+        "headline": "いつもの食卓に、トマトのおいしさ。",
+        "version": 2,
+        "channels": [
+          "app",
+          "signage"
+        ],
+        "starts_at": "2026-10-25T00:00:00+09:00",
+        "ends_at": "2026-12-01T00:00:00+09:00",
+        "status": "active",
+        "disclosure_scope": [
+          "impressions",
+          "clicks",
+          "cart_adds",
+          "purchases",
+          "signage_views"
+        ]
+      }
+    ]
+  }
+}

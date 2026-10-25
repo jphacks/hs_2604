@@ -91,7 +91,7 @@ export function MakerResults() {
   );
 }
 
-function Legend() {
+export function Legend() {
   return (
     <dl className="mt-4 grid gap-x-6 gap-y-1 border-t border-line pt-3 text-xs text-muted sm:grid-cols-2" data-testid="results-legend">
       <div><dt className="inline font-semibold text-ink">0</dt><dd className="inline">：記録はあるが、この期間に該当なし</dd></div>
@@ -106,7 +106,7 @@ function Legend() {
   );
 }
 
-function PlacementCard({ placement: p, app, signage }: { placement: ResultPlacement; app: AppSummary[]; signage: SignageSummary[] }) {
+export function PlacementCard({ placement: p, app, signage }: { placement: ResultPlacement; app: AppSummary[]; signage: SignageSummary[] }) {
   const status = PLACEMENT_STATUS[p.status] ?? { label: p.status, tone: "gray" as Tone };
   return (
     <Card>

@@ -1,3 +1,4 @@
+import { insightPath } from "@/lib/paths";
 import {
   fetchAppMetrics,
   fetchOrderTotals,
@@ -29,12 +30,12 @@ export default async function Page() {
   }
 
   return (
-    <MetricsScreen
+    <><p className="mb-4 text-sm"><a className="underline" href={insightPath("/fixed-results/index.html")}>通信断に備えて説明用の固定成果を開く</a></p><MetricsScreen
       appRows={appRows}
       signageRows={signageRows}
       selectionCounts={selectionCounts}
       orderTotals={orderTotals}
       subjectNames={subjectNames}
-    />
+    /></>
   );
 }
