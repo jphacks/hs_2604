@@ -66,13 +66,20 @@ def fallback():
 def main():
  OUT.mkdir(parents=True,exist_ok=True)
  rows=[]
+ supplied_path=OUT/"supplied.json"
+ supplied=json.loads(supplied_path.read_text()) if supplied_path.exists() else {}
  for maker,versions in [("M1",[3,4]),("M2",[1,2])]:
   for version in versions:
    for channel,size in [("app",(800,800)),("signage",(1920,1080))]:
     creative="CR1" if maker=="M1" else "CR2"
     file=f"{creative}_v{version}_{channel}.png"
-    render_png(campaign(maker,version,channel),size,str(OUT/file))
+    imported=supplied.get(file)
+    if imported:
+     assert hashlib.sha256((OUT/file).read_bytes()).hexdigest()==imported["sha256"],"Supplied image changed"
+     size=(imported["width"],imported["height"])
+    else:render_png(campaign(maker,version,channel),size,str(OUT/file))
     rows.append(dict(asset_id=f"{creative}-v{version}-{channel}",maker_id=maker,maker_name="瀬戸内トマト食品" if maker=="M1" else "確認用メーカー（架空）",product_code="2900000000162" if maker=="M1" else "2900000000056",product_name="トマトパスタソース" if maker=="M1" else "もっちり食パン 6枚切",creative_version=version,channel=channel,kind="sponsored",file="/ad-assets/design-v2/"+file,width=size[0],height=size[1],status="未申請・デザイン確認用"))
+    if imported:rows[-1].update(embedded_price=imported["embedded_price"],artwork_source="user-supplied")
  for channel,size in [("app",(800,800)),("signage",(1920,1080))]:
   file="PROMO_TEMPLATE_v2_"+channel+".png";render_png(promo(channel),size,str(OUT/file))
   rows.append(dict(asset_id="PROMO-v2-"+channel,channel=channel,kind="store_promo_template",file="/ad-assets/design-v2/"+file,width=size[0],height=size[1],status="新しい店舗販促背景・デザイン確認用"))

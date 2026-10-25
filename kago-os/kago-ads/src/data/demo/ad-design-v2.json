@@ -9,9 +9,11 @@
     "channel": "app",
     "kind": "sponsored",
     "file": "/ad-assets/design-v2/CR1_v3_app.png",
-    "width": 800,
-    "height": 800,
-    "status": "未申請・デザイン確認用"
+    "width": 1254,
+    "height": 1254,
+    "status": "未申請・デザイン確認用",
+    "embedded_price": 298,
+    "artwork_source": "user-supplied"
   },
   {
     "asset_id": "CR1-v3-signage",
@@ -23,9 +25,11 @@
     "channel": "signage",
     "kind": "sponsored",
     "file": "/ad-assets/design-v2/CR1_v3_signage.png",
-    "width": 1920,
-    "height": 1080,
-    "status": "未申請・デザイン確認用"
+    "width": 1672,
+    "height": 941,
+    "status": "未申請・デザイン確認用",
+    "embedded_price": 298,
+    "artwork_source": "user-supplied"
   },
   {
     "asset_id": "CR1-v4-app",
@@ -37,9 +41,11 @@
     "channel": "app",
     "kind": "sponsored",
     "file": "/ad-assets/design-v2/CR1_v4_app.png",
-    "width": 800,
-    "height": 800,
-    "status": "未申請・デザイン確認用"
+    "width": 1254,
+    "height": 1254,
+    "status": "未申請・デザイン確認用",
+    "embedded_price": 298,
+    "artwork_source": "user-supplied"
   },
   {
     "asset_id": "CR1-v4-signage",
@@ -51,9 +57,11 @@
     "channel": "signage",
     "kind": "sponsored",
     "file": "/ad-assets/design-v2/CR1_v4_signage.png",
-    "width": 1920,
-    "height": 1080,
-    "status": "未申請・デザイン確認用"
+    "width": 1672,
+    "height": 941,
+    "status": "未申請・デザイン確認用",
+    "embedded_price": 298,
+    "artwork_source": "user-supplied"
   },
   {
     "asset_id": "CR2-v1-app",
@@ -65,9 +73,11 @@
     "channel": "app",
     "kind": "sponsored",
     "file": "/ad-assets/design-v2/CR2_v1_app.png",
-    "width": 800,
-    "height": 800,
-    "status": "未申請・デザイン確認用"
+    "width": 1254,
+    "height": 1254,
+    "status": "未申請・デザイン確認用",
+    "embedded_price": 138,
+    "artwork_source": "user-supplied"
   },
   {
     "asset_id": "CR2-v1-signage",
@@ -79,9 +89,11 @@
     "channel": "signage",
     "kind": "sponsored",
     "file": "/ad-assets/design-v2/CR2_v1_signage.png",
-    "width": 1920,
-    "height": 1080,
-    "status": "未申請・デザイン確認用"
+    "width": 1672,
+    "height": 941,
+    "status": "未申請・デザイン確認用",
+    "embedded_price": 138,
+    "artwork_source": "user-supplied"
   },
   {
     "asset_id": "CR2-v2-app",
@@ -93,9 +105,11 @@
     "channel": "app",
     "kind": "sponsored",
     "file": "/ad-assets/design-v2/CR2_v2_app.png",
-    "width": 800,
-    "height": 800,
-    "status": "未申請・デザイン確認用"
+    "width": 1254,
+    "height": 1254,
+    "status": "未申請・デザイン確認用",
+    "embedded_price": 138,
+    "artwork_source": "user-supplied"
   },
   {
     "asset_id": "CR2-v2-signage",
@@ -107,9 +121,11 @@
     "channel": "signage",
     "kind": "sponsored",
     "file": "/ad-assets/design-v2/CR2_v2_signage.png",
-    "width": 1920,
-    "height": 1080,
-    "status": "未申請・デザイン確認用"
+    "width": 1672,
+    "height": 941,
+    "status": "未申請・デザイン確認用",
+    "embedded_price": 138,
+    "artwork_source": "user-supplied"
   },
   {
     "asset_id": "PROMO-v2-app",

@@ -21,6 +21,11 @@ try{
    await p.locator("img").evaluateAll(async es=>{await Promise.all(es.map(el=>(el as HTMLImageElement).decode()));});
    assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
    for(const card of await p.locator("[data-design]").all()){
+    const id=await card.getAttribute("data-design");
+    if(id?.startsWith("CR")){
+     assert.equal(await card.locator("[data-ad-disclosure]").count(),1);
+     assert.equal(await card.locator("[data-frame] span").count(),0,"Supplied text/price must not be covered or duplicated");
+    }
     const overflow=await card.locator("[data-frame] span").evaluateAll(es=>es.some(el=>{const frame=el.closest("[data-frame]")!.getBoundingClientRect(),r=el.getBoundingClientRect();return r.left<frame.left-1||r.right>frame.right+1||r.top<frame.top-1||r.bottom>frame.bottom+1;}));
     assert.equal(overflow,false,"Overlay fits "+size.width+" "+await card.getAttribute("data-design"));
    }

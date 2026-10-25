@@ -1,0 +1,58 @@
+{
+  "CR2_v1_app.png": {
+    "source": "user-attachment:codex-clipboard-7b5643d4-8e63-46b5-9884-a28d0166332d.png",
+    "sha256": "51194f94026d50055d35acf058902a8f5b29b4eea400d19bebb1fe587f81f8f6",
+    "width": 1254,
+    "height": 1254,
+    "embedded_price": 138
+  },
+  "CR1_v4_signage.png": {
+    "source": "user-attachment:codex-clipboard-c1749632-49db-481e-ac82-2699a42bc4ea.png",
+    "sha256": "6282472c8b9f0e2e7661f609a9754d8ffddb9c31bf9c8c9ca29e0c4deb6c49cc",
+    "width": 1672,
+    "height": 941,
+    "embedded_price": 298
+  },
+  "CR1_v3_signage.png": {
+    "source": "user-attachment:codex-clipboard-6a6c5e1e-e766-4df3-ad4b-2363b7db76b0.png",
+    "sha256": "23c83b46f49e918a6540a88ab1fa8bdecaee997f9237b239218878d3af1ddd49",
+    "width": 1672,
+    "height": 941,
+    "embedded_price": 298
+  },
+  "CR1_v4_app.png": {
+    "source": "user-attachment:codex-clipboard-5da73a8c-70ea-43fe-b945-14a04e1a82f6.png",
+    "sha256": "1c484d2ede97e2102638f83a3017f4649fb281c338d3b9c7c5cc79b346e4079b",
+    "width": 1254,
+    "height": 1254,
+    "embedded_price": 298
+  },
+  "CR1_v3_app.png": {
+    "source": "user-attachment:codex-clipboard-90b50390-3d6d-4fe9-98df-825c2a98f7e1.png",
+    "sha256": "9ed507a804b7d7660a0ffdc5e7e6107a4f6f2eae30dd93aec35354b98417af16",
+    "width": 1254,
+    "height": 1254,
+    "embedded_price": 298
+  },
+  "CR2_v1_signage.png": {
+    "source": "user-attachment:codex-clipboard-fc6fbb50-0bc5-4247-af59-fbc70c4c3655.png",
+    "sha256": "64b1e30a5b599d14370502c07a8c425f402a6125b076fca23528456bfb7760e3",
+    "width": 1672,
+    "height": 941,
+    "embedded_price": 138
+  },
+  "CR2_v2_signage.png": {
+    "source": "user-attachment:codex-clipboard-4c0b2e4f-0016-4889-ae17-8d806b721984.png",
+    "sha256": "895e577867aa949130b42e76d188603bfbde1d6696a70f1e1ef4040045d227c0",
+    "width": 1672,
+    "height": 941,
+    "embedded_price": 138
+  },
+  "CR2_v2_app.png": {
+    "source": "user-attachment:codex-clipboard-3d5c95a0-3757-4fac-bbd2-f80ab215308f.png",
+    "sha256": "7ff23d4b9f084d2946a472fcb472cdb604aeddbf3082d3e71a1358ae2a05a4a7",
+    "width": 1254,
+    "height": 1254,
+    "embedded_price": 138
+  }
+}
