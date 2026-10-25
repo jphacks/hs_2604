@@ -62,7 +62,7 @@ export function PromotionsScreen({
   return (
     <div className="grid gap-6">
       {notice ? (
-        <div className="flex items-start justify-between gap-3 rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-900">
+        <div role="status" className="flex items-start justify-between gap-3 rounded-xl border border-teal-200 bg-teal-50 p-4 text-sm text-teal-900">
           <span>{notice}</span>
           <button type="button" onClick={() => setNotice(null)} className="font-bold">
             閉じる
@@ -71,9 +71,9 @@ export function PromotionsScreen({
       ) : null}
 
       <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
-        <div className="grid gap-3 self-start">
+        <div className="grid gap-4 self-start">
           <h2 className="text-sm font-bold text-[var(--muted)]">
-            設定中の販促（{active.length}件）
+            店舗からのおすすめ（{active.length}件）
           </h2>
 
           {active.length === 0 ? (
@@ -99,9 +99,18 @@ export function PromotionsScreen({
           </button>
         </div>
 
-        <div className="self-start">
+        <div className="self-start lg:sticky lg:top-6">
           {editing === null ? (
-            <EmptyState message="左の一覧から設定を選ぶか、「販促を追加する」を押してください。" />
+            <div className="insight-panel grid gap-5 p-6 sm:p-8">
+              <div><p className="text-xs font-bold tracking-widest text-[var(--accent)]">STORE RECOMMENDATION</p><h2 className="mt-2 text-xl font-bold">今日のおすすめを、お客さまへ</h2></div>
+              <ol className="grid gap-4 text-sm text-[var(--muted)]">
+                <li><strong className="mr-3 text-[var(--accent)]">01</strong>商品と、おすすめする理由を選ぶ</li>
+                <li><strong className="mr-3 text-[var(--accent)]">02</strong>掲載先・期間・優先度を設定して保存</li>
+                <li><strong className="mr-3 text-[var(--accent)]">03</strong>Appの「おすすめを更新」で表示を確認</li>
+              </ol>
+              <button type="button" onClick={() => setEditing({ kind: "new" })} className="rounded-xl bg-[var(--accent)] px-5 py-3 text-sm font-bold text-white">おすすめを追加する</button>
+              <p className="text-xs leading-relaxed text-[var(--muted)]">同じ店舗を利用中で、対象商品がかごにないときに表示されます。複数のおすすめは優先度などで選ばれます。</p>
+            </div>
           ) : (
             <PromotionForm
               key={editing.kind === "new" ? "new" : editing.promotion.promotion_version_id}
@@ -148,12 +157,12 @@ function PromotionCard({
   return (
     <div
       className={[
-        "rounded-lg border bg-[var(--panel)] p-3",
+        "insight-panel p-5",
         selected ? "border-[var(--accent)] ring-2 ring-[var(--accent)]/20" : "border-[var(--line)]",
       ].join(" ")}
     >
       <div className="flex items-start justify-between gap-2">
-        <span className="font-bold">{promotion.product_name}</span>
+        <div><span className="text-lg font-bold">{promotion.product_name}</span><span className="ml-3 inline-flex rounded-full bg-teal-50 px-2 py-1 text-xs font-bold text-[var(--accent)]">有効な設定</span></div>
         <span className="shrink-0 rounded bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-700">
           第{promotion.version}版
         </span>
@@ -281,7 +290,7 @@ function PromotionForm({
   };
 
   return (
-    <article className="grid gap-4 rounded-lg border border-[var(--line)] bg-[var(--panel)] p-4">
+    <article className="insight-panel grid gap-5 p-5 sm:p-6">
       <h2 className="text-lg font-bold">
         {promotion ? `販促を編集（現在 第${promotion.version}版）` : "販促を追加"}
       </h2>

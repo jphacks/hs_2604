@@ -55,3 +55,7 @@ button {
 .insight-panel { border: 1px solid var(--line); background: var(--panel); border-radius: 1rem; box-shadow: 0 4px 20px #102a4705; }
 .insight-subtabs { display: flex; gap: .5rem; border-bottom: 1px solid var(--line); }
 @media (max-width: 639px) { .insight-header { padding-block: 1rem; } }
+
+.insight-main :where(section, article, .grid), .insight-panel { min-width: 0; }
+
+.insight-main input:is([type=checkbox], [type=range]) { accent-color: var(--accent); }

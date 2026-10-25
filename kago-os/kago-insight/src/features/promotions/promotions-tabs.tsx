@@ -14,16 +14,8 @@ import type { Product, Promotion } from "@/lib/types";
 type TabKey = "discount" | "recommend";
 
 const TABS: { key: TabKey; label: string; note: string }[] = [
-  {
-    key: "discount",
-    label: "値引き",
-    note: "商品ごとに値引き率を決めます。設定した商品は、アプリでお客さんにクーポンとして配布されます。",
-  },
-  {
-    key: "recommend",
-    label: "おすすめ",
-    note: "値引きせずに押したい商品と、出したい時間帯・掲載先を決めます。",
-  },
+  { key: "recommend", label: "おすすめ", note: "おすすめ商品と理由を設定し、Appやサイネージに届けます。" },
+  { key: "discount", label: "値引き・クーポン", note: "商品ごとに値引き率を決めます。Appでお客さまにクーポンとして配布されます。" },
 ];
 
 export function PromotionsTabs({
@@ -35,12 +27,12 @@ export function PromotionsTabs({
   promotions: Promotion[];
   products: Product[];
 }) {
-  const [tab, setTab] = useState<TabKey>("discount");
+  const [tab, setTab] = useState<TabKey>("recommend");
   const active = TABS.find((t) => t.key === tab)!;
 
   return (
-    <div className="grid gap-4">
-      <div role="tablist" aria-label="販促の種類" className="flex gap-2">
+    <div className="grid gap-6">
+      <div role="tablist" aria-label="販促の種類" className="insight-subtabs">
         {TABS.map((item) => {
           const selected = item.key === tab;
           return (
@@ -51,7 +43,7 @@ export function PromotionsTabs({
               aria-selected={selected}
               onClick={() => setTab(item.key)}
               className={[
-                "rounded-t border-b-2 px-4 py-2 text-sm font-bold transition-colors",
+                "min-h-12 border-b-[3px] px-5 py-3 text-sm font-bold transition-colors",
                 selected
                   ? "border-[var(--accent)] text-[var(--accent)]"
                   : "border-transparent text-[var(--muted)] hover:text-[var(--ink)]",
