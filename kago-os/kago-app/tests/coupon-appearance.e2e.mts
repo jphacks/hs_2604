@@ -1,4 +1,4 @@
-// #162: real Next/API + official SQL/RLS; only the browser's random source is fixed.
+// #162 / #172: real Next/API + official SQL/RLS; the browser's random source is fixed to prove it is not used.
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
@@ -56,7 +56,7 @@ try {
   const saved = () => page.getByText("かごを保存しました。", { exact: true }).waitFor();
   const ready = () => page.getByText("かごを最新の状態にしました。", { exact: true }).waitFor();
   const screenshot = async (name: string) => {
-    await page.locator('section[aria-labelledby="suggestions-heading"][aria-busy="false"]').waitFor();
+    await page.getByTestId("shopping-home").waitFor(); await delay(300);
     await page.screenshot({ path: resolve(output, name) });
   };
   const roll = (n: number | null) => page.evaluate(value => (window as unknown as { setCouponRoll: (value: number | null) => void }).setCouponRoll(value), n);
@@ -65,14 +65,24 @@ try {
     await delay(100);
   };
   const scan = async () => {
-    await page.getByLabel("商品コードを入力", { exact: true }).fill("2900000000100");
-    await page.getByRole("button", { name: "コードで追加", exact: true }).click(); await saved();
+    // #140 UI: the code field is inside the product search panel.
+    await page.getByRole("textbox", { name: "商品名・商品コードで検索", exact: true }).fill("");
+    await page.getByRole("button", { name: "検索", exact: true }).click();
+    const panel = page.getByRole("dialog", { name: "商品を探す", exact: true });
+    await panel.locator(".shopping-code summary").click();
+    await panel.getByLabel("商品コードを入力", { exact: true }).fill("2900000000100");
+    await panel.getByRole("button", { name: "コードで追加", exact: true }).click(); await saved();
+    await panel.getByRole("button", { name: "閉じる", exact: true }).click();
   };
   const login = async (user: number) => {
     await page.getByLabel("メールアドレス").fill(`user${user}@example.test`);
     await page.getByLabel("パスワード", { exact: true }).fill("fixture-password");
     await page.getByRole("button", { name: "ログイン", exact: true }).click();
-    await page.getByRole("button", { name: "続きから開く", exact: true }).first().click(); await ready();
+    // #140 UI: resume the store, then go back home from マイページ.
+    await page.getByRole("button", { name: "前回の店舗から再開", exact: true }).first().click();
+    const myPage = page.getByRole("heading", { name: "マイページ", exact: true });
+    await Promise.race([ready(), myPage.waitFor()]);
+    if (await myPage.isVisible()) { await page.getByRole("link", { name: "ホーム", exact: true }).click(); await ready(); }
   };
   const poll = async () => {
     const response = page.waitForResponse(r => r.url().endsWith("/api/offers") && r.request().method() === "GET");
@@ -83,44 +93,47 @@ try {
   await roll(0.99);
   assert.equal(await sticker().count(), 0);
   await scan(); await settled(1); await sticker().waitFor();
-  await page.getByRole("article", { name: /セット割/ }).waitFor();
-  await page.getByRole("article", { name: /タイムセール お惣菜/ }).waitFor();
   await screenshot("first-coupon-mobile.png");
   pass("empty eligibility does not consume the guaranteed first coupon, even with random=0.99");
 
   await sticker().click();
+  await page.getByRole("dialog").getByRole("button", { name: "クーポンを受け取る", exact: true }).click();
   await page.getByLabel("クーポン対象の商品コードを入力", { exact: true }).fill("2900000000179");
   await page.getByRole("button", { name: "商品を確認", exact: true }).click();
   await page.getByText("対象商品を確認しました：生バジル", { exact: true }).waitFor();
-  await page.getByRole("button", { name: "割引付きでかごに追加", exact: true }).click(); await saved(); await settled(2);
-  assert.equal(await sticker().count(), 0);
+  await page.getByRole("button", { name: "この商品にクーポンを使う", exact: true }).click(); await saved(); await settled(2);
   const offers = await (await context.request.get(origin + "/api/offers")).json();
   assert.equal(offers.coupon.offerId, id(180), "the server really has a second eligible candidate");
+  await sticker().waitFor();
   const cart = await (await context.request.get(origin + "/api/cart")).json();
   assert.equal(cart.cart.find((line: { productId: string }) => line.productId === PRODUCT.basil).discount, 49);
-  assert.equal((await fixture.db.query("select 1 from offer_events where offer_id=$1", [id(180)])).rows.length, 0);
-  await screenshot("second-coupon-skipped-mobile.png");
-  pass("claim keeps the DB discount but a losing draw hides the next eligible coupon and records no false impression");
+  for (let i = 0; i < 50 && !(await fixture.db.query("select 1 from offer_events where offer_id=$1 and event_type='offer_shown'", [id(180)])).rows.length; i++) await delay(100);
+  assert.equal((await fixture.db.query("select 1 from offer_events where offer_id=$1 and event_type='offer_shown'", [id(180)])).rows.length, 1);
+  await screenshot("second-coupon-shown-mobile.png");
+  pass("#172: after a claim the next eligible coupon is shown every time (random=0.99), and its impression is recorded");
 
-  await roll(0.1); await page.reload(); await ready(); await settled(2);
-  await roll(0.1);
-  assert.equal(await sticker().count(), 0); await poll(); assert.equal(await sticker().count(), 0);
-  pass("reload and the minute refresh preserve a missed draw even after the random source would win");
+  await roll(0.99); await page.reload(); await ready(); await settled(2); await sticker().waitFor();
+  await poll(); assert.equal(await sticker().count(), 1);
+  pass("reload and the minute refresh keep the shown coupon");
 
   await scan(); await settled(3); await sticker().waitFor();
   assert.match((await sticker().getAttribute("aria-label"))!, /トマトパスタソース/);
   await roll(0.99); await page.reload(); await ready(); await settled(3); await sticker().waitFor();
   await screenshot("later-coupon-mobile.png");
-  pass("the next saved cart version can win; reload preserves the winning draw with random=0.99");
+  pass("the next saved cart version shows its coupon; reload keeps it with random=0.99");
 
   await sticker().click(); await page.getByRole("dialog").getByRole("button", { name: "閉じる", exact: true }).click();
   await roll(0.1); await poll(); assert.equal(await sticker().count(), 0);
   pass("opening consumes the sticker; closing and refreshing never immediately produce another sticker");
 
+  await page.getByRole("link", { name: "マイページ", exact: true }).click();
   await page.getByRole("button", { name: "店舗・来店を選ぶ", exact: true }).click();
+  await page.locator(".store-entry-extra summary").click();
   page.once("dialog", d => { void d.accept(); });
-  await page.getByRole("button", { name: "空のかごで新しく来店する", exact: true }).first().click(); await ready();
+  await page.getByRole("button", { name: "空のかごで新しく来店する", exact: true }).first().click();
+  await page.getByRole("heading", { name: "マイページ", exact: true }).waitFor(); await page.getByRole("link", { name: "ホーム", exact: true }).click(); await ready();
   await roll(0.99); await scan(); await sticker().waitFor();
+  await page.getByRole("link", { name: "マイページ", exact: true }).click();
   await page.getByRole("button", { name: "ログアウト", exact: true }).click();
   await roll(null);
   await login(4); await roll(0.99); await scan(); await sticker().waitFor();
@@ -134,9 +147,9 @@ try {
     };
   });
   const changed = page.waitForResponse(r => r.url().endsWith("/api/offers") && r.request().method() === "GET");
-  await scan(); await changed; await sticker().waitFor({ state: "hidden" });
-  await roll(0.1); await poll(); assert.equal(await sticker().count(), 0);
-  pass("unavailable session storage still preserves the current draw in memory during cart and timer refreshes");
+  await scan(); await changed; await sticker().waitFor();
+  await roll(0.99); await poll(); assert.equal(await sticker().count(), 1);
+  pass("unavailable session storage still shows the coupon and keeps it in memory during cart and timer refreshes");
   assert.equal(errors.length, 0, errors.join("\n"));
   await writeFile(resolve(output, "result.json"), JSON.stringify({ passed }, null, 2));
 } catch (error) {
