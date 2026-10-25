@@ -19,6 +19,10 @@ export const NOVELTY = {
   regular_purchase: 0, purchased_before: 0.6, same_category: 1.3, never_purchased: 1, history_disabled: 1, history_empty: 1,
 } as const;
 export const MAX_COUPONS_PER_VISIT = 3;
+// Demo (#186): scanning these products always shows the coupon for the paired product, whoever the customer is
+// (scores and history are not used for it). Only a coupon the DB still offers is shown; the other rules stay.
+//   スパゲッティ 2900000000100 → トマトパスタソース 2900000000162
+export const DEMO_PINNED_COUPONS: Readonly<Record<string, string>> = { "2900000000100": "2900000000162" };
 const SCORE_DIGITS = 1e6; // scores are compared after rounding, so float noise never decides a tie
 
 export type NoveltyReason = keyof typeof NOVELTY;
@@ -39,6 +43,7 @@ export type CouponTargetingInput = {
   rules: AssociationRuleSet;
   dismissedOfferIds?: Iterable<string>;     // "今回は見送る" in this visit
   claimedCouponCount?: number;              // coupons received in this visit
+  pinnedCoupons?: Readonly<Record<string, string>>; // trigger code → coupon product code (demo, #186)
 };
 export type CouponScore = {
   offerId: string; productId: string; productCode: string; productName: string;
@@ -137,5 +142,28 @@ export function targetCoupon(input: CouponTargetingInput): CouponDecision {
         discountText(input.offers.find(offer => offer.offerId === item.offerId)!), regularExcluded) }));
   const limited = (input.claimedCouponCount ?? 0) >= MAX_COUPONS_PER_VISIT;
   if (limited) for (const item of candidates) excluded.push({ offerId: item.offerId, productCode: item.productCode, reason: "visit_limit" });
+  const pinned = limited ? null : pinnedCoupon(input, cart, dismissed);
+  if (pinned) return { selected: pinned, candidates: [pinned, ...candidates.filter(item => item.offerId !== pinned.offerId)], excluded, historyStatus: input.history.status };
   return { selected: limited ? null : candidates[0] ?? null, candidates: limited ? [] : candidates, excluded, historyStatus: input.history.status };
+}
+
+/** Demo (#186): the fixed coupon for the scanned product, if the DB offers it and it is not in the cart or dismissed. */
+function pinnedCoupon(input: CouponTargetingInput, cart: Set<string>, dismissed: Set<string>): CouponScore | null {
+  for (const trigger of [...input.triggers].sort((a, b) => a.code.localeCompare(b.code))) {
+    const code = input.pinnedCoupons?.[trigger.code];
+    const offer = code === undefined ? undefined : input.offers.filter(item => item.kind === "guerrilla_coupon" && item.product.code === code
+      && !item.productInCart && !cart.has(code) && !item.dismissed && !dismissed.has(item.offerId) && (!item.trigger || item.triggerInCart))
+      .sort((a, b) => dealRate(b) - dealRate(a) || a.offerId.localeCompare(b.offerId))[0];
+    if (!offer) continue;
+    const related = association(input.rules, trigger.code, offer)
+      ?? { value: STORE_TRIGGER_ASSOCIATION, relation: { source: "store" as const, ruleId: `store-${offer.offerId}`, lift: null, confidence: null }, rule: null };
+    const noveltyReason = novelty(input.history, offer.product);
+    const percent = dealRate(offer);
+    const breakdown = { association: related.value, novelty: NOVELTY[noveltyReason], deal: round(1 + percent / 100) };
+    return { offerId: offer.offerId, productId: offer.product.productId, productCode: offer.product.code, productName: offer.product.name,
+      trigger, score: round(breakdown.association * breakdown.novelty * breakdown.deal), breakdown, relation: related.relation,
+      discountPercent: percent, noveltyReason,
+      reason: `${shortProductName(trigger.name)}と一緒に使えるクーポンです。${discountText(offer)}でお得です。` };
+  }
+  return null;
 }

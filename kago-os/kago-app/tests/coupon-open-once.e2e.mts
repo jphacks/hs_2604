@@ -15,7 +15,7 @@ await fixture.db.query("update store_offers set status='inactive' where kind <> 
 const origin = "http://127.0.0.1:3121", output = resolve("../../internal/coupon-once-evidence");
 await mkdir(output, { recursive: true });
 const server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "dev", "--webpack", "--hostname", "127.0.0.1", "--port", "3121"], {
-  env: { ...process.env, KAGO_NEXT_DIST_DIR: ".next/coupon-once-e2e", KAGO_DEMO_ENABLED: "0", NEXT_PUBLIC_SUPABASE_URL: fixture.url, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_test" },
+  env: { ...process.env, KAGO_NEXT_DIST_DIR: ".next/coupon-once-e2e", KAGO_DEMO_ENABLED: "0", NEXT_PUBLIC_SUPABASE_URL: fixture.url, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_test", NEXT_PUBLIC_KAGO_COUPON_CODE_ENTRY: "1" },
   windowsHide: true, stdio: ["ignore", "pipe", "pipe"],
 });
 let log = ""; server.stdout.on("data", c => { log += c; }); server.stderr.on("data", c => { log += c; });

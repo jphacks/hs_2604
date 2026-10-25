@@ -11,7 +11,7 @@ import { createRequire } from "node:module";
 import { chromium } from "playwright";
 import { createDemoDatabase, userId } from "../tests/fixtures/demo-database.mts";
 import { buildPurchaseSummaries } from "../src/features/recommendations/customer.ts";
-import { targetCoupon, type CouponHistory } from "../src/features/offers/targeting.ts";
+import { DEMO_PINNED_COUPONS, targetCoupon, type CouponHistory } from "../src/features/offers/targeting.ts";
 import { rankSerendipity } from "../src/features/offers/serendipity.ts";
 import type { StoreOffer } from "../src/features/offers/contracts.ts";
 import type { PurchaseOrder } from "../src/features/account/contracts.ts";
@@ -70,19 +70,27 @@ const people = [{ name: "田中", history: await historyOf(userId("U2")) }, { na
 await demo.db.close();
 
 const short = (name: string) => name.replace(/\s+\S*\d\S*$/, "");
-type Row = Product & { coupons: { person: string; coupon: string | null }[]; sets: string[] };
+type Row = Product & { coupons: { person: string; coupon: string | null }[]; sets: string[]; useFor: string[] };
+// #186: the product whose coupon is fixed for the demo (spaghetti → tomato sauce) is read again to use the coupon.
+const nameOf = (code: string) => short(products.find(p => p.code === code)?.name ?? code);
+const useFor = (p: Product) => Object.entries(DEMO_PINNED_COUPONS).filter(([, coupon]) => coupon === p.code).map(([trigger]) => nameOf(trigger));
 const setsFor = (p: Product) => rankSerendipity({ visitId: "v", cartVersion: 1, serverTime: AS_OF, nextChangeAt: null, cartProductCodes: [p.code],
   offers: setDeals.map(o => ({ ...o, triggerInCart: o.trigger!.code === p.code, productInCart: o.product.code === p.code })),
   lastAddedProduct: { productId: p.code, code: p.code, name: p.name, category: p.category }, claimedCouponCount: 0 }, rules)
   .sets.map(o => `${short(o.trigger!.name)}＋${short(o.product.name)} 各${o.discountPercent}%OFF`);
-const rows: Row[] = products.map(p => ({ ...p, sets: setsFor(p), coupons: people.map(person => {
-  const selected = targetCoupon({ offers, triggers: [{ code: p.code, name: p.name }], cartProductCodes: [p.code], history: person.history, rules }).selected;
+const rows: Row[] = products.map(p => ({ ...p, sets: setsFor(p), useFor: useFor(p), coupons: people.map(person => {
+  const selected = targetCoupon({ offers, triggers: [{ code: p.code, name: p.name }], cartProductCodes: [p.code], history: person.history, rules,
+    pinnedCoupons: DEMO_PINNED_COUPONS }).selected;
   const offer = selected && offers.find(o => o.offerId === selected.offerId);
   return { person: person.name, coupon: offer ? `${short(offer.product.name)} ${offer.discountPercent}%OFF` : null };
 }) }));
-const withCoupon = rows.filter(r => r.coupons.some(c => c.coupon) || r.sets.length > 0)
-  .sort((a, b) => Number(b.code === "2900000000100") - Number(a.code === "2900000000100") || a.code.localeCompare(b.code));
-const cartOnly = rows.filter(r => r.coupons.every(c => !c.coupon) && r.sets.length === 0);
+// Spaghetti first, then the product its coupon is used on, then the rest.
+const first = ["2900000000100", ...Object.values(DEMO_PINNED_COUPONS)];
+const rank = (r: Row) => first.includes(r.code) ? first.indexOf(r.code) : first.length;
+const featured = (r: Row) => r.coupons.some(c => c.coupon) || r.sets.length > 0 || r.useFor.length > 0;
+const withCoupon = rows.filter(featured).sort((a, b) => rank(a) - rank(b) || a.code.localeCompare(b.code));
+const cartOnly = rows.filter(r => !featured(r));
+const redeemText = (r: Row) => `${r.useFor.join("・")}で出たクーポンを使うときに読み取ります`;
 const couponText = (r: Row) => {
   if (r.coupons.every(c => !c.coupon)) return "なし";
   const same = r.coupons.every(c => c.coupon === r.coupons[0].coupon);
@@ -99,7 +107,7 @@ for (const p of rows) {
 const yen = (n: number) => `¥${n.toLocaleString("ja-JP")}`;
 const esc = (s: string) => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" })[c]!);
 const card = (r: Row, coupon: boolean) => `<div class="card${coupon ? " coupon" : ""}"><div class="meta"><span>${esc(r.category)}</span><span>${yen(r.price)}</span></div>
-<h2>${esc(r.name)}</h2><img src="${r.code}.svg" alt="${esc(r.name)} ${r.code}">${coupon && r.coupons.some(c => c.coupon) ? `<p class="deal">🎉 ゲリラクーポン<br>${esc(couponText(r))}</p>` : ""}${coupon && r.sets.length ? `<p class="deal set">🍽 セット割<br>${esc(r.sets.join(" ／ "))}</p>` : ""}</div>`;
+<h2>${esc(r.name)}</h2><img src="${r.code}.svg" alt="${esc(r.name)} ${r.code}">${coupon && r.coupons.some(c => c.coupon) ? `<p class="deal">🎉 ゲリラクーポン<br>${esc(couponText(r))}</p>` : ""}${coupon && r.sets.length ? `<p class="deal set">🍽 セット割<br>${esc(r.sets.join(" ／ "))}</p>` : ""}${coupon && r.useFor.length ? `<p class="deal use">🎟 クーポンを使う<br>${esc(redeemText(r))}</p>` : ""}</div>`;
 const html = `<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>KAGO デモ店舗 サンプルバーコード</title>
 <style>@page{size:A4;margin:10mm}body{font-family:"Noto Sans CJK JP","Hiragino Sans",sans-serif;margin:0;color:#111}
 h1{font-size:16px;margin:0 0 2px}h2.section{font-size:14px;margin:4px 0 4px;padding:4px 8px;color:#fff;background:#be185d}
@@ -109,9 +117,9 @@ h2.section.plain{background:#475569}p.note{font-size:10px;margin:0 0 8px;color:#
 .meta{font-size:9px;color:#555;display:flex;justify-content:space-between}
 .card img{width:78%;height:auto;display:block;margin:4px auto 0}
 .deal{font-size:9.5px;margin:4px 0 0;padding:3px 5px;background:#fdf2f8;color:#9d174d;font-weight:700;line-height:1.35}
-.deal.set{background:#ecfdf5;color:#065f46}.cart-only{break-before:page}</style></head><body>
+.deal.set{background:#ecfdf5;color:#065f46}.deal.use{background:#eff6ff;color:#1e3a8a}.cart-only{break-before:page}</style></head><body>
 <h1>KAGO/OS デモ店舗（hiroshima-demo-store）サンプルバーコード ${rows.length}点</h1>
-<p class="note">架空の商品です。KAGO Appの「カメラで読み取る」で読み取れます（13桁はEAN-13、PLU-で始まる商品はCode 128）。クーポンは、その商品だけをかごに入れたときに出るもので、デモの3人（田中：履歴OFF、佐藤・鈴木：履歴ON）で異なる場合は人ごとに書いています。クーポンを受け取る・見送る・ほかの商品を入れると、次に出るクーポンは変わります。セット割は組の1つ目の商品を読み取ると出ます（10/25〜11/7）。倍率100%で印刷してください。</p>
+<p class="note">架空の商品です。KAGO Appの「カメラで読み取る」で読み取れます（13桁はEAN-13、PLU-で始まる商品はCode 128）。スパゲッティを読み取ると、デモでは誰でも必ずトマトパスタソースのクーポンが出ます（クーポンを使うときはトマトパスタソースのバーコードを読み取ります）。ほかのクーポンは、その商品だけをかごに入れたときに出るもので、デモの3人（田中：履歴OFF、佐藤・鈴木：履歴ON）で異なる場合は人ごとに書いています。クーポンを受け取る・見送る・ほかの商品を入れると、次に出るクーポンは変わります。セット割は組の1つ目の商品を読み取ると出ます（10/25〜11/7）。倍率100%で印刷してください。</p>
 <h2 class="section">① 読み取るとゲリラクーポン・セット割が出る商品（${withCoupon.length}点）</h2>
 <div class="grid">${withCoupon.map(r => card(r, true)).join("\n")}</div>
 <div class="cart-only"><h2 class="section plain">② かごに入るだけの商品（クーポン・セット割なし・${cartOnly.length}点）</h2>
@@ -124,7 +132,7 @@ await page.goto(`file://${join(out, "index.html")}`); await page.waitForLoadStat
 await page.pdf({ path: join(out, "demo-barcodes.pdf"), format: "A4", printBackground: true, margin: { top: "10mm", bottom: "10mm", left: "10mm", right: "10mm" } });
 await browser.close();
 
-const line = (r: Row, coupon: boolean) => `| ${r.category} | ${r.name} | \`${r.code}\` | ${symbology(r.code) === "ean13" ? "EAN-13" : "Code 128"} |${coupon ? ` ${couponText(r)} | ${r.sets.join(" ／ ") || "—"} |` : ""} [SVG](${r.code}.svg) |`;
+const line = (r: Row, coupon: boolean) => `| ${r.category} | ${r.name} | \`${r.code}\` | ${symbology(r.code) === "ean13" ? "EAN-13" : "Code 128"} |${coupon ? ` ${r.useFor.length && r.coupons.every(c => !c.coupon) ? `（${redeemText(r)}）` : couponText(r)} | ${r.sets.join(" ／ ") || "—"} |` : ""} [SVG](${r.code}.svg) |`;
 writeFileSync(join(out, "README.md"), `# デモ店舗のサンプルバーコード
 
 デモ店舗（DATA-01 S1・hiroshima-demo-store）で扱う架空商品${rows.length}点のバーコードです。KAGO Appの「カメラで読み取る」で読み取れます。
@@ -132,7 +140,8 @@ writeFileSync(join(out, "README.md"), `# デモ店舗のサンプルバーコー
 - 印刷用：[demo-barcodes.pdf](demo-barcodes.pdf)（A4。①クーポンが出る商品、改ページして②かごに入るだけの商品）
 - 画面表示用：[index.html](index.html)、商品ごとのSVG
 - 13桁のコードはEAN-13、\`PLU-\`で始まる商品はCode 128です。価格は参考で、購入時は店舗の現在価格が適用されます。
-- クーポンは、その商品だけをかごに入れたときに出るものです。デモの3人（田中：履歴OFF、佐藤・鈴木：履歴ON）で異なる場合は人ごとに書いています。受け取る・見送る・ほかの商品を入れると、次に出るクーポンは変わります。
+- スパゲッティを読み取ると、デモでは誰でも必ずトマトパスタソースのクーポンが出ます（#186）。クーポンを使うときは、すぐ下のトマトパスタソースのバーコードを読み取ります。
+- ほかのクーポンは、その商品だけをかごに入れたときに出るものです。デモの3人（田中：履歴OFF、佐藤・鈴木：履歴ON）で異なる場合は人ごとに書いています。受け取る・見送る・ほかの商品を入れると、次に出るクーポンは変わります。
 - クーポンはAppの配布ロジック（[app-coupon-targeting.md](../specs/app-coupon-targeting.md)）を実際のseed・ルールで計算した結果です（基準：2026-10-25 12:00 JST、有効なゲリラクーポン${offers.length}件）。店舗のクーポンや履歴が変わったら作り直してください。
 - セット割は、組の1つ目の商品（きっかけ）を読み取ると「いまだけのお得」に出ます（\`app_demo_set_deals.sql\`、10/25〜11/7）。タイムセールは時間帯で出るため、この表には入れていません。
 - 再生成：\`kago-os/kago-app\`で \`node --experimental-strip-types scripts/generate-demo-barcode-sheet.mts\`

@@ -16,7 +16,7 @@ await fixture.db.query(`insert into store_offers(id,store_id,kind,product_id,tri
 const origin = "http://127.0.0.1:3125", output = resolve("../../internal/coupon-frequency-evidence");
 await mkdir(output, { recursive: true });
 const server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "dev", "--webpack", "--hostname", "127.0.0.1", "--port", "3125"], {
-  env: { ...process.env, KAGO_NEXT_DIST_DIR: ".next/coupon-frequency-e2e", KAGO_DEMO_ENABLED: "0", NEXT_PUBLIC_SUPABASE_URL: fixture.url, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_test" },
+  env: { ...process.env, KAGO_NEXT_DIST_DIR: ".next/coupon-frequency-e2e", KAGO_DEMO_ENABLED: "0", NEXT_PUBLIC_SUPABASE_URL: fixture.url, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_test", NEXT_PUBLIC_KAGO_COUPON_CODE_ENTRY: "1" },
   windowsHide: true, stdio: ["ignore", "pipe", "pipe"],
 });
 let log = ""; server.stdout.on("data", c => { log += c; }); server.stderr.on("data", c => { log += c; });
