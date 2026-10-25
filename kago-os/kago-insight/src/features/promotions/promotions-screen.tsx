@@ -218,7 +218,7 @@ function PromotionForm({
   const [priority, setPriority] = useState(promotion?.priority ?? 50);
   const [reasonText, setReasonText] = useState(promotion?.reason_text ?? "");
   const [startsAt, setStartsAt] = useState(toDateInputValue(promotion?.starts_at ?? today));
-  const [endsAt, setEndsAt] = useState(toDateInputValue(promotion?.ends_at ?? new Date(Date.now() + 7 * 86400000).toISOString()));
+  const [endsAt, setEndsAt] = useState(() => toDateInputValue(promotion?.ends_at ?? new Date(Date.now() + 7 * 86400000).toISOString()));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -259,7 +259,7 @@ function PromotionForm({
 
     const draft: PromotionDraft = {
       promotion_id: promotion?.id ?? null,
-      expected_version: promotion?.version ?? 0,
+      expected_version: promotion?.version,
       product_id: productId,
       channels,
       time_windows: windows,
@@ -293,9 +293,10 @@ function PromotionForm({
         </p>
       ) : null}
 
-      <Field label="対象商品">
+      <Field label="対象商品" hint={promotion ? "商品を変える場合は新しいおすすめを追加してください。" : undefined}>
         <select
           aria-label="おすすめの対象商品"
+          disabled={Boolean(promotion)}
           value={productId}
           onChange={(e) => setProductId(e.target.value)}
           className="w-full rounded border border-[var(--line)] px-2 py-2 text-sm"

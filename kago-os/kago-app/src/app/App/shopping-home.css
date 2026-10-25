@@ -161,6 +161,7 @@ body:has(.shopping-home) .shopping-session-bar{display:none}
 .shopping-scanner .scanner-intro{margin-top:clamp(3px,1.2dvh,12px)}
 .shopping-cart-summary>button{border:0;background:linear-gradient(105deg,#07576B,#006575);box-shadow:0 3px 8px #0E284124;min-height:49px;padding:9px 16px;border-radius:22px}
 .shopping-card-stack{display:grid;grid-template-columns:minmax(0,1fr) 17px;gap:7px;min-height:0}
+.shopping-card-stack:has(>.shopping-stack-refresh){grid-template-rows:minmax(0,1fr) 44px}
 .shopping-stack-viewport{position:relative;min-height:0;overflow:hidden;border-radius:21px;background:var(--kago-mint);box-shadow:0 3px 12px #0E28410b;touch-action:pan-x;isolation:isolate}
 .shopping-stack-card{position:absolute;inset:0;overflow:hidden;border-radius:inherit;will-change:transform;isolation:isolate}
 .shopping-stack-card>img{z-index:-2;object-fit:cover;object-position:60% center}
