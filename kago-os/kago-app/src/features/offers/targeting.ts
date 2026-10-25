@@ -19,10 +19,14 @@ export const NOVELTY = {
   regular_purchase: 0, purchased_before: 0.6, same_category: 1.3, never_purchased: 1, history_disabled: 1, history_empty: 1,
 } as const;
 export const MAX_COUPONS_PER_VISIT = 3;
-// Demo (#186): scanning these products always shows the coupon for the paired product, whoever the customer is
-// (scores and history are not used for it). Only a coupon the DB still offers is shown; the other rules stay.
+// Demo (#186, #191): while spaghetti is in the cart, the coupon is always the tomato sauce one, whoever the customer
+// is (scores and history are not used): also when another product was added after it, when the sauce is already in
+// the cart, and past the 3-coupons limit. Only a coupon the DB still offers (not claimed in this visit) and not
+// dismissed is shown. If spaghetti was the last product added and the sauce coupon was dismissed, no other is shown.
 //   スパゲッティ 2900000000100 → トマトパスタソース 2900000000162
 export const DEMO_PINNED_COUPONS: Readonly<Record<string, string>> = { "2900000000100": "2900000000162" };
+// Used in the reason when the pinned product is in the cart but was not the last one added.
+const PINNED_TRIGGER_NAMES: Readonly<Record<string, string>> = { "2900000000100": "スパゲッティ 500g" };
 const SCORE_DIGITS = 1e6; // scores are compared after rounding, so float noise never decides a tie
 
 export type NoveltyReason = keyof typeof NOVELTY;
@@ -142,17 +146,26 @@ export function targetCoupon(input: CouponTargetingInput): CouponDecision {
         discountText(input.offers.find(offer => offer.offerId === item.offerId)!), regularExcluded) }));
   const limited = (input.claimedCouponCount ?? 0) >= MAX_COUPONS_PER_VISIT;
   if (limited) for (const item of candidates) excluded.push({ offerId: item.offerId, productCode: item.productCode, reason: "visit_limit" });
-  const pinned = limited ? null : pinnedCoupon(input, cart, dismissed);
+  const pinned = pinnedCoupon(input, cart, dismissed);
   if (pinned) return { selected: pinned, candidates: [pinned, ...candidates.filter(item => item.offerId !== pinned.offerId)], excluded, historyStatus: input.history.status };
+  // Spaghetti was just added and the sauce coupon is offered but dismissed: never show another coupon in its place.
+  // (Once the sauce coupon has been used, the DB no longer lists it and the normal choice applies.)
+  const pinnedCode = input.triggers.length === 1 ? input.pinnedCoupons?.[input.triggers[0].code] : undefined;
+  if (pinnedCode !== undefined && input.offers.some(offer => offer.kind === "guerrilla_coupon" && offer.product.code === pinnedCode
+    && (offer.dismissed || dismissed.has(offer.offerId)) && (!offer.trigger || offer.triggerInCart)))
+    return { selected: null, candidates: [], excluded, historyStatus: input.history.status };
   return { selected: limited ? null : candidates[0] ?? null, candidates: limited ? [] : candidates, excluded, historyStatus: input.history.status };
 }
 
-/** Demo (#186): the fixed coupon for the scanned product, if the DB offers it and it is not in the cart or dismissed. */
+/** Demo (#186, #191): the fixed coupon while its product is in the cart, if the DB offers it and it is not dismissed. */
 function pinnedCoupon(input: CouponTargetingInput, cart: Set<string>, dismissed: Set<string>): CouponScore | null {
-  for (const trigger of [...input.triggers].sort((a, b) => a.code.localeCompare(b.code))) {
+  const added = [...input.triggers].sort((a, b) => a.code.localeCompare(b.code));
+  const inCart = [...cart].filter(code => !added.some(t => t.code === code)).sort()
+    .map(code => ({ code, name: PINNED_TRIGGER_NAMES[code] ?? "かごの商品" }));
+  for (const trigger of [...added, ...inCart]) {
     const code = input.pinnedCoupons?.[trigger.code];
     const offer = code === undefined ? undefined : input.offers.filter(item => item.kind === "guerrilla_coupon" && item.product.code === code
-      && !item.productInCart && !cart.has(code) && !item.dismissed && !dismissed.has(item.offerId) && (!item.trigger || item.triggerInCart))
+      && !item.dismissed && !dismissed.has(item.offerId) && (!item.trigger || item.triggerInCart))
       .sort((a, b) => dealRate(b) - dealRate(a) || a.offerId.localeCompare(b.offerId))[0];
     if (!offer) continue;
     const related = association(input.rules, trigger.code, offer)
