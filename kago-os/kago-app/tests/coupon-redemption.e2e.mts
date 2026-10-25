@@ -21,7 +21,7 @@ const frame = Buffer.concat([Buffer.from("FRAME\n"), grey, Buffer.alloc(1280 * 7
 const video = resolve(output, "basil.y4m");
 await writeFile(video, Buffer.concat([Buffer.from("YUV4MPEG2 W1280 H720 F10:1 Ip A1:1 C420jpeg\n"), ...Array.from({ length: 20 }, () => frame)]));
 const server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "dev", "--webpack", "--hostname", "127.0.0.1", "--port", "3122"], {
-  env: { ...process.env, KAGO_NEXT_DIST_DIR: ".next/coupon-redemption-e2e", KAGO_DEMO_ENABLED: "0", NEXT_PUBLIC_SUPABASE_URL: fixture.url, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_test" },
+  env: { ...process.env, KAGO_NEXT_DIST_DIR: ".next/coupon-redemption-e2e", KAGO_DEMO_ENABLED: "0", NEXT_PUBLIC_SUPABASE_URL: fixture.url, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_test", NEXT_PUBLIC_KAGO_COUPON_CODE_ENTRY: "1" },
   windowsHide: true, stdio: ["ignore", "pipe", "pipe"],
 });
 let log = ""; server.stdout.on("data", c => { log += c; }); server.stderr.on("data", c => { log += c; });

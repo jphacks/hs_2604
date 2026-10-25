@@ -15,7 +15,7 @@ const fixture = await createCartBackend({ offers: true });
 const origin = "http://127.0.0.1:3110";
 const output = resolve("../../internal/app13-evidence"); await mkdir(output, { recursive: true });
 const server = spawn(process.execPath, ["node_modules/next/dist/bin/next", "dev", "--webpack", "--hostname", "127.0.0.1", "--port", "3110"], {
-  env: { ...process.env, NEXT_PUBLIC_SUPABASE_URL: fixture.url, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_test" }, windowsHide: true, stdio: ["ignore", "pipe", "pipe"],
+  env: { ...process.env, NEXT_PUBLIC_SUPABASE_URL: fixture.url, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_test", NEXT_PUBLIC_KAGO_COUPON_CODE_ENTRY: "1" }, windowsHide: true, stdio: ["ignore", "pipe", "pipe"],
 });
 let log = ""; server.stdout.on("data", c => { log += c; }); server.stderr.on("data", c => { log += c; });
 let browser; let active: Page | undefined; const passed: string[] = []; const pass = (s: string) => { passed.push(s); console.log("PASS: " + s); };

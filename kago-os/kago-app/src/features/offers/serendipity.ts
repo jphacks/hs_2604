@@ -3,7 +3,7 @@
 // The guerrilla coupon is chosen per customer by DEMO-02 (targeting.ts, docs/specs/app-coupon-targeting.md).
 import type { AssociationRuleSet } from "../recommendations/association";
 import type { OfferList, SerendipityOffer, SerendipityResponse, StoreOffer } from "./contracts";
-import { targetCoupon, type CouponHistory, type CouponDecision } from "./targeting.ts";
+import { DEMO_PINNED_COUPONS, targetCoupon, type CouponHistory, type CouponDecision } from "./targeting.ts";
 import { shortProductName } from "../../lib/product-name.ts";
 
 const INITIAL_RELATION = 1.5; // curated pairs count as a moderate, explainable relation
@@ -35,7 +35,7 @@ export function couponTriggers(list: OfferList) {
 }
 export function decideCoupon(list: OfferList, rules: AssociationRuleSet, history: CouponHistory): CouponDecision {
   return targetCoupon({ offers: list.offers, triggers: couponTriggers(list), cartProductCodes: list.cartProductCodes,
-    history, rules, claimedCouponCount: list.claimedCouponCount });
+    history, rules, claimedCouponCount: list.claimedCouponCount, pinnedCoupons: DEMO_PINNED_COUPONS });
 }
 
 // history: what loadRecommendationInput allowed (DEMO-02). Without it, coupons are chosen without any history.

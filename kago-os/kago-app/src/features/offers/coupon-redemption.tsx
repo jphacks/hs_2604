@@ -6,11 +6,18 @@ import { cartMessages, type StoreProduct } from "@/features/cart/contracts";
 import { BarcodeScanner } from "@/features/scanner/barcode-scanner";
 import type { SerendipityOffer } from "./contracts";
 
+// #186: for the demo, a guerrilla coupon is confirmed by scanning only (the code entry is hidden).
+// It still appears when the camera cannot be used (denied, none, or http on a LAN address), so the coupon stays usable.
+// NEXT_PUBLIC_KAGO_COUPON_CODE_ENTRY=1 always shows it (as before #186; the e2e tests use it).
+const COUPON_CODE_ENTRY = process.env.NEXT_PUBLIC_KAGO_COUPON_CODE_ENTRY === "1";
+
 // Looking up a code records the scan, but never calls the cart's auto-add flow.
 export function CouponRedemption({ offer, visitId, canEdit, onClaim }: {
   offer: SerendipityOffer; visitId: string; canEdit: boolean; onClaim: () => void;
 }) {
   const offerName=offer.kind==="guerrilla_coupon"?"クーポン":"割引";
+  const [cameraFailed, setCameraFailed] = useState(false);
+  const codeEntry = offer.kind !== "guerrilla_coupon" || COUPON_CODE_ENTRY || cameraFailed;
   const [code, setCode] = useState("");
   const [verified, setVerified] = useState<StoreProduct | null>(null);
   const [busy, setBusy] = useState(false);
@@ -50,17 +57,18 @@ export function CouponRedemption({ offer, visitId, canEdit, onClaim }: {
   return <div className="coupon-redemption">
     <p className="text-sm font-bold">対象の商品コード</p>
     <code className="mt-1 block select-all break-all rounded-xl bg-slate-100 px-3 py-2 text-lg font-bold">{offer.product.code}</code>
-    <p className="my-3 text-xs leading-5 text-slate-600">商品のバーコードを読み取るか、商品コードを入力してください。確認だけではかごに追加されません。</p>
+    <p className="my-3 text-xs leading-5 text-slate-600">{codeEntry ? "商品のバーコードを読み取るか、商品コードを入力してください。" : "商品のバーコードを読み取ってください。"}確認だけではかごに追加されません。</p>
     {!verified ? <>
       <BarcodeScanner onDetected={value => { setCode(value); void verify(value); }} disabled={!canEdit || busy}
+        onReadFailure={reason => { if (reason !== "unreadable") setCameraFailed(true); }}
         appearance="shopping" description="対象商品のバーコードを読み取ってください。" />
-      <form onSubmit={event => { event.preventDefault(); void verify(code); }} className="mt-3 grid gap-2">
+      {codeEntry && <form onSubmit={event => { event.preventDefault(); void verify(code); }} className="mt-3 grid gap-2">
         <label className="grid gap-1 text-sm font-bold">{offerName}対象の商品コードを入力
           <input value={code} onChange={event => setCode(event.target.value)} required maxLength={100} autoComplete="off" disabled={busy}
             className="min-h-11 min-w-0 rounded-xl border border-slate-300 bg-white px-3 font-normal" placeholder="バーコードの数字など" />
         </label>
         <button type="submit" disabled={!canEdit || busy || !code.trim()} className="min-h-11 rounded-xl border border-pink-600 px-4 py-2 text-sm font-bold text-pink-700 disabled:opacity-40">{busy ? "商品を確認しています…" : "商品を確認"}</button>
-      </form>
+      </form>}
     </> : <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3" role="status">
       <p className="font-bold text-emerald-900">対象商品を確認しました：{verified.name}</p>
       <p className="mt-1 text-xs text-emerald-900">下のボタンで、読み取った1点に{offerName}を使えます。</p>
