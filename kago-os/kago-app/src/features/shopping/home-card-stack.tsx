@@ -7,6 +7,10 @@ import {MENU_PRODUCT_IMAGES} from "@/lib/product-visuals";
 import {shortProductName} from "@/lib/product-name";
 import {useAppEvents} from "@/features/events/event-provider";
 import {SerendipityOffers} from "@/features/offers/serendipity-offers";
+import {RegularReminders} from "@/features/recommendations/regular-reminders";
+import {RegularReminderCard} from "@/features/recommendations/regular-reminder-card";
+import type {RegularReminder} from "@/features/recommendations/purchase-cycle";
+import type {StoreProduct} from "@/features/cart/contracts";
 import {useCart} from "@/features/cart/cart-provider";
 import {StoreOfferCard} from "@/features/offers/store-offer-card";
 import type {SerendipityOffer} from "@/features/offers/contracts";
@@ -15,17 +19,17 @@ import {ShoppingIcon} from "@/components/shopping-icons";
 
 function subscribeMotion(change:()=>void){const media=window.matchMedia("(prefers-reduced-motion: reduce)");media.addEventListener("change",change);return()=>media.removeEventListener("change",change);}
 const motionSnapshot=()=>window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-export function HomeCardStack({onOpen,blocked=false}:{onOpen:(item?:SavedSelectionItem)=>void;blocked?:boolean}){
- return <SerendipityOffers renderStoreOffers={(offers,onUse,serverTime,offerOpen)=><CardStack onOpen={onOpen} blocked={blocked||offerOpen} offers={offers} onUse={onUse} serverTime={serverTime}/>}/>;
+export function HomeCardStack({onOpen,onScan,blocked=false}:{onOpen:(item?:SavedSelectionItem)=>void;onScan:(product:StoreProduct)=>void;blocked?:boolean}){
+ return <RegularReminders renderItems={reminders=><SerendipityOffers renderStoreOffers={(offers,onUse,serverTime,offerOpen)=><CardStack onOpen={onOpen} blocked={blocked||offerOpen} offers={offers} onUse={onUse} serverTime={serverTime} reminders={reminders} onScan={onScan}/>}/>}/>;
 }
-function CardStack({onOpen,blocked,offers,onUse,serverTime}:{onOpen:(item?:SavedSelectionItem)=>void;blocked:boolean;offers:SerendipityOffer[];onUse:(offer:SerendipityOffer)=>void;serverTime:string}){
+function CardStack({onOpen,blocked,offers,onUse,serverTime,reminders,onScan}:{onOpen:(item?:SavedSelectionItem)=>void;blocked:boolean;offers:SerendipityOffer[];onUse:(offer:SerendipityOffer)=>void;serverTime:string;reminders:RegularReminder[];onScan:(product:StoreProduct)=>void}){
  const cart=useCart();
  const {state}=useRecommendations();
  const track=useAppEvents();
  const container=useRef<HTMLElement>(null);
  const items=state.status==="ready"?[...state.data.items].sort((a,b)=>({sponsored:0,store_promo:1,organic:2}[a.placementType]-{sponsored:0,store_promo:1,organic:2}[b.placementType])||a.rank-b.rank):[];
  const recommendationCards=items.length?items.map(item=>({id:item.selectionItemId,image:MENU_PRODUCT_IMAGES[item.product.code]??"/images/shopping/fresh-family.png",label:item.placementType==="sponsored"?"広告":item.placementType==="store_promo"?"店舗からのおすすめ":"あなたへのおすすめ",kicker:item.sponsor?.headline??"今日のお買い物に",first:shortProductName(item.product.name),second:new Intl.NumberFormat("ja-JP",{style:"currency",currency:"JPY"}).format(item.product.price),button:"詳細を見る",item})): [{id:"fresh",image:"/images/shopping/fresh-family.png",label:"お買い物のヒント",kicker:"毎日の食卓を、もっとかんたんに",first:"新鮮な食材で",second:"家族の笑顔を。",button:"おすすめ商品を見る",item:undefined}];
- const cards=[...offers.map(offer=>({id:offer.offerId,label:offer.kind==="set_deal"?"セット割":"タイムセール",offer,item:undefined})),...recommendationCards.map(card=>({...card,offer:undefined}))];
+ const cards=[...offers.map(offer=>({id:offer.offerId,label:offer.kind==="set_deal"?"セット割":"タイムセール",offer,item:undefined,reminder:undefined})),...reminders.map(reminder=>({id:"regular-"+reminder.product.productId,label:"いつもの商品",reminder,offer:undefined,item:undefined})),...recommendationCards.map(card=>({...card,offer:undefined,reminder:undefined}))];
  const [position,setPosition]=useState({active:0,previous:-1});
  const [hovered,setHovered]=useState(false),[focused,setFocused]=useState(false),[stopped,setStopped]=useState(false);
  const reduced=useSyncExternalStore(subscribeMotion,motionSnapshot,()=>true);
@@ -51,7 +55,7 @@ function CardStack({onOpen,blocked,offers,onUse,serverTime}:{onOpen:(item?:Saved
     const animate=index===current||index===position.previous;
     return <article data-selection-item-id={card.item?.selectionItemId} key={card.id} className={"shopping-stack-card shopping-stack-card-"+card.id} aria-hidden={index!==current} inert={index!==current}
      style={{transform:"translateY("+(-offset*104)+"%)",transition:animate&&!reduced?"transform 480ms cubic-bezier(.2,.75,.25,1)":"none"}}>
-     {card.offer?<StoreOfferCard offer={card.offer} disabled={!cart.canEdit} serverTime={serverTime} onUse={()=>onUse(card.offer)}/>:<>
+     {card.reminder?<RegularReminderCard item={card.reminder} disabled={!cart.canEdit} onScan={()=>onScan(card.reminder.product)}/>:card.offer?<StoreOfferCard offer={card.offer} disabled={!cart.canEdit} serverTime={serverTime} onUse={()=>onUse(card.offer)}/>:<>
      <Image src={card.image} alt="" fill sizes="(max-width:520px) 94vw, 500px"/>
      <div className="shopping-stack-copy">
       <span className="shopping-stack-label">{card.label}</span><p>{card.kicker}</p>

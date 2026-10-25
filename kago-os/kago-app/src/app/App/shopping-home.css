@@ -270,8 +270,8 @@ body:has(.shopping-home) .shopping-session-bar{display:none}
 .shopping-header .shopping-logo{width:clamp(160px,48vw,220px);max-width:100%;height:auto}
 
 /* Store deals share the existing advertising slot, without adding a page row. */
-.shopping-content:has(.store-offer-card){grid-template-rows:minmax(0,.9fr) clamp(44px,7dvh,58px) clamp(54px,8.5dvh,75px) minmax(0,1.2fr)}
-@media(max-height:590px){.shopping-content:has(.store-offer-card){grid-template-rows:minmax(0,.86fr) 40px 49px minmax(0,1.24fr)}}
+.shopping-content:has(.store-offer-card,.regular-reminder-card){grid-template-rows:minmax(0,.9fr) clamp(44px,7dvh,58px) clamp(54px,8.5dvh,75px) minmax(0,1.2fr)}
+@media(max-height:590px){.shopping-content:has(.store-offer-card,.regular-reminder-card){grid-template-rows:minmax(0,.86fr) 40px 49px minmax(0,1.24fr)}}
 
 /* Fill the camera cell, leaving only the stop button and a 3px gap. */
 .shopping-scanner.shopping-scanner-active>.scanner-live{height:100%}

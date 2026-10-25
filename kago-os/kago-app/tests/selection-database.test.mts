@@ -48,7 +48,8 @@ async function visitWith(key: AccountKey, ...codes: string[]) {
   return visit;
 }
 const candidatesOf = (key: AccountKey, visit: string) => call<SelectionCandidates>(key, "select app_selection_candidates($1::uuid) as value", [visit]);
-async function inputs(key: AccountKey, visit: string) {
+// asOf: history reference time. Defaults to the visit start (now); fixed where a test depends on the cycle.
+async function inputs(key: AccountKey, visit: string, asOf?: string) {
   const candidates = await candidatesOf(key, visit);
   const settings = await call<{ use_purchase_history: boolean; use_current_cart: boolean } | null>(key, "select to_jsonb(s) as value from customer_settings s");
   const orders = await call<PurchaseOrder[]>(key, `select coalesce(jsonb_agg(jsonb_build_object('id',o.id,'orderedAt',o.ordered_at,'total',o.total,'dataOrigin',o.data_origin,
@@ -56,7 +57,7 @@ async function inputs(key: AccountKey, visit: string) {
     from orders o where o.store_id=$1`, [S1]);
   const history = !!settings?.use_purchase_history;
   return { candidates, settings: { usePurchaseHistory: history, useCurrentCart: !!settings?.use_current_cart },
-    summaries: history ? buildPurchaseSummaries(orders, candidates.visit.started_at) : [] };
+    summaries: history ? buildPurchaseSummaries(orders, asOf ?? candidates.visit.started_at) : [] };
 }
 const save = (key: AccountKey, sel: ReturnType<typeof selectRecommendations>, id: string | null = null) => call<string>(key,
   "select kago_save_selection($1::uuid,$2::integer,$3::integer,$4::jsonb,$5::uuid)::text as value",
@@ -88,7 +89,9 @@ test("U1 (history and cart ON) with pasta: three types, sponsored sauce, repleni
   const ad = sel.items.find(i => i.placementType === "sponsored")!;
   assert.equal(ad.product.productId, SAUCE); assert.equal(ad.reasonText, "スパゲッティを選んだ方への広告です"); assert.equal(ad.adPlacementId, PL1);
   assert(input.summaries.some(s => s.productId === MILK), "seeded history yields purchase cycles");
-  const organic = selectRecommendations({ ...input, candidates: { ...input.candidates, ads: [], promotions: [] } }, rules);
+  // DATA-01 ends on 10/04: a week later the weekly items are due; by now (≥1.5× the interval) the habit has lapsed (#152).
+  const dueInput = await inputs("U1", visit, "2026-10-11T12:00:00+09:00");
+  const organic = selectRecommendations({ ...dueInput, candidates: { ...dueInput.candidates, ads: [], promotions: [] } }, rules);
   assert(organic.items.some(i => i.reasonCode === "replenishment"), JSON.stringify(organic.items.map(i => i.reasonCode)));
   const id = "0da7a0e2-0000-4000-8000-000000000001";
   assert.equal(await save("U1", sel, id), id);

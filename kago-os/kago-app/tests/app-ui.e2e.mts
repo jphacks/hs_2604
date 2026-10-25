@@ -11,6 +11,13 @@ import {id} from "./fixtures/cart-database.mts";
 import {PRODUCT,OFFER} from "./fixtures/offers.mts";
 
 const fixture=await createCartBackend({accountHistory:true,offers:true});
+// Three synthetic purchases make a due regular item without touching shared data.
+for(let n=0;n<3;n++){
+ const at=new Date(Date.now()-(12-n*4)*86400000).toISOString();
+ await fixture.db.query("insert into visits(id,user_id,store_id,status,started_at,ended_at,last_activity_at) values ($1,$2,$3,'completed',$4::timestamptz-interval '20 minutes',$4,$4)",[id(7100+n),id(3),id(1),at]);
+ await fixture.db.query("insert into orders(id,visit_id,user_id,store_id,ordered_at,total,idempotency_key,cart_version,data_origin) values ($1,$2,$3,$4,$5,298,$6,1,'synthetic')",[id(7200+n),id(7100+n),id(3),id(1),at,id(7300+n)]);
+ await fixture.db.query("insert into order_items(order_id,product_id,product_name,unit_price,quantity) values ($1,$2,'トマトパスタソース',298,1)",[id(7200+n),PRODUCT.sauce]);
+}
 const base="http://127.0.0.1:3224",out="../../internal/app-ui-evidence";
 await mkdir(out,{recursive:true});
 const bwip=createRequire(import.meta.url)("bwip-js") as {toBuffer:(options:object)=>Promise<Buffer>};
@@ -100,6 +107,19 @@ try{
  await page.locator(".account-cart-link").click();await page.getByRole("dialog",{name:"買い物かご",exact:true}).waitFor();
  pass("マイページの設定を保存でき、かごボタンでホーム上のかごが開く");
  await page.getByRole("dialog",{name:"買い物かご",exact:true}).getByRole("button",{name:"閉じる",exact:true}).click();
+ await page.getByRole("button",{name:/枚目：いつもの商品$/}).click();await page.locator('.shopping-stack-card[aria-hidden="false"] .regular-reminder-card').waitFor();
+ for(const size of [{width:390,height:844},{width:375,height:667},{width:320,height:568},{width:430,height:932},{width:1280,height:900}]){
+  await page.setViewportSize(size);
+  await page.evaluate(()=>new Promise<void>(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>resolve()))));
+  const nav=await page.locator(".shopping-nav").boundingBox();assert.ok(nav&&nav.y+nav.height<=size.height+2,"Reminder navigation fits "+JSON.stringify({size,nav}));
+  await page.screenshot({path:out+"/reminder-"+size.width+"-"+size.height+".png"});
+  assert.equal(await page.locator('.shopping-stack-card[aria-hidden="false"] .regular-reminder-card').evaluate(el=>{const title=el.querySelector("h2")!.getBoundingClientRect(),product=el.querySelector("h3")!.getBoundingClientRect(),meta=el.querySelector(".regular-reminder-product p")!.getBoundingClientRect(),button=el.querySelector("button")!.getBoundingClientRect();return title.bottom<=product.top+1&&meta.bottom<=button.top+1;}),true,"Reminder fits "+JSON.stringify(size));
+ }
+ await page.setViewportSize({width:390,height:844});
+ await page.screenshot({path:out+"/regular-reminder.png"});await page.locator('.shopping-stack-card[aria-hidden="false"] .regular-reminder-card').getByRole("button",{name:"商品のバーコードを読み取る",exact:true}).click();
+ const reminderScan=page.getByRole("dialog",{name:"トマトパスタソースを読み取る",exact:true});await reminderScan.waitFor();assert.equal((await cart()).cart.some((l:{productId:string})=>l.productId===PRODUCT.sauce),false);
+ await reminderScan.getByRole("button",{name:"読み取りを閉じる",exact:true}).click();
+ pass("mainの購入リマインダーを同じ枠に保持し、選ぶだけで商品が増えない");
  await page.getByRole("link",{name:"りれき",exact:true}).click();await page.getByRole("heading",{name:"購入履歴",exact:true}).waitFor();
  await page.locator(".account-order").first().waitFor();await page.locator(".account-order").filter({hasText:"検証1号店"}).first().locator("summary").click();await page.getByText("購入時ミルク",{exact:true}).first().waitFor();
  await page.locator(".account-store-picker summary").click();await page.locator(".account-store-options button").filter({hasText:"検証2号店"}).click();

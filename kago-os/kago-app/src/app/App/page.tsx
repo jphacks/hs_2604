@@ -145,7 +145,7 @@ export default function Home() {
           <span className="shopping-category-photo"><Image src={item.image} alt="" fill sizes="100px" /></span><strong>{item.label}</strong><ShoppingIcon name="arrow" />
         </button>)}
       </section>
-      <HomeCardStack onOpen={item=>{if(item)setHomeDetail({item,version:cart.version});else setPanel("recommendations");}} blocked={cartOpen||panel!==null||homeDetail?.version===cart.version}/>
+      <HomeCardStack onScan={product=>{setScanSelectionId(null);setScanProduct(product);}} onOpen={item=>{if(item)setHomeDetail({item,version:cart.version});else setPanel("recommendations");}} blocked={cartOpen||panel!==null||homeDetail?.version===cart.version}/>
     </div>
     {cart.itemCount > 0 && <div className="shopping-cart-summary" inert={cartOpen || panel!==null || errorPopupOpen}>
       <button type="button" onClick={() => setCartOpen(true)} aria-label={`買い物かごを開く、現在${cart.itemCount}点`}>
