@@ -1,5 +1,7 @@
 // Display frequency only. Candidate selection and discount eligibility stay on the server.
-export const COUPON_APPEARANCE_RATE = 0.4;
+// #172: for the demo every eligible coupon is shown. Set below 1 (e.g. 0.4 as in #162) to show later coupons
+// only sometimes; the first one is always shown either way.
+export const COUPON_APPEARANCE_RATE = 1;
 export type CouponAppearance = { hasShown: boolean; cartVersion: number; offerId: string | null; visible: boolean };
 export const initialCouponAppearance = (): CouponAppearance => ({ hasShown: false, cartVersion: -1, offerId: null, visible: false });
 
@@ -14,10 +16,10 @@ export function readCouponAppearance(raw: string | null): CouponAppearance {
 }
 
 export function decideCouponAppearance(previous: CouponAppearance, cartVersion: number, offerId: string | null,
-  random: () => number = Math.random): CouponAppearance {
+  random: () => number = Math.random, rate = COUPON_APPEARANCE_RATE): CouponAppearance {
   // One decision per saved cart version, even if polling returns a different candidate.
   if (cartVersion < previous.cartVersion || (cartVersion === previous.cartVersion && previous.offerId !== null)) return previous;
   if (!offerId) return { ...previous, cartVersion, offerId: null, visible: false };
-  const visible = !previous.hasShown || random() < COUPON_APPEARANCE_RATE;
+  const visible = !previous.hasShown || rate >= 1 || random() < rate;
   return { hasShown: previous.hasShown || visible, cartVersion, offerId, visible };
 }
