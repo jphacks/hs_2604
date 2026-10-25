@@ -196,3 +196,21 @@ for (const refreshFails of [false, true]) {
     assert.ok(requests.some(({ url }) => url.searchParams.get("grant_type") === "refresh_token"));
   });
 }
+
+test("Insight SSR cookies have a separate name and path from App", async () => {
+  const { fetcher } = fixture("store_staff");
+  const jar = new Map<string, string>();
+  const paths: string[] = [];
+  const adapter = {
+    getAll: () => [...jar].map(([name, value]) => ({ name, value })),
+    setAll(values: Array<{ name: string; value: string; options: { path?: string } }>) {
+      for (const cookie of values) { jar.set(cookie.name, cookie.value); paths.push(cookie.options.path ?? ""); }
+    },
+  };
+  const scope = { name: "kago-insight-auth", path: "/insight" };
+  await signInBackend(createServerBackend(config, adapter, fetcher, scope), "demo@example.invalid", "test", "store_staff");
+  assert.ok([...jar.keys()].every(name => name.startsWith("kago-insight-auth")));
+  assert.ok(paths.every(path => path === "/insight"));
+  assert.equal((await getBackendIdentity(createServerBackend(config, adapter, fetcher, scope))).roles[0], "store_staff");
+  await assert.rejects(getBackendIdentity(createServerBackend(config, adapter, fetcher)), hasCode("unauthenticated"));
+});

@@ -4,6 +4,7 @@
  * 値は common-spec.md §11 の例と一致させてあるので、画面に出る件数と率は手計算で検証できる。
  * NEXT_PUBLIC_INSIGHT_DATA_SOURCE=mock のときだけ使われる。
  */
+import { insightPath } from "./paths";
 import applicationsMock from "@/data/mock/applications.json";
 import placementsMock from "@/data/mock/placements.json";
 import promotionsMock from "@/data/mock/promotions.json";
@@ -39,7 +40,7 @@ export async function fetchApplications(): Promise<Application[]> {
   return delay(
     (applicationsMock as Omit<Application, "image_url">[]).map((row) => ({
       ...row,
-      image_url: `/mock/${row.image_path}`,
+      image_url: insightPath(`/mock/${row.image_path}`),
     })),
   );
 }

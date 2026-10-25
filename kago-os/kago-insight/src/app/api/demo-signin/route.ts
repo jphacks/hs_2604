@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
   // 環境変数が無ければデモ接続は無効。通常のログイン画面へ。
   if (!credentials) {
-    return NextResponse.redirect(new URL(insightPath("/login"), request.nextUrl.origin));
+    return new NextResponse(null, { status: 307, headers: { Location: insightPath("/login"), "Cache-Control": "private, no-store" } });
   }
 
   try {
@@ -23,8 +23,8 @@ export async function GET(request: NextRequest) {
     await signInBackend(client, credentials.email, credentials.password, "store_staff");
   } catch {
     // 失敗したまま元の画面へ戻すと往復し続けるので、ログイン画面で止める。
-    return NextResponse.redirect(new URL(insightPath("/login?demo=failed"), request.nextUrl.origin));
+    return new NextResponse(null, { status: 307, headers: { Location: insightPath("/login?demo=failed"), "Cache-Control": "private, no-store" } });
   }
 
-  return NextResponse.redirect(new URL(insightPath(next), request.nextUrl.origin));
+  return new NextResponse(null, { status: 307, headers: { Location: insightPath(next), "Cache-Control": "private, no-store" } });
 }
