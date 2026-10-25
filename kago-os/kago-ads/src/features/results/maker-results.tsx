@@ -138,7 +138,8 @@ function Table({ title, note, head, children }: { title: string; note: string; h
   return (
     <div className="mt-4">
       <h3 className="text-sm font-bold">{title}</h3>
-      <div className="mt-2 overflow-x-auto">
+      <p className="ads-table-hint">表は左右にスクロールできます</p>
+      <div className="ads-results-table mt-2 overflow-x-auto" role="region" aria-label={title+"（左右にスクロールできます）"} tabIndex={0}>
         <table className="w-full min-w-[640px] text-left text-sm">
           <thead className="text-xs text-muted">
             <tr>
