@@ -108,7 +108,7 @@ try {
   const snapshot = await (await context.request.get(origin + "/api/cart")).json();
   assert.equal(snapshot.cart.find((l: { productId: string }) => l.productId === PRODUCT.basil).discount, 49);
   await reload(); assert.equal(await sticker().count(), 0);
-  pass("opening consumes only the sticker: adding from details still saves the DB discount");
+  pass("using the coupon from details saves the DB discount and removes the ticket");
 
   await page.getByRole("link",{name:"マイページ",exact:true}).click();
   await page.getByRole("button", { name: "ログアウト", exact: true }).click();
