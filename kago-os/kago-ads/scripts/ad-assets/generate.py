@@ -418,7 +418,7 @@ figcaption{{font-size:12px;margin-top:6px;color:#57606a}}
 
 def main():
     # 古い素材が残らないよう、生成物はいったん消してから作る
-    shutil.rmtree(IMG_DIR, ignore_errors=True)
+    # Keep separately versioned design collections and previously issued files.
     os.makedirs(IMG_DIR, exist_ok=True)
     rows = []
     blank = {"creative_id": "", "creative_version": "", "product_code": "", "product_name": "", "category": "",

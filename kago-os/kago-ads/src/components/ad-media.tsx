@@ -60,7 +60,7 @@ export function AdMedia({
       {makerName && (
         <div className="absolute flex items-center whitespace-nowrap" style={zoneStyle(zones.label, channel)}>
           <span
-            className="rounded bg-black/75 font-medium text-white"
+            className="rounded-md border border-white/70 bg-white/95 font-medium text-[#0E2841]"
             style={{ fontSize: channel === "app" ? "3.6cqw" : "2.1cqw", padding: "0.4cqw 1.2cqw" }}
           >
             広告｜提供：{makerName}
@@ -77,8 +77,8 @@ function PriceBadge({ price, channel }: { price: number | string; channel: Chann
   return (
     <div className="absolute flex items-center justify-end whitespace-nowrap" style={zoneStyle(OVERLAY_ZONES[channel].price, channel)}>
       <span
-        className="rounded-lg bg-white font-extrabold text-red-700 shadow"
-        style={{ fontSize: channel === "app" ? "9cqw" : "6.5cqw", padding: "0.6cqw 1.8cqw" }}
+        className="rounded-xl border border-black/5 bg-white font-extrabold text-[#0E2841] shadow-sm"
+        style={{ fontSize: channel === "app" ? "7.2cqw" : "5cqw", padding: "0.6cqw 1.8cqw" }}
       >
         {typeof price === "number" ? (
           <>
@@ -124,13 +124,13 @@ export function PromoMedia({
   const app = channel === "app";
   return (
     <AdMedia asset={asset} channel={channel} price={price} src={src} onError={onError} className={className}>
-      <div className="absolute flex items-center whitespace-nowrap" style={zoneStyle(zones.name, channel)}>
-        <span className="font-extrabold text-ink" style={{ fontSize: app ? "10cqw" : "6cqw" }}>
+      <div className="absolute flex items-center" style={zoneStyle(zones.name, channel)}>
+        <span className="line-clamp-2 font-extrabold text-ink" style={{ fontSize: app ? "7.5cqw" : "4.6cqw", lineHeight:1.25 }}>
           {productName}
         </span>
       </div>
-      <div className="absolute flex items-center whitespace-nowrap" style={zoneStyle(zones.message, channel)}>
-        <span className="font-bold text-red-700" style={{ fontSize: app ? "5.5cqw" : "3cqw" }}>
+      <div className="absolute flex items-center" style={zoneStyle(zones.message, channel)}>
+        <span className="line-clamp-2 font-medium text-[#07576B]" style={{ fontSize: app ? "4.2cqw" : "2.5cqw", lineHeight:1.5 }}>
           {reasonText}
         </span>
       </div>
