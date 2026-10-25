@@ -13,7 +13,6 @@ import type { SavedSelectionItem } from "@/features/recommendations/selection-co
 import { useAppEvents } from "@/features/events/event-provider";
 import { ProductScanDialog } from "@/features/scanner/product-scan-dialog";
 import { BarcodeScanner } from "@/features/scanner/barcode-scanner";
-import { SerendipityOffers } from "@/features/offers/serendipity-offers";
 import { SuggestionCards } from "@/features/recommendations/suggestion-cards";
 import { offerKindLabel } from "@/features/offers/contracts";
 import { useShoppingSession } from "@/features/shopping/session-provider";
@@ -242,7 +241,6 @@ export default function Home() {
       </section>
     </div>}
     {homeDetail&&homeDetail.version===cart.version&&<SuggestionDetail scanRequired item={homeDetail.item} label={homeDetail.item.placementType==="sponsored"?"広告":homeDetail.item.placementType==="store_promo"?"店舗からのおすすめ":"あなたへのおすすめ"} added={cart.lines.some(line=>line.productId===homeDetail.item.product.productId)} disabled={!cart.canEdit} onClose={()=>setHomeDetail(null)} onAdd={()=>{setScanSelectionId(homeDetail.item.selectionItemId);setScanProduct({...homeDetail.item.product,available:true});}}/>}
-    <SerendipityOffers/>
     {scanProduct&&<ProductScanDialog product={scanProduct} disabled={!cart.canEdit} onClose={()=>setScanProduct(null)} onVerified={()=>{if(scanSelectionId){track({event_type:"recommendation_click",selection_item_id:scanSelectionId,product_id:scanProduct.productId,payload:{target:"add_button"}});cart.addRecommendation(scanProduct.productId,scanSelectionId);}else cart.setQuantity(scanProduct.productId,(cart.lines.find(line=>line.productId===scanProduct.productId)?.quantity??0)+1);setHomeDetail(null);}}/>}
   </main>;
 }

@@ -1,0 +1,6 @@
+.sale-preview .shopping-content{grid-template-rows:minmax(0,.9fr) clamp(44px,7dvh,58px) clamp(54px,8.5dvh,75px) minmax(0,1.2fr)}
+.sale-preview .sale-stack-card{position:absolute;inset:0;transition:transform 480ms cubic-bezier(.2,.75,.25,1)}
+.sale-preview-pause{position:absolute;bottom:67px;right:7px;z-index:4;width:19px;height:19px;border:0;border-radius:50%;background:#ffffffb0;color:#5C6C7A;font-size:10px}
+.sale-ad-card{transition:transform 480ms cubic-bezier(.2,.75,.25,1)}
+@media(max-height:590px){.sale-preview .shopping-content{grid-template-rows:minmax(0,.86fr) 40px 49px minmax(0,1.24fr)}}
+@media(prefers-reduced-motion:reduce){.sale-preview .sale-stack-card,.sale-ad-card{transition:none!important}}

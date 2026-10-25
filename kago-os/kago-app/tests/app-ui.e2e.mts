@@ -8,7 +8,7 @@ import {setTimeout as delay} from "node:timers/promises";
 import {chromium} from "playwright";
 import {createCartBackend} from "./fixtures/cart-backend.mts";
 import {id} from "./fixtures/cart-database.mts";
-import {PRODUCT} from "./fixtures/offers.mts";
+import {PRODUCT,OFFER} from "./fixtures/offers.mts";
 
 const fixture=await createCartBackend({accountHistory:true,offers:true});
 const base="http://127.0.0.1:3224",out="../../internal/app-ui-evidence";
@@ -59,6 +59,26 @@ try{
  const catalog=await (await context.request.get(base+"/api/cart?products=1")).json();
  const apple=catalog.products.find((p:{productId:string})=>p.productId===id(21));assert.ok(apple);
  const milk=catalog.products.find((p:{productId:string})=>p.productId===id(20));assert.ok(milk);
+ const saleOffer=(await (await context.request.get(base+"/api/offers")).json()).timeSales.find((o:{offerId:string})=>o.offerId===OFFER.timeSale);assert.ok(saleOffer);
+ await page.getByRole("button",{name:/枚目：タイムセール$/}).click();
+ assert.equal(await page.getByText("STORE DEALS",{exact:true}).count(),0);
+ for(const size of [{width:390,height:844},{width:375,height:667},{width:320,height:568},{width:430,height:932},{width:1280,height:900}]){
+  await page.setViewportSize(size);
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+2),true);
+  assert.equal(await page.locator('.shopping-stack-card[aria-hidden="false"] .store-offer-card').evaluate(el=>{const a=el.querySelector(".store-offer-price")!.getBoundingClientRect(),b=el.querySelector(".store-offer-remaining")!.getBoundingClientRect(),c=el.querySelector(".store-offer-scan")!.getBoundingClientRect();const pause=el.closest(".shopping-stack-viewport")!.querySelector(".shopping-stack-motion")!.getBoundingClientRect();return a.bottom<=b.top+1&&c.bottom<=el.getBoundingClientRect().bottom+1&&pause.bottom<=c.top+1;}),true,"Sale fits "+JSON.stringify(size));
+ }
+ await page.setViewportSize({width:390,height:844});await page.screenshot({path:out+"/time-sale.png"});
+ pass("タイムセールが広告枠内に入り、5サイズで価格・残時間・ボタンが重ならない");
+ await page.locator('.shopping-stack-card[aria-hidden="false"] .store-offer-scan').click();
+ const saleDialog=page.getByRole("dialog",{name:saleOffer.headline,exact:true});await saleDialog.waitFor();
+ const saleButton=saleDialog.getByRole("button",{name:"ここから商品を読み取る",exact:true});
+ assert.equal(await saleButton.evaluate(el=>getComputedStyle(el).fontSize),"16px");await page.screenshot({path:out+"/time-sale-detail.png"});await saleButton.click();
+ const saleBefore=await cart();assert.equal(saleBefore.cart.some((l:{productId:string})=>l.productId===PRODUCT.karaage),false);
+ await saleDialog.getByLabel("割引対象の商品コードを入力",{exact:true}).fill(milk.code);await saleDialog.getByRole("button",{name:"商品を確認",exact:true}).click();
+ await saleDialog.getByRole("alert").waitFor();assert.equal(await saleDialog.getByRole("button",{name:"この商品に割引を使う",exact:true}).isEnabled(),false);
+ await saleDialog.getByLabel("割引対象の商品コードを入力",{exact:true}).fill(saleOffer.product.code);await saleDialog.getByRole("button",{name:"商品を確認",exact:true}).click();await saleDialog.getByRole("button",{name:"この商品に割引を使う",exact:true}).click();
+ const saleCart=await waitCart(PRODUCT.karaage,1);assert.equal(saleCart.cart.find((l:{productId:string})=>l.productId===PRODUCT.karaage).discount,43);
+ pass("タイムセールは選ぶだけで追加されず、別商品を拒否し対象照合後にDBの割引が保存される");
  const milkBefore=(await cart()).cart.find((line:{productId:string})=>line.productId===milk.productId)?.quantity??0;
  await page.getByRole("button",{name:"カメラで読み取る",exact:true}).click();
  await waitCart(milk.productId,milkBefore+1);
@@ -123,6 +143,11 @@ try{
  await coupon.getByRole("button",{name:"この商品にクーポンを使う",exact:true}).click();
  const discounted=await waitCart(PRODUCT.basil,1);assert.ok(discounted.discountTotal>0);
  pass("クーポン受け取りだけでは商品が追加されず、対象バーコード照合後に割引が保存される");
+ await page.getByRole("button",{name:/枚目：セット割$/}).click();await page.locator('.shopping-stack-card[aria-hidden="false"] .store-offer-scan').click();
+ const setDialog=page.getByRole("dialog",{name:"パスタ＋トマトソースで10%OFF",exact:true});await setDialog.waitFor();await setDialog.getByRole("button",{name:"ここから商品を読み取る",exact:true}).click();
+ const sauce=catalog.products.find((p:{productId:string})=>p.productId===PRODUCT.sauce);assert.ok(sauce);await setDialog.getByLabel("割引対象の商品コードを入力",{exact:true}).fill(sauce.code);await setDialog.getByRole("button",{name:"商品を確認",exact:true}).click();await setDialog.getByRole("button",{name:"この商品に割引を使う",exact:true}).click();
+ const setCart=await waitCart(PRODUCT.sauce,1);assert.equal(setCart.cart.find((l:{productId:string})=>l.productId===PRODUCT.sauce).discount,29);assert.equal(setCart.cart.find((l:{productId:string})=>l.productId===PRODUCT.pasta).discount,24);
+ pass("セット割も広告枠から対象を読み取り、2商品の割引が保存される");
  await page.getByRole("button",{name:/買い物かごを開く/}).click();await page.getByRole("button",{name:"レジに進む",exact:true}).click();
  await page.getByRole("heading",{name:"お会計の確認",exact:true}).waitFor();await page.getByRole("button",{name:"お会計を確定する",exact:true}).waitFor();
  await page.screenshot({path:out+"/checkout.png"});await page.getByRole("button",{name:"お会計を確定する",exact:true}).click();

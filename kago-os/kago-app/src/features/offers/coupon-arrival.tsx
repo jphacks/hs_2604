@@ -36,7 +36,6 @@ export function CouponArrival({name,discount,onOpen,onDismiss}:{name:string;disc
        <span className="coupon-ticket-perforation" aria-hidden="true"/>
        <button type="button" className="coupon-ticket-open" aria-label="クーポンを引っ込める" onClick={()=>setConfirm(true)}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m14 5-7 7 7 7"/></svg></button>
      </div>
-     <span className="coupon-ticket-sparks" aria-hidden="true"><i/><i/><i/><i/><i/></span>
    </div>
    {confirm&&<div className="coupon-hide-overlay">
      <button type="button" className="coupon-hide-backdrop" tabIndex={-1} aria-label="確認を閉じる" onClick={()=>setConfirm(false)}/>

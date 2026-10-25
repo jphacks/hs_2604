@@ -27,7 +27,7 @@ body:has(.shopping-home) .shopping-session-bar{display:none}
 .shopping-scanner .scanner-copy>p:last-child{font-size:clamp(11px,1.5dvh,14px);line-height:1.65;color:#daebef;white-space:pre-line;text-shadow:0 1px 4px #071927aa}
 .shopping-scanner .scanner-start{display:flex;align-items:center;justify-content:center;gap:12px;flex:none;min-height:44px;height:clamp(44px,6.3dvh,57px);margin:10px 0 0;border-radius:40px;background:linear-gradient(110deg,#00d2b1,var(--kago-teal));font-size:clamp(16px,2.3dvh,21px);font-weight:800;color:white;box-shadow:0 4px 10px #07192726}
 .shopping-scanner .scanner-start svg{width:25px;height:25px;fill:white;stroke:var(--kago-teal)}
-.shopping-scanner>div.relative{height:calc(100% - 60px);aspect-ratio:auto}
+
 .shopping-search{display:flex;align-items:center;gap:12px;min-height:0;background:#fff;border-radius:19px;box-shadow:0 4px 14px #0E28410b;padding:0 15px}
 .shopping-search>svg{width:24px;height:24px;color:#8b949b;flex:none}
 .shopping-search input{min-width:0;flex:1;width:100%;height:100%;border:0;background:transparent;font-size:16px;outline:none;color:var(--kago-text)}
@@ -268,3 +268,12 @@ body:has(.shopping-home) .shopping-session-bar{display:none}
 @media(max-height:650px){.shopping-content{grid-template-rows:minmax(0,1.1fr) 40px 49px minmax(0,1fr)}.shopping-scanner-active .scanner-target{height:calc(100% - 62px)}.shopping-scanner-active .scanner-stop{min-height:28px;font-size:11px}.shopping-scanner-active>.scanner-controls{bottom:6px}.shopping-stack-copy h2{font-size:18px;line-height:1.35}}
 
 .shopping-header .shopping-logo{width:clamp(160px,48vw,220px);max-width:100%;height:auto}
+
+/* Store deals share the existing advertising slot, without adding a page row. */
+.shopping-content:has(.store-offer-card){grid-template-rows:minmax(0,.9fr) clamp(44px,7dvh,58px) clamp(54px,8.5dvh,75px) minmax(0,1.2fr)}
+@media(max-height:590px){.shopping-content:has(.store-offer-card){grid-template-rows:minmax(0,.86fr) 40px 49px minmax(0,1.24fr)}}
+
+/* Fill the camera cell, leaving only the stop button and a 3px gap. */
+.shopping-scanner.shopping-scanner-active>.scanner-live{height:100%}
+.shopping-scanner-active .scanner-target{position:absolute;top:8px;left:12px;right:12px;bottom:41px;width:auto;height:auto;max-height:none;transform:none}
+@media(max-height:650px){.shopping-scanner-active .scanner-target{top:6px;bottom:37px}}

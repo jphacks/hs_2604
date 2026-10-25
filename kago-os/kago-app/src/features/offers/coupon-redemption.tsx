@@ -10,6 +10,7 @@ import type { SerendipityOffer } from "./contracts";
 export function CouponRedemption({ offer, visitId, canEdit, onClaim }: {
   offer: SerendipityOffer; visitId: string; canEdit: boolean; onClaim: () => void;
 }) {
+  const offerName=offer.kind==="guerrilla_coupon"?"クーポン":"割引";
   const [code, setCode] = useState("");
   const [verified, setVerified] = useState<StoreProduct | null>(null);
   const [busy, setBusy] = useState(false);
@@ -32,7 +33,7 @@ export function CouponRedemption({ offer, visitId, canEdit, onClaim }: {
       }, controller.signal);
       if (controller.signal.aborted) return;
       if (product.productId !== offer.product.productId) {
-        setError("クーポン対象の商品ではありません。対象の商品を読み取るか、商品コードを確認してください。");
+        setError(offerName+"対象の商品ではありません。対象の商品を読み取るか、商品コードを確認してください。");
         return;
       }
       setVerified(product);
@@ -54,7 +55,7 @@ export function CouponRedemption({ offer, visitId, canEdit, onClaim }: {
       <BarcodeScanner onDetected={value => { setCode(value); void verify(value); }} disabled={!canEdit || busy}
         appearance="shopping" description="対象商品のバーコードを読み取ってください。" />
       <form onSubmit={event => { event.preventDefault(); void verify(code); }} className="mt-3 grid gap-2">
-        <label className="grid gap-1 text-sm font-bold">クーポン対象の商品コードを入力
+        <label className="grid gap-1 text-sm font-bold">{offerName}対象の商品コードを入力
           <input value={code} onChange={event => setCode(event.target.value)} required maxLength={100} autoComplete="off" disabled={busy}
             className="min-h-11 min-w-0 rounded-xl border border-slate-300 bg-white px-3 font-normal" placeholder="バーコードの数字など" />
         </label>
@@ -62,11 +63,11 @@ export function CouponRedemption({ offer, visitId, canEdit, onClaim }: {
       </form>
     </> : <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3" role="status">
       <p className="font-bold text-emerald-900">対象商品を確認しました：{verified.name}</p>
-      <p className="mt-1 text-xs text-emerald-900">下のボタンで、読み取った1点にクーポンを使えます。</p>
+      <p className="mt-1 text-xs text-emerald-900">下のボタンで、読み取った1点に{offerName}を使えます。</p>
       <button type="button" onClick={() => { setVerified(null); setError(""); }} className="mt-2 min-h-11 text-sm underline">別のコードを確認</button>
     </div>}
     {error && <p role="alert" className="mt-3 rounded-xl bg-red-50 p-3 text-sm text-red-800">{error}</p>}
     <button type="button" disabled={!canEdit || busy || !verified} onClick={onClaim}
-      className="mt-4 min-h-11 w-full rounded-xl bg-pink-600 px-4 py-2 text-sm font-black text-white disabled:opacity-40">この商品にクーポンを使う</button>
+      className="mt-4 min-h-11 w-full rounded-xl bg-pink-600 px-4 py-2 text-sm font-black text-white disabled:opacity-40">この商品に{offerName}を使う</button>
   </div>;
 }

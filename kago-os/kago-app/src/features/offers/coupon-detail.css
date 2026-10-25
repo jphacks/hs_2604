@@ -66,12 +66,6 @@ html:has(.coupon-preview),body:has(.coupon-preview){height:100%;margin:0;overflo
 .coupon-ticket-perforation{align-self:stretch;border-top:3px dotted #ffc2af;margin:9px 1px 8px}
 .coupon-ticket-open{width:39px;height:39px;display:grid;place-items:center;border:2px solid #fff;border-radius:50%;background:#FF6B4A;color:#fff;box-shadow:0 2px 5px #bf49332b}
 .coupon-ticket-open svg{width:17px;height:22px;stroke-width:2.6}
-.coupon-ticket-sparks{position:absolute;inset:-16px -10px -7px 0;pointer-events:none}
-.coupon-ticket-sparks i{position:absolute;display:block;width:4px;height:15px;border-radius:6px;background:#FDC94E;right:15px;top:-1px;transform:rotate(12deg)}
-.coupon-ticket-sparks i:nth-child(2){right:0;top:8px;transform:rotate(48deg)}
-.coupon-ticket-sparks i:nth-child(3){right:30px;top:3px;transform:rotate(-25deg);height:11px}
-.coupon-ticket-sparks i:nth-child(4){right:-4px;top:auto;bottom:32px;transform:rotate(88deg)}
-.coupon-ticket-sparks i:nth-child(5){right:0;top:auto;bottom:14px;transform:rotate(42deg);height:12px}
 .coupon-arrival-guerrilla:focus-visible{outline:3px solid #019FA3;outline-offset:6px}
 .coupon-arrival-guerrilla:hover{transform:rotate(-4deg)}
 @keyframes coupon-ticket-enter{from{opacity:0;transform:translateX(-120%) rotate(-16deg)}to{opacity:1;transform:translateX(0) rotate(-7deg)}}
@@ -84,9 +78,6 @@ html:has(.coupon-preview),body:has(.coupon-preview){height:100%;margin:0;overflo
 .coupon-detail-guerrilla .coupon-detail-discount:after{right:-9px;border-left:1.5px solid #ffac95}
 .coupon-detail-guerrilla .coupon-detail-discount>strong{transform:rotate(-2deg);letter-spacing:-.025em;text-shadow:0 2px 0 #fff}
 .coupon-detail-guerrilla .coupon-detail-discount>p{display:inline-block;position:relative;color:#b54b32}
-.coupon-detail-guerrilla .coupon-detail-discount>p:before,.coupon-detail-guerrilla .coupon-detail-discount>p:after{content:"";position:absolute;top:2px;width:3px;height:13px;border-radius:3px;background:#FDC94E}
-.coupon-detail-guerrilla .coupon-detail-discount>p:before{left:-15px;transform:rotate(-28deg)}
-.coupon-detail-guerrilla .coupon-detail-discount>p:after{right:-15px;transform:rotate(28deg)}
 .coupon-preview-variant{position:fixed;z-index:96;top:15px;right:12px;display:flex;gap:4px;padding:4px;background:#ffffffed;border-radius:20px}
 .coupon-preview-variant button{border:0;border-radius:17px;padding:7px 9px;font-size:11px;color:#07576B;background:transparent;cursor:pointer}
 .coupon-preview-variant [aria-pressed=true]{background:#E6F6F5}
@@ -123,10 +114,5 @@ html:has(.coupon-preview),body:has(.coupon-preview){height:100%;margin:0;overflo
 
 .coupon-detail-footer .coupon-scan-guidance{font-size:13px;font-weight:750;line-height:1.8;color:#07576B;background:#E6F6F5;border-radius:13px;padding:10px 12px;margin:0 0 11px;text-align:center}
 
-.coupon-ticket-sparks i:nth-child(4),.coupon-ticket-sparks i:nth-child(5){display:none}
-
-/* Lower accents follow the ticket edge instead of floating beside it. */
-.coupon-ticket-sparks i:nth-child(4){display:block;right:10px;top:auto;bottom:24px;width:3px;height:10px;transform:rotate(48deg)}
-.coupon-ticket-sparks i:nth-child(5){display:block;right:22px;top:auto;bottom:15px;width:3px;height:8px;transform:rotate(12deg)}
 
 .coupon-redemption{padding:4px 0}.coupon-redemption>.shopping-scanner{height:210px;overflow:hidden;border-radius:21px;background:#0E2841}.coupon-redemption>button:last-child{background:#07576B;border-radius:25px}.coupon-redemption form button{border-color:#019FA3;color:#07576B;border-radius:23px}.coupon-redemption>code{font-size:14px}.coupon-detail-body:has(.coupon-redemption){justify-content:flex-start}
