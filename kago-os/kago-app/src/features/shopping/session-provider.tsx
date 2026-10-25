@@ -93,6 +93,9 @@ export function ShoppingSessionProvider({ children }: { children: ReactNode }) {
   // The children are keyed by user and visit, so they unmount only if the identity or visit changed.
   const check = useCallback(async () => {
     if (checking.current || pending.current) return;
+    // On the login screen nothing is shown to refresh: do not reload it (that would clear what is being typed).
+    // A login in another tab still arrives through the BroadcastChannel ("identity_changed").
+    if (shown.current.kind === "login") return;
     if (shown.current.kind !== "connected") { void transition(); return; }
     checking.current = true;
     const current = serial.current;
