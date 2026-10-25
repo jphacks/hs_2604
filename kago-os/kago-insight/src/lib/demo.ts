@@ -25,9 +25,7 @@ export function isDemoAutoSignInEnabled(): boolean {
 
 /** 戻り先は同一オリジンの絶対パスだけ許す。外部URLへ飛ばされないようにする */
 export function safeNextPath(value: string | null | undefined): string {
-  if (!value) return "/review";
-  if (!value.startsWith("/") || value.startsWith("//")) return "/review";
-  // サインイン経路へ戻すと往復し続けるので弾く
-  if (value.startsWith("/api/demo-signin") || value.startsWith("/login")) return "/review";
-  return value;
+  // Only actual screens are valid return targets. Reject protocol-relative URLs,
+  // backslashes, traversal and nested sign-in routes before building a raw URL.
+  return value && ["/review", "/promotions", "/metrics", "/coupons"].includes(value) ? value : "/review";
 }

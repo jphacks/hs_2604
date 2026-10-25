@@ -16,14 +16,16 @@ function options(fetcher: typeof fetch = fetch) {
   };
 }
 
-export function createBrowserBackend(config: BackendConfig) {
+export type BackendCookieScope = { name: string; path: string };
+
+export function createBrowserBackend(config: BackendConfig, cookieOptions?: BackendCookieScope) {
   const { url, publishableKey } = readBackendConfig(config);
-  return createBrowserClient(url, publishableKey, options());
+  return createBrowserClient(url, publishableKey, { ...options(), cookieOptions });
 }
 
-export function createServerBackend(config: BackendConfig, cookies: CookieMethodsServer, fetcher?: typeof fetch) {
+export function createServerBackend(config: BackendConfig, cookies: CookieMethodsServer, fetcher?: typeof fetch, cookieOptions?: BackendCookieScope) {
   const { url, publishableKey } = readBackendConfig(config);
-  return createServerClient(url, publishableKey, { ...options(fetcher), cookies });
+  return createServerClient(url, publishableKey, { ...options(fetcher), cookies, cookieOptions });
 }
 
 // For a terminal or a dedicated Signage process. Keep its session in memory only.
