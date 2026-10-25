@@ -106,7 +106,7 @@ export function SignagePlayer() {
   );
 }
 
-function ScreenView({ screen, engine }: { screen: Screen; engine: SignageEngine }) {
+export function ScreenView({ screen, engine }: { screen: Screen; engine: SignageEngine }) {
   const { item, src, playId } = screen;
   const onError = () => engine.onMediaError(playId);
   if (!item) {

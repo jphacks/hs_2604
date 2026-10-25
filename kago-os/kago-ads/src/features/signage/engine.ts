@@ -4,8 +4,9 @@
 // - 素材は先に読み込んでおき、読み込めたものだけを出す（画像欠落の対策）
 import type { PlayEndReason, Session, SignagePlay } from "@/lib/domain/types";
 import { FALLBACK_ASSET, type FeedItem, type SignageFeed, type SignageReasonCode } from "@/lib/signage/feed";
-import { decide, fallbackReason, pickNext, POLL_MS, type Playing } from "@/lib/signage/player";
+import { decide, fallbackReason, pickNext, POLL_MS, MIN_PLAY_SEC, type Playing } from "@/lib/signage/player";
 import { endPlay, startPlay } from "@/lib/signage/plays";
+import type { CrowdDecision } from "@/lib/signage/crowd-selection";
 import { NeedLoginError, type SignageSource } from "./source";
 
 export type Screen = {
@@ -33,6 +34,7 @@ export type EngineState = {
   sent: number;
   /** DB に受け付けられず捨てた記録の数（中身が配信対象・期間と合わない など） */
   rejected: number;
+  selection?: CrowdDecision;
 };
 
 type Kv = { get(key: string): string | null; set(key: string, value: string): void };
@@ -43,6 +45,8 @@ export type EngineDeps = {
   /** 素材を読み込み、表示に使う URL を返す */
   loadMedia: (path: string) => Promise<string>;
   now?: () => number;
+  /** Optional aggregate selector. Omitted for all current DB terminals. */
+  select?: (feed: SignageFeed, now: Date, ready: (item: FeedItem) => boolean) => CrowdDecision;
 };
 
 class OfflineError extends Error {}
@@ -65,12 +69,17 @@ export class SignageEngine {
     this.now = deps.now ?? Date.now;
   }
 
+  private selections: {play_id:string;decision:CrowdDecision}[]=[];
+
   // ---- 画面から使う
   getState = () => this.state;
   subscribe = (fn: () => void) => {
     this.listeners.add(fn);
     return () => this.listeners.delete(fn);
   };
+
+  getSelectionHistory = () => this.selections;
+  async refresh() { await this.poll(); this.tick(); }
 
   async start() {
     this.state = { ...this.state, simulatedOffline: this.deps.kv.get(this.key("sim-offline")) === "1" };
@@ -229,8 +238,18 @@ export class SignageEngine {
       this.startNext(null);
       return;
     }
+    const selection=this.selection();
+    // A suppressed aggregate must not restart fallback every tick just because ads exist.
+    if(selection&&this.playing.key===null&&selection.selected_key===null){
+      if(this.playing.play.reason_code!==selection.reason_code)this.switchTo("updated");
+      return;
+    }
     const d = decide(this.playing, this.feed, this.now(), this.ready);
-    if (d.switch) this.switchTo(d.reason);
+    if (d.switch) { this.switchTo(d.reason); return; }
+    if(selection&&selection.selected_key!==this.playing.key){
+      const elapsed=(this.now()-this.playing.startedAtMs)/1000;
+      if(selection.selected_key===null||this.playing.key===null||(this.playing.kind==="image"&&elapsed>=MIN_PLAY_SEC))this.switchTo("updated");
+    }
   }
 
   private switchTo(reason: PlayEndReason) {
@@ -239,12 +258,24 @@ export class SignageEngine {
     this.startNext(last);
   }
 
+  private selection() {
+    return this.deps.select&&this.feed?this.deps.select(this.feed,new Date(this.now()),this.ready):undefined;
+  }
+
   private startNext(last: { key: string | null; feedKeys: string[] } | null) {
     const now = this.now();
-    const item = pickNext(this.feed, now, this.ready, last);
-    const reason: SignageReasonCode = fallbackReason(this.feed, now);
+    const selection=this.selection();
+    const selected=selection&&this.feed?.items.find(i=>i.key===selection.selected_key&&this.ready(i));
+    const item = selection ? (selected?{...selected,reason_code:selection.reason_code}:null) : pickNext(this.feed, now, this.ready, last);
+    const reason: SignageReasonCode = selection?.reason_code ?? fallbackReason(this.feed, now);
     const deviceId = this.session?.role === "signage" ? this.session.deviceId : this.deps.source.cacheKey;
     const play = startPlay(deviceId, item, reason, this.storeTime(now));
+    if(selection){
+      play.mode=item?"adaptive":"fallback";
+      play.data_origin=selection.snapshot?.data_origin??"synthetic";
+      this.selections=[...this.selections,{play_id:play.id,decision:selection}].slice(-20);
+      this.set({selection});
+    }
     this.playing = {
       key: item?.key ?? null,
       kind: item?.asset.kind ?? "image",
