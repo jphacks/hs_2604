@@ -56,24 +56,24 @@ try {
     else { reads++; await route.continue(); }
   });
   const inFlightReads = reads;
-  await basket.getByRole("button", { name: /検証ミルク.*増/ }).click();
+  await basket.getByRole("button", { name: /検証ミルク.*減/ }).click();
   await focus(); await online(); await delay(200); assert.equal(reads, inFlightReads);
   pass("保存リクエスト中の復帰イベントでも保存を中断しない");
   await basket.getByRole("button", { name: "同じ操作を再試行", exact: true }).waitFor();
   const writes = () => fixture.calls.filter(c => c.name === "app_set_cart_item");
   const before = writes().length, pendingReads = reads;
   await focus(); await online(); await delay(400);
-  assert.equal(reads, pendingReads); assert.equal(writes().length, before); assert.equal((await snapshot()).cart[0].quantity, 5);
+  assert.equal(reads, pendingReads); assert.equal(writes().length, before); assert.equal((await snapshot()).cart[0].quantity, 3);
   pass("結果未確認の保存中は再取得・自動再送をせず、未確認の操作を保持");
   await page.unroute("**/api/cart"); await basket.getByRole("button", { name: "同じ操作を再試行", exact: true }).click();
   await page.getByText("かごを保存しました。", { exact: true }).first().waitFor();
-  assert.equal((await snapshot()).cart[0].quantity, 5);
+  assert.equal((await snapshot()).cart[0].quantity, 3);
   assert.equal(writes().at(-1)!.body.p_request_id, writes().at(-2)!.body.p_request_id);
   pass("明示的な再試行は同じ操作IDを使い、数量を重ねて増やさない");
 
   await page.route("**/api/cart", async route => route.fulfill({ status: 503, contentType: "application/json", body: JSON.stringify({ code: "connection_failed" }) }));
   await focus(); await basket.getByRole("button", { name: "かごを再読み込み", exact: true }).waitFor();
-  assert.match(await basket.locator(".shopping-basket-total").innerText(), /1,240/);
+  assert.match(await basket.locator(".shopping-basket-total").innerText(), /744/);
   await page.unroute("**/api/cart"); await remoteQuantity(6); await online();
   await basket.getByText("6点", { exact: true }).waitFor();
   assert.match(await basket.locator(".shopping-basket-total").innerText(), /1,488/);
