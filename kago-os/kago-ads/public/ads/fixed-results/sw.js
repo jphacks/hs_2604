@@ -1,4 +1,4 @@
-const CACHE="kago-data04-ads-fd74502dc6442d24",PREFIX="kago-data04-ads-";
+const CACHE="kago-data04-ads-81aaf3590abd3507",PREFIX="kago-data04-ads-";
 /* Only the public, fictional, self-contained snapshot is cached. Never Auth/API pages. */
 const PAGE=new URL("index.html",self.registration.scope).href;
 self.addEventListener("install",event=>event.waitUntil(caches.open(CACHE).then(c=>c.add(PAGE)).then(()=>self.skipWaiting())));

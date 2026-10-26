@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "version": "fd74502dc6442d24",
+  "version": "81aaf3590abd3507",
   "as_of": "2026-10-25T18:00:00+09:00",
   "inputs": {
     "kago-os/shared/demo/results-fixed.json": "94a62c25ebf7950845721dfce7a01ddfb4dcdea77e6f89f1b74244ea92418193",
@@ -14,10 +14,10 @@
     "kago-os/kago-ads/src/app/globals.css": "ec52af9b031fe8c3cae4961631cb3ea40db18e168fe70d3f97e4b49c4dad6063",
     "kago-os/kago-insight/src/features/metrics/metrics-screen.tsx": "67d3ed6f0fba0f86a3d6140e92f7f47dd3b9ab80e621bee5e70428f8f77cb111",
     "kago-os/kago-insight/src/lib/labels.ts": "21dc162361d3926fc663918e3425e9370270eba232966ade564cab4285919867",
-    "kago-os/kago-insight/src/lib/format.ts": "2082ddc09a09d2d49d1d0dfad85ed3dc48fc233b82eed938921911e4a8278ac2",
+    "kago-os/kago-insight/src/lib/format.ts": "2ff70c4556e24caf2494bab870f8c5b2cfe72269e68e1d1071e40585c8766f72",
     "kago-os/kago-insight/src/components/state.tsx": "f57a7388dd674f429da39dea59ec796fa9ef9113fc50d24185b83252b18532da",
     "kago-os/kago-insight/src/app/globals.css": "8fcbc8b71831ff313908ac9e9a9a125ca2a9d8a9b345dc5c7a1e73d59f50b48d"
   },
-  "html_sha256": "67207df159489f6d2f232fcbaf2906d6b44c89c067e13b59d1d80ce053e1b148",
-  "sw_sha256": "bbad9fb4d67335c59fedf5d3f87026cb9511a24a22f81d4685a310a2aa79833e"
+  "html_sha256": "7ba3f7a6c9b0e2c2f3c0a899559777a043ff0c1de8d2be67e22afa0d280d3aaf",
+  "sw_sha256": "a4e7af45604e091e82a4d8e7bddbf1d5960432ff920a8100368b93c7d3e2ead1"
 }
