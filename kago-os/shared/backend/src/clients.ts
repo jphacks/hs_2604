@@ -18,9 +18,24 @@ function options(fetcher: typeof fetch = fetch) {
 
 export type BackendCookieScope = { name: string; path: string };
 
+function scopedBrowserClient(url: string, publishableKey: string, cookieOptions?: BackendCookieScope) {
+  return createBrowserClient(url, publishableKey, { ...options(), cookieOptions, isSingleton: false });
+}
+const browserClients = new Map<string, ReturnType<typeof scopedBrowserClient>>();
+
 export function createBrowserBackend(config: BackendConfig, cookieOptions?: BackendCookieScope) {
   const { url, publishableKey } = readBackendConfig(config);
-  return createBrowserClient(url, publishableKey, { ...options(), cookieOptions });
+  // The SDK default singleton ignores cookie scopes. Cache per project and scope,
+  // and never share clients across server-rendered requests.
+  const key = JSON.stringify([url, publishableKey, cookieOptions?.name, cookieOptions?.path]);
+  const browser = typeof window !== "undefined";
+  if (browser) {
+    const existing = browserClients.get(key);
+    if (existing) return existing;
+  }
+  const client = scopedBrowserClient(url, publishableKey, cookieOptions);
+  if (browser) browserClients.set(key, client);
+  return client;
 }
 
 export function createServerBackend(config: BackendConfig, cookies: CookieMethodsServer, fetcher?: typeof fetch, cookieOptions?: BackendCookieScope) {
