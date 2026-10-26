@@ -8,3 +8,7 @@ allowBuilds:
   esbuild: false
   sharp: false
   unrs-resolver: false
+
+# eslint経由のZod 4系を、同じ4系の修正版へ限定する。
+overrides:
+  "zod@>=4.0.0 <4.6.6": 4.6.6
