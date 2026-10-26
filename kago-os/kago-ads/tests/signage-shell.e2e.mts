@@ -1,10 +1,14 @@
 import assert from "node:assert/strict";
 import {spawn} from "node:child_process";
+import {writeFile,unlink} from "node:fs/promises";
+import {randomUUID} from "node:crypto";
 import {createServer} from "node:net";
 import {chromium} from "playwright";
 const socket=createServer();await new Promise<void>(r=>socket.listen(0,"127.0.0.1",r));
 const address=socket.address();assert.ok(address&&typeof address!=="string");const port=address.port;await new Promise<void>(r=>socket.close(()=>r()));
 const base="http://127.0.0.1:"+port,entry="/signage/play?device=D1&debug=1";
+const proofName="sw-refresh-proof-"+randomUUID()+".txt",proofPath="/ad-assets/"+proofName;
+const proof=new URL("../public/ad-assets/"+proofName,import.meta.url);await writeFile(proof,"first-version");
 const server=spawn(process.execPath,["node_modules/next/dist/bin/next","start","--hostname","127.0.0.1","--port",String(port)],{stdio:["ignore","pipe","ignore"]});
 let output="";server.stdout.on("data",v=>{output+=String(v);});
 let browser:Awaited<ReturnType<typeof chromium.launch>>|undefined;
@@ -26,6 +30,9 @@ try{
   const cache=await caches.open("kago-signage-shell-v2");return (await Promise.all(assets.map(u=>cache.match(u)))).every(Boolean);
  });
  assert.equal(await p.evaluate(async()=>await(await caches.open("kago-signage-media-v1")).match("/media-preserve-proof").then(r=>r?.text())),"keep");
+ assert.equal(await p.evaluate(url=>fetch(url,{cache:"no-store"}).then(r=>r.text()),proofPath),"first-version");
+ await writeFile(proof,"updated-version-2");
+ assert.equal(await p.evaluate(url=>fetch(url,{cache:"no-store"}).then(r=>r.text()),proofPath),"updated-version-2");
  assert.equal(await p.evaluate(()=>caches.has("kago-signage-v1")),false);
  const keys=await p.evaluate(async()=>(await(await caches.open("kago-signage-shell-v2")).keys()).map(r=>new URL(r.url).pathname));
  assert.ok(keys.includes("/signage/play"));assert.ok(keys.some(p=>p.startsWith("/ads-static/_next/static/")&&p.endsWith(".css")));
@@ -35,6 +42,7 @@ try{
  await p.getByTestId("signage-debug").waitFor();await p.getByText("接続先：仮データ",{exact:true}).waitFor();
  await p.waitForFunction(()=>!!document.querySelector("img")?.complete&&document.querySelector("img")!.naturalWidth>0);
  assert.equal(await p.evaluate(async()=>await(await caches.open("kago-signage-media-v1")).match("/media-preserve-proof").then(r=>r?.text())),"keep");
- console.log(JSON.stringify({result:"PASS",checks:8,prefixedShellAssets:true,serverStopped:true,mode:"mock_device_shell_only",sharedWrites:0}));
+ assert.equal(await p.evaluate(url=>fetch(url,{cache:"no-store"}).then(r=>r.text()),proofPath),"updated-version-2");
+ console.log(JSON.stringify({result:"PASS",checks:11,prefixedShellAssets:true,serverStopped:true,sameUrlRefresh:true,mode:"mock_device_shell_only",sharedWrites:0}));
  await ctx.close();
-}finally{await browser?.close();server.kill();}
+}finally{await browser?.close();server.kill();await unlink(proof).catch(()=>{});}

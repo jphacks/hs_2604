@@ -43,4 +43,22 @@ describe("SIG-03 Service Workerの保存範囲",()=>{
   s.handlers.fetch({request:{url:origin+"/ads-static/_next/static/main.js",method:"GET",headers:new Headers(),mode:"cors"},respondWith:(p:Promise<Response>)=>{response=p;}});
   expect(await(await response!).text()).toBe("network");
  });
+ it("公開素材は保存済みでも同じURLの新しい応答を取得して保存する",async()=>{
+  const s=setup();s.cache.match.mockResolvedValue(new Response("old-image"));
+  s.fetcher.mockResolvedValue(new Response("updated-image"));
+  const request={url:origin+"/ad-assets/replaced.png",method:"GET",headers:new Headers(),mode:"cors"};
+  let response:Promise<Response>|undefined;
+  s.handlers.fetch({request,respondWith:(p:Promise<Response>)=>{response=p;}});
+  expect(await(await response!).text()).toBe("updated-image");
+  expect(s.fetcher).toHaveBeenCalledWith(request);expect(s.cache.put).toHaveBeenCalled();
+ });
+ it("公開素材は通信失敗時に保存済みの最新版へ戻る",async()=>{
+  const s=setup();s.cache.match.mockResolvedValue(new Response("latest-saved-image"));
+  s.fetcher.mockRejectedValue(new Error("offline"));
+  const request={url:origin+"/ad-assets/replaced.png",method:"GET",headers:new Headers(),mode:"cors"};
+  let response:Promise<Response>|undefined;
+  s.handlers.fetch({request,respondWith:(p:Promise<Response>)=>{response=p;}});
+  expect(await(await response!).text()).toBe("latest-saved-image");expect(s.fetcher).toHaveBeenCalledWith(request);
+ });
+
 });
