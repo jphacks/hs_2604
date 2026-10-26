@@ -23,9 +23,5 @@ export function isDemoAutoSignInEnabled(): boolean {
   return demoCredentials() !== null;
 }
 
-/** 戻り先は同一オリジンの絶対パスだけ許す。外部URLへ飛ばされないようにする */
-export function safeNextPath(value: string | null | undefined): string {
-  // Only actual screens are valid return targets. Reject protocol-relative URLs,
-  // backslashes, traversal and nested sign-in routes before building a raw URL.
-  return value && ["/review", "/promotions", "/metrics", "/coupons"].includes(value) ? value : "/promotions";
-}
+/** Keep demo and manual sign-in destinations aligned, including SIG-06. */
+export { loginDestination as safeNextPath } from "./login-destination.ts";
