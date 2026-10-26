@@ -1,0 +1,17 @@
+﻿asset_id,kind,maker_code,maker_name,product_code,product_name,design_version,channel,file,width,height,bytes,sha256,embedded_price_yen,reference_price_yen,price_check,status
+CR1-v3-app,sponsored,M1,瀬戸内トマト食品,2900000000162,トマトパスタソース,3,app,images/CR1_v3_app.png,1254,1254,2528473,9ed507a804b7d7660a0ffdc5e7e6107a4f6f2eae30dd93aec35354b98417af16,298,298,一致,未申請・デザイン確認用
+CR1-v3-signage,sponsored,M1,瀬戸内トマト食品,2900000000162,トマトパスタソース,3,signage,images/CR1_v3_signage.png,1672,941,2577230,23c83b46f49e918a6540a88ab1fa8bdecaee997f9237b239218878d3af1ddd49,298,298,一致,未申請・デザイン確認用
+CR1-v4-app,sponsored,M1,瀬戸内トマト食品,2900000000162,トマトパスタソース,4,app,images/CR1_v4_app.png,1254,1254,2561964,1c484d2ede97e2102638f83a3017f4649fb281c338d3b9c7c5cc79b346e4079b,298,298,一致,未申請・デザイン確認用
+CR1-v4-signage,sponsored,M1,瀬戸内トマト食品,2900000000162,トマトパスタソース,4,signage,images/CR1_v4_signage.png,1672,941,2656784,6282472c8b9f0e2e7661f609a9754d8ffddb9c31bf9c8c9ca29e0c4deb6c49cc,298,298,一致,未申請・デザイン確認用
+CR2-v1-app,sponsored,M2,確認用メーカー（架空）,2900000000056,もっちり食パン 6枚切,1,app,images/CR2_v1_app.png,1254,1254,2530191,51194f94026d50055d35acf058902a8f5b29b4eea400d19bebb1fe587f81f8f6,138,228,要照合,未申請・デザイン確認用
+CR2-v1-signage,sponsored,M2,確認用メーカー（架空）,2900000000056,もっちり食パン 6枚切,1,signage,images/CR2_v1_signage.png,1672,941,2619958,64b1e30a5b599d14370502c07a8c425f402a6125b076fca23528456bfb7760e3,138,228,要照合,未申請・デザイン確認用
+CR2-v2-app,sponsored,M2,確認用メーカー（架空）,2900000000056,もっちり食パン 6枚切,2,app,images/CR2_v2_app.png,1254,1254,2458681,7ff23d4b9f084d2946a472fcb472cdb604aeddbf3082d3e71a1358ae2a05a4a7,138,228,要照合,未申請・デザイン確認用
+CR2-v2-signage,sponsored,M2,確認用メーカー（架空）,2900000000056,もっちり食パン 6枚切,2,signage,images/CR2_v2_signage.png,1672,941,2500654,895e577867aa949130b42e76d188603bfbde1d6696a70f1e1ef4040045d227c0,138,228,要照合,未申請・デザイン確認用
+PROMO-v2-app,store_promo,,,,お店からのおすすめ,,app,images/PROMO_TEMPLATE_v2_app.png,1254,1254,2195327,3fec4856b871a4c116c1cf24e8dcd3375777fec2cfae9e8498760bba479e6409,,,対象商品未指定,提供素材・デザイン確認用
+PROMO-v2-signage,store_promo,,,,お店からのおすすめ,,signage,images/PROMO_TEMPLATE_v2_signage.png,1672,941,2473594,edfdbcd17cec97475c68ef5b3a47cee15ab3d02289f17705d7b13909864a8086,,,対象商品未指定,提供素材・デザイン確認用
+FALLBACK-v2-signage,fallback,,,,買い物の案内：スキャン,,signage,images/FALLBACK_v2_signage.png,1672,941,2190351,80dad0a48532f6cea895350800d9c6d08b5d5ccb9bafadaf91e5b2705fcb2386,,,対象商品未指定,提供素材・デザイン確認用
+STORE-BAKERY-v1-app,store_promo,,,,焼きたてパンのおすすめ,,app,images/STORE_BAKERY_v1_app.png,1254,1254,2173312,a34e761ec29f938dde6b91d4b75ba1c57c4f98bb6c33bb5ace4a8bb848bd8922,,,対象商品未指定,提供素材・デザイン確認用
+STORE-SEASONAL-v1-app,store_promo,,,,旬のいちごのおすすめ,,app,images/STORE_SEASONAL_v1_app.png,1254,1254,2189087,37e290d2ea2dfdb507727e0606624faebe4046f044af0ce2d276ec708b496745,,,対象商品未指定,提供素材・デザイン確認用
+STORE-BAKERY-v1-signage,store_promo,,,,焼きたてパンのおすすめ,,signage,images/STORE_BAKERY_v1_signage.png,1672,941,2226377,133f19e36f08dab6c263740caf164280e7ea0c9bdc92380888aed783e95f43ff,,,対象商品未指定,提供素材・デザイン確認用
+STORE-DELI-v1-signage,store_promo,,,,本日のお惣菜,,signage,images/STORE_DELI_v1_signage.png,1672,941,2191070,33f1430f84ab08e6269683ace19e57de52addc24987537978c981ed2d0415767,,,対象商品未指定,提供素材・デザイン確認用
+FALLBACK-CART-v1-signage,fallback,,,,買い物の案内：かご,,signage,images/FALLBACK_CART_v1_signage.png,1672,941,2021036,fd6db69d75ee10dee9ac55865d03a43aad3dcfb783baf59ad72700f02bf6e56c,,,対象商品未指定,提供素材・デザイン確認用
