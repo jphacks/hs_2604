@@ -24,3 +24,20 @@ pnpm generate:ad-assets
 | `PROMO_TEMPLATE_v1_signage.png`・`PROMO_TEMPLATE_v1_app.png` | 店舗販促の背景（商品名・理由文・価格は画面で重ねる） |
 
 メーカー・ブランドは架空です。素材の下端に「※デモ用の架空ブランドです」と入れています。
+
+## 差し替え済みの提供素材16点（ADS-05 #33）
+
+旧7素材用のad-assets.csvは互換性のため維持する。新16素材の正本はsrc/data/demo/ad-design-v2.json、出典・原本ハッシュはpublic/ad-assets/design-v2/supplied.json。登録候補用のad-design-v2.csvとZIPを同じ正本から作る。
+
+```bash
+python3 scripts/ad-assets/registration_bundle.py --write-csv
+python3 scripts/ad-assets/registration_bundle.py --check
+python3 -m unittest discover -s scripts/ad-assets -p test_registration_bundle.py
+python3 scripts/ad-assets/registration_bundle.py --output /tmp/kago-ads-registration.zip
+```
+
+CSVはUTF-8 BOM付き。メーカー8点、店舗おすすめ6点、案内2点を分け、実寸・バイト数・SHA256・商品コード・素材案の版・価格を記載する。ZIPは原画像、CSV、出典JSON、登録注意事項、照合用SHA256SUMSを含み、同じ入力から同じバイト列を作る。Python標準ライブラリだけを使い、画像の再描画は行わない。
+
+**価格は確認待ちを明示**：食パン画像は138円、既存products.csvは228円。販促価格の可能性もあるため、画像や店舗価格を自動変更せず、4点を要照合とする。参考の商品表の価格であり、共有DBの現在価格を検証した結果ではない。
+
+**登録の制約**：現行DBは1版1画像。App用とSignage用は別候補であり、同一版へ2枚登録する契約ではない。M1/M2・asset_id・design_versionは架空データの識別子で、実DBのUUID・素材版番号として投入しない。店舗おすすめの対象商品は未指定。登録・申請・承認は別操作で、既存の承認済み配信を上書きしない。
