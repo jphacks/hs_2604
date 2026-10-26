@@ -138,7 +138,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const channel = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("kago-cart-updated") : null;
     updates.current = channel;
     if (channel) channel.onmessage = () => { if (!operation.current) void reload(); };
-    return () => { mounted.current = false; lifecycle.current?.abort(); window.clearTimeout(boot); channel?.close(); updates.current = null; };
+    // Recover independently of recommendation requests. Never disturb an unresolved write.
+    const refreshIfVisible = () => { if (document.visibilityState === "visible" && !operation.current) void reload(); };
+    document.addEventListener("visibilitychange", refreshIfVisible);
+    window.addEventListener("online", refreshIfVisible);
+    return () => { mounted.current = false; document.removeEventListener("visibilitychange", refreshIfVisible); window.removeEventListener("online", refreshIfVisible); lifecycle.current?.abort(); window.clearTimeout(boot); channel?.close(); updates.current = null; };
     // The session provider unmounts this tree on identity/visit changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey, visitId]);
