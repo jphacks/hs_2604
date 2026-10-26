@@ -7,6 +7,7 @@ import { NextResponse, type NextRequest } from "next/server";
 export function middleware(request: NextRequest) {
   const headers = new Headers(request.headers);
   headers.set("x-kago-pathname", request.nextUrl.pathname);
+  headers.set("x-kago-return-to", request.nextUrl.pathname + request.nextUrl.search);
   return NextResponse.next({ request: { headers } });
 }
 

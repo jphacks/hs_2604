@@ -6,11 +6,12 @@ import type { SignInState } from "@/lib/auth-state";
 
 const initial: SignInState = { message: null };
 
-export function LoginForm() {
+export function LoginForm({ nextPath }: { nextPath: string }) {
   const [state, formAction, pending] = useActionState(signInAction, initial);
 
   return (
     <form action={formAction} className="space-y-4">
+      <input type="hidden" name="next" value={nextPath} />
       <div>
         <label htmlFor="email" className="block text-sm font-medium">
           メールアドレス

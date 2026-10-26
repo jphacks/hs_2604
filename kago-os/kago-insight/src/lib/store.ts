@@ -4,6 +4,7 @@ import { BackendError, getBackendIdentity } from "@kago/backend";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
+import { loginDestination } from "./login-destination";
 import { isDemoAutoSignInEnabled } from "./demo";
 import { createServerBackendClient } from "./backend/server";
 
@@ -76,7 +77,9 @@ export async function requireStoreSession(): Promise<StoreSession> {
         const pathname = (await headers()).get("x-kago-pathname") ?? "/review";
         redirect(`/api/demo-signin?next=${encodeURIComponent(pathname)}`);
       }
-      redirect("/login");
+      const requestHeaders = await headers();
+      const next = loginDestination(requestHeaders.get("x-kago-return-to") ?? requestHeaders.get("x-kago-pathname"));
+      redirect("/login?next=" + encodeURIComponent(next));
     }
     throw error;
   }

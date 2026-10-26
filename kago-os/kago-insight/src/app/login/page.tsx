@@ -1,3 +1,4 @@
+import { loginDestination } from "@/lib/login-destination";
 import { insightPath } from "@/lib/paths";
 import { redirect } from "next/navigation";
 import { LoginForm } from "./login-form";
@@ -6,13 +7,15 @@ import { getStoreSession } from "@/lib/store";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ demo?: string }>;
+  searchParams: Promise<{ demo?: string | string[]; next?: string | string[] }>;
 }) {
-  // すでに店舗スタッフとして入っているなら審査画面へ戻す。
+  const params = await searchParams;
+  const nextPath = loginDestination(params.next);
+  // 認証済みの場合も、検証した元の画面へ戻す。
   const session = await getStoreSession().catch(() => null);
-  if (session) redirect("/review");
+  if (session) redirect(nextPath);
 
-  const demoFailed = (await searchParams).demo === "failed";
+  const demoFailed = params.demo === "failed";
 
   return (
     <div className="mx-auto max-w-sm py-10">
@@ -26,7 +29,7 @@ export default async function LoginPage({
           およびそのアカウントが店舗スタッフとして登録されているかを確認してください。
         </p>
       ) : null}
-      <LoginForm />
+      <LoginForm nextPath={nextPath} />
       <p className="mt-4 text-sm"><a className="underline" href={insightPath("/fixed-results/index.html")}>説明用の固定成果を開く（ログイン不要）</a></p>
     </div>
   );

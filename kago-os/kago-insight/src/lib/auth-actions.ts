@@ -2,6 +2,7 @@
 
 import { signInBackend, signOutBackend, toBackendError } from "@kago/backend";
 import { redirect } from "next/navigation";
+import { loginDestination } from "./login-destination";
 import type { SignInState } from "./auth-state";
 import { createServerBackendClient } from "./backend/server";
 
@@ -23,7 +24,7 @@ export async function signInAction(_previous: SignInState, formData: FormData): 
     // 文言は共通ライブラリの固定文のみ。認証基盤の詳細は画面に出さない。
     return { message: toBackendError(error).message };
   }
-  redirect("/promotions");
+  redirect(loginDestination(formData.get("next")));
 }
 
 export async function signOutAction() {
