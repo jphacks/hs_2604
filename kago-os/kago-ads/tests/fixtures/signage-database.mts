@@ -166,6 +166,11 @@ export async function createSignageDatabase() {
 
     if(url.pathname.startsWith("/rest/v1/rpc/")&&method==="POST"){
       try {
+        if(url.pathname.endsWith("/kago_ad_media_paths")){
+          const body=JSON.parse(String(init?.body));
+          const rows=await asUser(caller,async()=>(await db.query("select * from kago_ad_media_paths($1::uuid[],$2::text[])",[body.p_version_ids,body.p_channels])).rows);
+          return json(rows);
+        }
         if(url.pathname.endsWith("/kago_signage_crowd")){
           const result=await asUser(caller,async()=>(await db.query<{value:unknown}>("select kago_signage_crowd() value")).rows[0].value);
           return json(result);

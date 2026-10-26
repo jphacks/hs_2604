@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import {SponsoredArtwork} from "./sponsored-artwork";
 import { ProductScanDialog } from "@/features/scanner/product-scan-dialog";
 import { SuggestionDetail } from "./suggestion-detail";
 import { useEffect, useRef, useState } from "react";
@@ -41,8 +42,9 @@ export function orderSlides<T extends Pick<Item, "placementType" | "rank">>(item
 function ProductArt({ item, size }: { item: Item; size: "card" | "detail" }) {
   const image = MENU_PRODUCT_IMAGES[item.product.code];
   return <div className={`relative grid place-items-center overflow-hidden rounded-xl ${tone[item.placementType].art} ${size === "card" ? "h-full text-4xl" : "size-20 shrink-0 text-4xl"}`}>
-    {image ? <Image src={image} alt="" fill sizes={size === "card" ? "112px" : "80px"} className="object-cover" />
-      : <span aria-hidden="true">{productIcon(item.product)}</span>}
+    {item.sponsor?<SponsoredArtwork versionId={item.sponsor.creativeVersionId} sizes={size==="card"?"112px":"80px"} fallback={
+      image?<Image src={image} alt="" fill sizes={size==="card"?"112px":"80px"} className="object-cover"/>:<span aria-hidden="true">{productIcon(item.product)}</span>
+    }/>:image?<Image src={image} alt="" fill sizes={size==="card"?"112px":"80px"} className="object-cover"/>:<span aria-hidden="true">{productIcon(item.product)}</span>}
   </div>;
 }
 

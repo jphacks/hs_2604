@@ -1,4 +1,4 @@
-import { AdImageError, BackendError, getAdImageUrl, uploadAdImage, validateAdImage } from "@kago/backend";
+import { AdImageError, BackendError, getAdImageUrl, getAdMediaPaths, type AdImagePaths, uploadAdImage, validateAdImage } from "@kago/backend";
 import { ValidationError, type AdsRepository, type ApplicationInput, type CreativeInput, type CreativeVersionInput, type CreativeWithVersions } from "../data/repository.ts";
 import { canResubmit, validateApplication } from "../domain/rules.ts";
 import { CHANNELS, type AdApplication, type AdPlacement, type ApplicationRevision, type Creative, type CreativeVersion, type MediaAsset, type Session } from "../domain/types.ts";
@@ -57,9 +57,9 @@ function content(input: CreativeVersionInput) {
   if (input.note.trim().length > 500) errors.push("版のメモは500字以内にしてください");
   const assets = Object.values(input.assets).filter((a): a is MediaAsset => !!a);
   if (!assets.length || assets.some(a=>a.kind!=="image")) errors.push("画像を1枚選んでください。実接続では動画は使えません");
-  if (new Set(assets.map(a=>a.storage_path ?? a.path)).size > 1) errors.push("1つの版には共通の画像を1枚だけ登録してください");
+
   if (errors.length) throw new ValidationError(errors);
-  return { headline:input.headline.trim(), note:input.note.trim() || null, asset:assets[0] };
+  return { headline:input.headline.trim(), note:input.note.trim() || null, asset:input.assets.signage??input.assets.app!, assets:input.assets };
 }
 export function createSupabaseMakerRepository(client: PortalClient): MakerRepository {
   const portal = createSupabasePortalRepository(client);
@@ -82,14 +82,26 @@ export function createSupabaseMakerRepository(client: PortalClient): MakerReposi
     const row=await query<Creative|null>(client.from("creatives").select(creativeColumns).eq("id",id).eq("maker_id",maker).maybeSingle());
     if(!row)throw new BackendError("forbidden");return row;
   }
-  async function mapVersion(row:VersionRow):Promise<CreativeVersion> {
+  async function mapVersion(row:VersionRow,knownPaths?:AdImagePaths):Promise<CreativeVersion> {
     const base={id:row.id,creative_id:row.creative_id,version:row.version,headline:row.headline,note:row.note??"",created_at:row.created_at};
     try {
-      const {url}=await getAdImageUrl(client,row.image_path);
-      // DBは画素数・容量を持たない。0は未知を表す。表示枠の寸法はAdMediaが媒体から決める。
-      const asset:MediaAsset={kind:"image",path:url,storage_path:row.image_path,width:0,height:0,bytes:0,file_name:row.image_path.split("/").pop()!};
-      return {...base,assets:{app:asset,signage:asset}};
+      const paths=knownPaths??(await getAdMediaPaths(client,[row])).paths.get(row.id)??{};
+      const urls=new Map<string,string>();
+      await Promise.all([...new Set(Object.values(paths))].map(async path=>urls.set(path,(await getAdImageUrl(client,path)).url)));
+      const assets:CreativeVersion["assets"]={};
+      await Promise.all(CHANNELS.map(async channel=>{
+        const path=paths[channel];
+        if(!path)return;
+        const url=urls.get(path)!;
+        assets[channel]={kind:"image",path:url,storage_path:path,width:0,height:0,bytes:0,file_name:path.split("/").pop()!};
+      }));
+      return {...base,assets};
     }catch{return {...base,assets:{},image_error:"保存済み画像を取得できません。画像保存先の設定・権限を確認して再読み込みしてください。"};}
+  }
+
+  async function mapVersions(rows:VersionRow[]){
+    const {paths}=await getAdMediaPaths(client,rows);
+    return Promise.all(rows.map(row=>mapVersion(row,paths.get(row.id)??{})));
   }
   async function imageFor(maker:string,creative:string,asset:MediaAsset) {
     try {
@@ -102,7 +114,10 @@ export function createSupabaseMakerRepository(client: PortalClient): MakerReposi
   async function addVersion(session:Session,id:string,input:CreativeVersionInput,requestId=crypto.randomUUID()) {
     const creative=await creativeOf(session,id),v=content(input);
     if(!uuid.test(requestId))throw new ValidationError(["登録IDの形式を確認してください"]);
-    if(v.asset.upload) {try{await validateAdImage(v.asset.upload);}catch(e){throw makerError(e);}}
+    for(const asset of Object.values(v.assets))if(asset?.upload){try{await validateAdImage(asset.upload);}catch(e){throw makerError(e);}}
+    const {supported}=await getAdMediaPaths(client,[]);
+    const separate=!v.assets.app||!v.assets.signage||v.assets.app.path!==v.assets.signage.path;
+    if(separate&&!supported)throw new ValidationError(["媒体別画像の登録準備が完了していません。共通画像で登録するか、管理者に確認してください"]);
     await ensureStorage();
     const existing=await query<VersionRow|null>(client.from("creative_versions").select(versionColumns).eq("id",requestId).eq("creative_id",id).maybeSingle());
     if(existing) {
@@ -111,8 +126,15 @@ export function createSupabaseMakerRepository(client: PortalClient): MakerReposi
     }
     const previous=await query<VersionRow[]>(client.from("creative_versions").select(versionColumns).eq("creative_id",id).order("version",{ascending:false}).limit(1));
     const image_path=await imageFor(creative.maker_id,id,v.asset);
+    const image_paths:Partial<Record<"app"|"signage",string>>={};
+    const uploaded=new Map<MediaAsset,string>([[v.asset,image_path]]);
+    for(const channel of CHANNELS){
+      const asset=v.assets[channel];if(!asset)continue;
+      const path=uploaded.get(asset)??await imageFor(creative.maker_id,id,asset);
+      uploaded.set(asset,path);image_paths[channel]=path;
+    }
     // SELECT用RLSは別表のヘルパーを通るため、同じINSERTのRETURNINGに依存しない。
-    await query(client.from("creative_versions").insert({id:requestId,creative_id:id,version:(previous[0]?.version??0)+1,image_path,headline:v.headline,note:v.note}));
+    await query(client.from("creative_versions").insert({id:requestId,creative_id:id,version:(previous[0]?.version??0)+1,image_path,...(supported?{image_paths}:{}),headline:v.headline,note:v.note}));
     const row=await query<VersionRow>(client.from("creative_versions").select(versionColumns).eq("id",requestId).eq("creative_id",id).single());
     return mapVersion(row);
   }
@@ -151,14 +173,17 @@ export function createSupabaseMakerRepository(client: PortalClient): MakerReposi
       const creatives=await query<Creative[]>(client.from("creatives").select(creativeColumns).eq("maker_id",maker).order("created_at",{ascending:false}).order("id"));
       if(!creatives.length)return [];
       const versions=await query<VersionRow[]>(client.from("creative_versions").select(versionColumns).in("creative_id",creatives.map(c=>c.id)).order("version"));
-      const mapped=await Promise.all(versions.map(mapVersion));
+      const mapped=await mapVersions(versions);
       return creatives.map(creative=>({creative,versions:mapped.filter(v=>v.creative_id===creative.id)})).filter(c=>c.versions.length>0);
     },
     async createCreative(session,input,requestId=crypto.randomUUID()){
       const maker=await makerOf(session),v=content(input);
       if(!uuid.test(input.product_id)||!uuid.test(requestId))throw new ValidationError(["対象商品を選んでください"]);
       if(!v.asset.upload)throw new ValidationError(["登録する画像ファイルを選んでください"]);
-      try{await validateAdImage(v.asset.upload);}catch(e){throw makerError(e);}
+      for(const asset of Object.values(v.assets))if(asset?.upload){try{await validateAdImage(asset.upload);}catch(e){throw makerError(e);}}
+      const media=await getAdMediaPaths(client,[]);
+      if((!v.assets.app||!v.assets.signage||v.assets.app.path!==v.assets.signage.path)&&!media.supported)
+        throw new ValidationError(["媒体別画像の登録準備が完了していません。共通画像で登録するか、管理者に確認してください"]);
       await ensureStorage();
       let creative=await query<Creative|null>(client.from("creatives").select(creativeColumns).eq("id",requestId).eq("maker_id",maker).maybeSingle());
       if(creative && creative.product_id!==input.product_id)throw new Error("前回の登録と対象商品が異なります。登録画面を開き直してください。");
@@ -169,7 +194,7 @@ export function createSupabaseMakerRepository(client: PortalClient): MakerReposi
       const first=await query<VersionRow[]>(client.from("creative_versions").select(versionColumns).eq("creative_id",creative.id).order("version"));
       if(first.length) {
         if(first[0].headline!==v.headline || first[0].note!==v.note)throw conflict();
-        return {creative,versions:await Promise.all(first.map(mapVersion))};
+        return {creative,versions:await mapVersions(first)};
       }
       return {creative,versions:[await addVersion(session,creative.id,input)]};
     },

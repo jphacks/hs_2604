@@ -1,0 +1,19 @@
+"use client";
+import {useEffect,useState} from "react";
+import {signInBackend,signOutBackend} from "@kago/backend";
+import {createBrowserBackendClient} from "@/lib/backend/browser";
+import {SponsoredArtwork} from "@/features/recommendations/sponsored-artwork";
+export default function MediaTestPage(){
+ const [ready,setReady]=useState(false),[version,setVersion]=useState("");
+ useEffect(()=>{
+  let active=true;const client=createBrowserBackendClient();
+  signInBackend(client,"customer@example.test","fixture-password","customer").then(()=>{
+   if(active){setVersion(new URLSearchParams(location.search).get("version")??"");setReady(true);}
+  });
+  return()=>{active=false;};
+ },[]);
+ return <main>
+  <div style={{position:"relative",width:360,height:360}}>{ready&&<SponsoredArtwork versionId={version} sizes="360px" fallback={<span>代わりの商品画像</span>}/>}</div>
+  <button onClick={async()=>{await signOutBackend(createBrowserBackendClient());setReady(false);}}>ログアウト</button>
+ </main>;
+}

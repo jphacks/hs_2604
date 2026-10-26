@@ -190,7 +190,8 @@ function StatusBadge({ status }: { status: Application["status"] }) {
 
 
 /** 期限切れ・通信失敗を白い枠にせず、署名URLを再取得できるようにする。 */
-function ReviewImage({ url, headline }: { url: string | null; headline: string }) {
+function ReviewImage({ url, headline, channel }: { url: string | null; headline: string; channel?:Channel }) {
+  const aspect=channel==="app"?"aspect-square":channel==="signage"?"aspect-video":"aspect-[16/10]";
   const router = useRouter();
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const [refreshing, refresh] = useTransition();
@@ -199,7 +200,7 @@ function ReviewImage({ url, headline }: { url: string | null; headline: string }
 
   if (!url || failedUrl === url) {
     return (
-      <div role="status" className="flex aspect-[16/10] w-full flex-col items-center justify-center gap-3 rounded border border-[var(--line)] bg-[var(--panel-2,#f5f5f0)] px-4 text-center text-sm text-[var(--muted)]">
+      <div role="status" className={aspect+" flex w-full flex-col items-center justify-center gap-3 rounded border border-[var(--line)] bg-[var(--panel-2,#f5f5f0)] px-4 text-center text-sm text-[var(--muted)]"}>
         <p>素材画像を読み込めませんでした。</p>
         <button type="button" disabled={refreshing}
           onClick={() => { setFailedUrl(null); reload(); }}
@@ -214,7 +215,7 @@ function ReviewImage({ url, headline }: { url: string | null; headline: string }
     // 署名URLはnext/imageの永続キャッシュへ保存しない。素材全体を審査できるように収める。
     // eslint-disable-next-line @next/next/no-img-element
     <img src={url} alt={`${headline} の広告素材`}
-      className="aspect-[16/10] w-full rounded border border-[var(--line)] bg-[var(--panel-2,#f5f5f0)] object-contain"
+      className={aspect+" w-full rounded border border-[var(--line)] bg-[var(--panel-2,#f5f5f0)] object-contain"}
       onLoad={() => { automaticallyRetried.current = false; }}
       onError={() => {
         setFailedUrl(url);
@@ -302,7 +303,12 @@ function ApplicationDetail({
 
   return (
     <article className="rounded-lg border border-[var(--line)] bg-[var(--panel)] p-4">
-      <ReviewImage url={application.image_url ?? null} headline={application.headline} />
+      {application.media_images ? <div className="grid gap-4">
+        {application.channels.map(channel=><div key={channel}>
+          <p className="mb-2 text-sm font-bold">{channel==="app"?"App用画像（1:1）":"Signage用画像（16:9）"}</p>
+          <ReviewImage channel={channel} url={application.media_images?.[channel]?.url??null} headline={application.headline}/>
+        </div>)}
+      </div> : <ReviewImage url={application.image_url ?? null} headline={application.headline} />}
 
       <h2 className="mt-4 text-lg font-bold">{application.headline}</h2>
 

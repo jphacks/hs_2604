@@ -172,3 +172,7 @@ pnpm build
 期限切れの検証では保存セッションの時刻を操作し、更新トークンの失効は実Supabaseのログアウトで行いました。認証済みの接続確認成功は、業務テーブルのRLS検証を意味しません。自動テスト26件・Appと共有パッケージの型検査・Appのlintも成功しています。担当者以外によるレビュー・手順の再現確認はPRで行います。
 
 参照：[Supabase SSR](https://supabase.com/docs/guides/auth/server-side/creating-a-client)、[getUser](https://supabase.com/docs/reference/javascript/auth-getuser)、[API keys](https://supabase.com/docs/guides/api/api-keys)。
+
+### 媒体別広告画像（ADS-03追加・#226）
+
+20261026100000_creative_media_paths.sqlは既存版を保持したままimage_pathsを追加する。Ads登録・App表示・Signageフィード・Insight審査は共通SDKのgetAdMediaPathsを使う。RPC未適用時の共通画像との互換、媒体ごとのStorage閲覧権限、共有環境への適用手順は[媒体別画像の検証記録](ads-media-images-226.md)を参照。

@@ -60,7 +60,7 @@ export function NewAd() {
             <input className={inputClass} value={form.headline} onChange={(e) => setForm({ ...form, headline: e.target.value })} />
           </Field>
         </div>
-        <CreativeAssetsPicker makerName={makerName} value={form.assets} onBlockedChange={setAssetBlocked} onChange={assets => setForm(current => ({ ...current, assets }))} />
+        <CreativeAssetsPicker makerName={makerName} value={form.assets} onBlockedChange={setAssetBlocked} onChange={assets => setForm(current => ({ ...current, assets:typeof assets==="function"?assets(current.assets):assets }))} />
         <Field label="版のメモ" hint="何を変えた版か">
           <input className={inputClass} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
         </Field>

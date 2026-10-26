@@ -107,7 +107,7 @@ DB-07は来店行をロックし、本人・active・期待cart_version・非空
 | `maker_members` | maker_id→makers, user_id→Auth, created_at | PK(maker_id,user_id) |
 | `ad_calls` | id, store_id→stores, title text, description text?, categories text[], channels text[], starts_at, ends_at, status text, disclosure_scope text[], created_at, updated_at | status=`draft/open/closed`（後戻り不可）。categories空不可。disclosure_scopeは`impressions/clicks/cart_adds/purchases/signage_views`の部分集合（空可）。公開後は店舗・媒体・期間を固定、closedは変更不可 |
 | `creatives` | id, maker_id→makers, product_id→products, created_at | 1素材1商品。参照後のメーカー・商品の変更禁止 |
-| `creative_versions` | id, creative_id→creatives, version integer, image_path text, headline text, note text?, created_at | UNIQUE(creative_id,version)、versionは素材ごとに1からの連番。image_pathは保存先キー（URL・署名付きURLを保存しない）。追加のみ |
+| `creative_versions` | id, creative_id→creatives, version integer, image_path text, image_paths jsonb?, headline text, note text?, created_at | UNIQUE(creative_id,version)、versionは素材ごとに1からの連番。image_pathは旧方式の保存先キー。image_pathsはapp/signage別の保存先キー（NULLなら旧方式、未登録媒体は申請不可）。URL・署名付きURLを保存しない。追加のみ |
 | `ad_applications` | id, ad_call_id, store_id, maker_id, creative_id, creative_version_id, channels text[], requested_period tstzrange, message text?, revision integer, status text, review_comment text?, reviewed_by?→Auth, reviewed_at?, created_at, updated_at | status=`submitted/approved/rejected`。複合FK(ad_call_id,store_id)→募集、(creative_id,maker_id)→素材、(creative_version_id,creative_id)→版。UNIQUE(ad_call_id,creative_id)。期間は有限非空の`[)`、募集内。channelsは募集の部分集合。提出はopenかつ募集終了前のみ。却下理由は必須・200字以内 |
 | `application_revisions` | application_id→ad_applications, revision integer, creative_version_id, channels, requested_period, message?, submitted_at, status, review_comment?, reviewed_by?, reviewed_at? | PK(application_id,revision)。申請の各回をad_applicationsのトリガーだけが記録。直接の変更・削除不可 |
 | `ad_placements` | id, application_id, revision, store_id, creative_version_id→creative_versions, channels text[], starts_at, ends_at, status text, approved_by→Auth, approved_at, suspend_reason?, suspended_by?→Auth, suspended_at? | status=`active/suspended/expired/superseded`。複合FK(application_id,store_id)→申請、(application_id,revision)→承認した回。UNIQUE(application_id,revision)、UNIQUE(application_id) WHERE status=`active`。承認版・媒体・期間・承認者・承認時刻を固定。停止は理由・停止者必須 |
@@ -219,9 +219,9 @@ DB-06で上表を実装した（[共通DBガイド](../development/database.md)�
 | --- | --- |
 | 日付の終了境界 | 共通仕様の[開始,終了)を維持。最終日翌日0時に変換（Ads担当確認待ち） |
 | requested_start/end | DBはrequested_period。画面との変換で対応（Ads担当確認待ち） |
-| description・note・message・suspend_reason | DB-04でNULL可の列として採用。媒体別assets・動画はCOM-03合意後に別migration |
+| description・note・message・suspend_reason | DB-04でNULL可の列として採用。媒体別画像は#226の追加migrationでimage_pathsに保存。動画は対象外 |
 | application_revisions | DB-04で採用（2026-10-24、担当判断）。共通仕様5章への反映はCOM-01担当へ依頼 |
-| 媒体別assets・動画・description | 現在はimage_pathの画像を基準。COM-03・Adsで媒体別形式を合意し共通仕様へ反映するまで本設計で確定扱いにしない |
+| 媒体別assets・動画・description | 媒体別画像は#226で合意したimage_paths（app/signageの相対パス）を採用。NULLの旧版はimage_path共通画像。動画は未採用 |
 | 承認時の媒体絞込み・承認済みからの再申請 | 共通仕様の状態遷移から拡張が必要。DB-08・Insight・Adsで合意後に反映 |
 | 店舗担当者の役割 | 現接続基盤のstore_staff＋自店所属。募集／審査の細分化はDB-06で判断 |
 

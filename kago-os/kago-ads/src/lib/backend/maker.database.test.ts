@@ -16,7 +16,10 @@ describe("ADS-03 正式migration・Storage権限・申請履歴",()=>{
   const c=createHeadlessBackend({url:"https://fixture.supabase.co",publishableKey:"sb_publishable_fixture"},fetcher);
   await signInBackend(c,users.find(u=>u.n===n)!.email,fixturePassword);return c;
  }
- const creativeInput=(headline:string):CreativeInput=>({product_id:id(21),headline,note:"初版",assets:{app:{kind:"image",path:"blob:fixture",upload:image,width:800,height:800,bytes:image.size,file_name:"ad.png"}}});
+ const creativeInput=(headline:string):CreativeInput=>{
+  const asset={kind:"image" as const,path:"blob:fixture",upload:image,width:800,height:800,bytes:image.size,file_name:"ad.png"};
+  return {product_id:id(21),headline,note:"初版",assets:{app:asset,signage:asset}};
+ };
  const application=(version:string):ApplicationInput=>({creative_version_id:version,channels:["app","signage"],...period,message:"検証用"});
  async function review(app:string,rev:number,action:"approve"|"reject"){
    return f.asUser(users.find(u=>u.n===104)!,()=>action==="reject"
@@ -40,12 +43,12 @@ describe("ADS-03 正式migration・Storage権限・申請履歴",()=>{
   await expect(repo.addCreativeVersion(session,id(52),creativeInput("改変"))).rejects.toMatchObject({code:"forbidden"});
   for(const n of [103,104,105])await expect(createSupabaseMakerRepository(await client(n)).listMyApplications(session)).rejects.toMatchObject({code:"forbidden"});
  });
- it("画像形式・複数画像・メモ長を検証してから業務行を作る",async()=>{
+ it("画像形式・各媒体の画像・メモ長を検証してから業務行を作る",async()=>{
   const repo=createSupabaseMakerRepository(await client());
   const input=creativeInput("不正");
   await expect(repo.createCreative(session,{...input,assets:{app:{...input.assets.app!,upload:new Blob(["bad"],{type:"image/png"})}}},id(210))).rejects.toThrow("PNG");
   await expect(repo.createCreative(session,{...input,note:"a".repeat(501)},id(211))).rejects.toThrow("500");
-  await expect(repo.createCreative(session,{...input,assets:{app:input.assets.app,signage:{...input.assets.app!,path:"blob:another"}}},id(212))).rejects.toThrow("1枚");
+  await expect(repo.createCreative(session,{...input,assets:{app:input.assets.app,signage:{...input.assets.app!,kind:"video",path:"blob:another"}}},id(212))).rejects.toThrow("動画");
   expect((await f.db.query("select id from creatives where id in ($1,$2,$3)",[id(210),id(211),id(212)])).rows).toEqual([]);
  });
  it("画像登録→申請→却下→新版→再申請→承認→承認後の差替え→停止を2役で確認する",async()=>{
