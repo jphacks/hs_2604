@@ -145,12 +145,17 @@ function PromotionCard({
   const run = async () => {
     setBusy(true);
     setError(null);
-    const result = await deactivatePromotion(promotion.id);
-    setBusy(false);
-    if (result.ok) {
-      onDone(`おすすめを停止しました${USING_MOCK ? "（モックのため保存されません）" : "。Appでおすすめを更新すると反映されます。"}`);
-    } else {
-      setError(result.message);
+    try {
+      const result = await deactivatePromotion(promotion.id);
+      if (result.ok) {
+        onDone(`おすすめを停止しました${USING_MOCK ? "（モックのため保存されません）" : "。Appでおすすめを更新すると反映されます。"}`);
+      } else {
+        setError(result.message);
+      }
+    } catch {
+      setError("停止結果を確認できませんでした。一覧を再読み込みして反映状況を確認してから、もう一度操作してください。");
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -181,7 +186,7 @@ function PromotionCard({
       <p className="mt-2 rounded bg-[var(--surface)] px-2 py-1 text-sm">
         「{promotion.reason_text}」
       </p>
-      {error ? <p className="mt-2 text-sm text-red-900">{error}</p> : null}
+      {error ? <p role="alert" className="mt-2 text-sm text-red-900">{error}</p> : null}
       <div className="mt-3 flex gap-2">
         <button
           type="button"
@@ -216,6 +221,8 @@ function PromotionForm({
   onDone: (message: string) => void;
   onCancel: () => void;
 }) {
+  const router = useRouter();
+  const [uncertain, setUncertain] = useState(false);
   const today = new Date().toISOString();
   const [productId, setProductId] = useState(
     promotion?.product_id ?? products[0]?.product_id ?? "",
@@ -280,12 +287,18 @@ function PromotionForm({
 
     setBusy(true);
     setError(null);
-    const result = await savePromotion(draft);
-    setBusy(false);
-    if (result.ok) {
-      onDone(`第${result.data.version}版として保存しました${USING_MOCK ? "（モックのため保存されません）" : "。Appでおすすめを更新すると反映されます。"}`);
-    } else {
-      setError(result.message);
+    try {
+      const result = await savePromotion(draft);
+      if (result.ok) {
+        onDone(`第${result.data.version}版として保存しました${USING_MOCK ? "（モックのため保存されません）" : "。Appでおすすめを更新すると反映されます。"}`);
+      } else {
+        setError(result.message);
+      }
+    } catch {
+      setError(promotion ? "保存結果を確認できませんでした。入力は保持しています。一覧を確認してから、もう一度操作してください。" : "追加結果を確認できませんでした。二重追加を防ぐため、一覧の反映状況を確認してから画面を開き直してください。入力は保持しています。");
+      if (!promotion) setUncertain(true);
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -469,13 +482,15 @@ function PromotionForm({
       <AppPreview product={selectedProduct} reasonText={reasonText} />
 
       {error ? (
-        <p className="rounded border border-red-300 bg-red-50 p-3 text-sm text-red-900">{error}</p>
+        <p role="alert" className="rounded border border-red-300 bg-red-50 p-3 text-sm text-red-900">{error}</p>
       ) : null}
+
+      {uncertain && <button type="button" onClick={() => router.refresh()} className="rounded border border-[var(--accent)] px-4 py-2 text-sm font-bold text-[var(--accent)]">一覧を再読み込み</button>}
 
       <div className="flex gap-2">
         <button
           type="button"
-          disabled={busy}
+          disabled={busy || uncertain}
           onClick={() => void run()}
           className="rounded bg-[var(--accent)] px-4 py-2 font-bold text-white disabled:opacity-50"
         >
