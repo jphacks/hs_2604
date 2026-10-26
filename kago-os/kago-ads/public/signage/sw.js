@@ -22,15 +22,6 @@ self.addEventListener("message", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => Promise.all(urls.map((url) => cache.add(url).catch(() => {})))));
 });
 
-const cacheFirst = async (request) => {
-  const cache = await caches.open(CACHE);
-  const hit = await cache.match(request);
-  if (hit) return hit;
-  const res = await fetch(request);
-  if (res.ok) await cache.put(request, res.clone()).catch(() => {});
-  return res;
-};
-
 const networkFirst = async (request) => {
   const cache = await caches.open(CACHE);
   try {
@@ -49,6 +40,6 @@ self.addEventListener("fetch", (event) => {
   if (req.method !== "GET" || req.headers.has("range")) return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
-  if (url.pathname.startsWith("/ad-assets/")) event.respondWith(cacheFirst(req));
+  if (url.pathname.startsWith("/ad-assets/")) event.respondWith(networkFirst(req));
   else if (isStatic(url.pathname) || (req.mode === "navigate" && isShell(url.pathname))) event.respondWith(networkFirst(req));
 });
