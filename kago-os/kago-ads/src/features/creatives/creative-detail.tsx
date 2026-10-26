@@ -87,7 +87,7 @@ export function AdDetail() {
           <Field label="見出し">
             <input className={inputClass} value={draft.headline} onChange={(e) => setDraft({ ...draft, headline: e.target.value })} />
           </Field>
-          <CreativeAssetsPicker makerName={data.makerName} value={draft.assets} onBlockedChange={setAssetBlocked} onChange={assets => setDraft(current => current ? ({ ...current, assets }) : null)} />
+          <CreativeAssetsPicker makerName={data.makerName} value={draft.assets} onBlockedChange={setAssetBlocked} onChange={assets => setDraft(current => current ? ({ ...current, assets:typeof assets==="function"?assets(current.assets):assets }) : null)} />
           <Field label="版のメモ" hint="何を変えたか（審査する店舗にも見えます）">
             <input className={inputClass} value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} />
           </Field>

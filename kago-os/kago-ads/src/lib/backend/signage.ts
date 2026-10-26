@@ -2,7 +2,7 @@
 // - 読むもの：自端末・自店・配信中の配信対象と販促の版・その素材の版・商品・店舗別価格・メーカー名（端末は停止中のものを読めない）
 // - 書くもの：自端末の再生記録だけ（追加のみ。同じ id・同じ中身の再送は DB が無視する）
 // 仮データへの切り替え・代わりの表示はしない（実接続の失敗は失敗として扱い、画面はキャッシュと案内で続ける）
-import { BackendError, getBackendIdentity, signInBackend, toBackendError, type createBrowserBackend } from "@kago/backend";
+import { BackendError, getAdMediaPaths, getBackendIdentity, signInBackend, toBackendError, type createBrowserBackend } from "@kago/backend";
 import type {
   AdPlacement,
   Channel,
@@ -26,7 +26,7 @@ export type SignageClient = ReturnType<typeof createBrowserBackend>;
 export type DeviceSession = Extract<Session, { role: "signage" }>;
 
 type PlacementRow = Omit<AdPlacement, "status" | "suspend_reason"> & { status: string };
-type VersionRow = { id: string; creative_id: string; version: number; image_path: string; headline: string; note: string | null; created_at: string };
+type VersionRow = { id: string; creative_id: string; version: number; image_path: string; media_paths?: Partial<Record<Channel,string>>; headline: string; note: string | null; created_at: string };
 type PromotionRow = { id: string; store_id: string; product_id: string };
 type PromotionVersionRow = {
   id: string; promotion_id: string; version: number; channels: Channel[]; time_windows: TimeWindow[];
@@ -51,7 +51,7 @@ const PLACEMENT_COLUMNS = "id,application_id,store_id,creative_version_id,channe
 const PROMOTION_VERSION_COLUMNS = "id,promotion_id,version,channels,time_windows,priority,reason_text,starts_at,ends_at,status";
 
 /**
- * 素材の画像。DB の素材の版は image_path の1枚だけ（媒体別の素材・動画は COM-03 と Ads の合意後に別 migration）。
+ * 素材の画像。媒体別パスがある版は signage の画像だけを使い、旧版は共通画像を使う。
  * path は非公開 Storage の相対パスのまま持ち、表示するときに署名付き URL にする（signedUrl は保存しない）
  */
 export function storageImage(imagePath: string): MediaAsset {
@@ -66,7 +66,7 @@ export function feedSourceFromRows(rows: SignageRows): FeedSource {
   const store: Store = { ...rows.store, branch_name: rows.store.branch_name ?? "", description: "", address: "" };
   const creative_versions: CreativeVersion[] = rows.versions.map((v) => ({
     id: v.id, creative_id: v.creative_id, version: v.version, headline: v.headline, note: v.note ?? "", created_at: v.created_at,
-    assets: { signage: storageImage(v.image_path) },
+    assets: v.media_paths ? (v.media_paths.signage ? {signage:storageImage(v.media_paths.signage)} : {}) : {signage:storageImage(v.image_path)},
   }));
   const promotions: StorePromotion[] = rows.promotionVersions.flatMap((pv) => {
     const sp = rows.promotions.find((p) => p.id === pv.promotion_id);
@@ -156,6 +156,8 @@ export async function loadSignageRows(client: SignageClient, session: Session): 
         .in("promotion_id", promotionIds).eq("status", "active"))
       : [],
   ]);
+  const media=await getAdMediaPaths(client,versions,["signage"]);
+  for(const version of versions)version.media_paths=media.paths.get(version.id)??{};
   const creativeIds = unique(versions.map((v) => v.creative_id));
   const creatives = creativeIds.length
     ? await rowsOf<Creative>(client.from("creatives").select("id,maker_id,product_id,created_at").in("id", creativeIds))

@@ -17,7 +17,7 @@ export const users = [
 export type FixtureUser = typeof users[number];
 export function authUser(user: FixtureUser) {
   return { id: id(user.n), email: user.email, aud: "authenticated", role: "authenticated",
-    app_metadata: { kago: { roles: [user.role] } }, user_metadata: {}, created_at: "2026-10-24T00:00:00Z" };
+    app_metadata: { kago: { roles: [user.role], ...(user.role==="signage"?{device_id:id(user.n===106?41:42),store_id:id(1)}:{}) } }, user_metadata: {}, created_at: "2026-10-24T00:00:00Z" };
 }
 const tokens = new Map<number, string>();
 export function token(user: FixtureUser) {
@@ -30,16 +30,18 @@ export function token(user: FixtureUser) {
 }
 const columns: Record<string, string[]> = {
   maker_members: ["maker_id", "user_id"],
-  store_members: ["store_id", "user_id"],
+  store_members: ["store_id", "user_id", "created_at"],
   stores: ["id", "slug", "name", "branch_name", "timezone"],
   products: ["id", "code", "name", "category"],
   makers: ["id", "slug", "display_name", "is_fictional"],
   creatives: ["id", "maker_id", "product_id", "created_at"],
-  creative_versions: ["id", "creative_id", "version", "image_path", "headline", "note", "created_at"],
+  creative_versions: ["id", "creative_id", "version", "image_path", "image_paths", "headline", "note", "created_at"],
   store_products: ["store_id", "product_id", "price", "is_active"],
   application_revisions: ["application_id", "revision", "creative_version_id", "channels", "requested_period", "message", "submitted_at", "status", "review_comment", "reviewed_at"],
-  ad_placements: ["id","application_id","store_id","creative_version_id","channels","starts_at","ends_at","status","approved_by","approved_at","suspend_reason","suspended_by","suspended_at"],
+  ad_placements: ["id","revision","application_id","store_id","creative_version_id","channels","starts_at","ends_at","status","approved_by","approved_at","suspend_reason","suspended_by","suspended_at"],
   ad_calls: ["id", "store_id", "title", "description", "categories", "channels", "starts_at", "ends_at", "status", "disclosure_scope", "created_at", "updated_at"],
+  store_promotions: ["id","store_id","product_id"],
+  promotion_versions: ["id","promotion_id","version","channels","time_windows","priority","reason_text","starts_at","ends_at","status"],
   signage_devices: ["id", "store_id", "slug", "location", "is_active"],
   ad_applications: ["id","ad_call_id","maker_id","store_id","creative_id","creative_version_id","channels","requested_period","revision","status","review_comment","reviewed_by","reviewed_at","message","created_at","updated_at"],
 };
@@ -99,7 +101,7 @@ export async function createPortalDatabase() {
     const pending = queue.then(async () => {
       await db.exec("begin; set local role authenticated");
       try {
-        await db.query("select set_config('request.jwt.claims',$1,true)", [JSON.stringify({ sub: id(user.n), app_metadata: { kago: { roles: [user.role] } } })]);
+        await db.query("select set_config('request.jwt.claims',$1,true)", [JSON.stringify({ sub: id(user.n), app_metadata: { kago: { roles: [user.role], ...(user.role==="signage"?{device_id:id(user.n===106?41:42),store_id:id(1)}:{}) } } })]);
         const value = await query();
         await db.exec(persist ? "commit" : "rollback");
         return value;
@@ -137,6 +139,11 @@ export async function createPortalDatabase() {
     }
     if (!user || expired.has(id(user.n))) return json({ code: "session_not_found" }, 401);
     if (url.pathname.endsWith("/user")) return json(authUser(user));
+    if(url.pathname==="/rest/v1/rpc/kago_ad_media_paths" && method==="POST") {
+      const body=JSON.parse(String(init?.body));
+      const result=await asUser(user,()=>db.query("select * from public.kago_ad_media_paths($1::uuid[],$2::text[])",[body.p_version_ids,body.p_channels]));
+      return json(result.rows);
+    }
     if(url.pathname==="/rest/v1/rpc/kago_ad_image_path_valid" && method==="POST") {
       const body=JSON.parse(String(init?.body));
       const value=await asUser(user,()=>db.query<{ok:boolean}>("select public.kago_ad_image_path_valid($1) as ok",[body.p_path]));

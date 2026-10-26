@@ -128,7 +128,8 @@ Ads が扱うのは `sponsored`（メーカー広告）だけです。`organic`�
 | `creative_id` | uuid | どの素材の版か | 確定 |
 | `version` | int | 素材ごとに 1 から始まる連番。古い版は書き換えない | 確定 |
 | `headline` | text | 広告の見出し（一覧・審査画面に出す一言） | 確定 |
-| `assets` | jsonb | 媒体ごとの素材（下の MediaAsset）。`{"app": …, "signage": …}`。共通仕様書は `image_path` が1つ | 提案 |
+| `assets` | object | 画面用の媒体別MediaAsset。DBではimage_pathsへ相対パスを保存し、ファイル・署名URL・画素数はこの列に保存しない | #226 |
+| `image_paths` | jsonb? | app/signageごとのStorage相対パス。NULLの旧版はimage_pathを共用。存在しない媒体へは申請不可 | #226 |
 | `note` | text | 何を変えた版か（審査する店舗にも見える） | 提案 |
 | `created_at` | timestamptz | 作成日時 | 確定 |
 
@@ -234,7 +235,7 @@ Ads が扱うのは `sponsored`（メーカー広告）だけです。`organic`�
 | 項目 | Signage | App |
 | --- | --- | --- |
 | サイズ | 1920×1080（16:9） | 800×800（1:1） |
-| 画像 | PNG・JPEG・WebP、1枚 2MB 以下 | 同左 |
+| 画像 | PNG・JPEG・WebP、各5MiB以下 | 同左 |
 | 動画 | MP4（H.264）、15 秒以内、20MB 以下 | 使わない |
 | 素材に入れないもの | 価格・「広告」表記・提供元（画面側で重ねる。価格は店舗別価格） | 同左 |
 
@@ -247,7 +248,7 @@ Ads が扱うのは `sponsored`（メーカー広告）だけです。`organic`�
 
 上限の数値（2MB・20MB）は COM-03 と合わせて確定します。デモ用の素材は ADS-05 で用意しています（瀬戸内トマト食品・トマトパスタソース `2900000000162`、第1版は静止画、第2版は Signage を10秒動画）。
 
-今の DB では、素材の版に画像が1枚（`image_path`）しかありません。Signage の DB 版（SIG-01、#95）はその1枚を Signage の素材として 16:9 の枠に収めて出すので、App 用の正方形の画像なら左右に余白が出ます。Signage 用の画像と動画は、媒体ごとの素材（上の `assets`）を入れる migration の後に使えるようになります。
+ADS-03追加（#226）のmigration後は、同じ版にApp用の正方形とSignage用の横長を別々に登録できます。DBのimage_pathsは媒体別のStorage相対パスです。NULLの既存版はimage_pathの共通画像を維持します。未登録媒体への申請はDBでも拒否します。実接続の画像は各5MiB以下のPNG・JPEG・WebPとし、動画は対象外です。共有DBへの適用とローカル検証は[検証記録](../development/ads-media-images-226.md)で区別します。
 
 ## 11. Insight・DB-08 と合わせること
 

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getAdImageUrl } from "@kago/backend";
+import { getAdImageUrl, getAdMediaPaths } from "@kago/backend";
 import { indexBy, num, parseRange, toIso, uniqueIds } from "./pg";
 import { requireStoreSession } from "./store";
 import type {
@@ -94,20 +94,12 @@ export async function fetchApplications(): Promise<Application[]> {
   const versionById = indexBy(versions, "id");
   const productById = indexBy(products, "id");
 
-  // 画像は署名付きURLで都度発行する。DB にはオブジェクトキーしか入っていない（COM-03）。
-  const imageUrls = new Map<string, string>();
-  await Promise.all(
-    uniqueIds(applications.map((row) => versionById.get(row.creative_version_id)?.image_path as string)).map(
-      async (path) => {
-        try {
-          const { url } = await getAdImageUrl(client, path);
-          imageUrls.set(path, url);
-        } catch {
-          // 置き換え前のシードなど、鍵の形式に合わない場合は画像なしで出す。
-        }
-      },
-    ),
-  );
+  const media=await getAdMediaPaths(client,versions.map(v=>({id:v.id as string,image_path:v.image_path as string})));
+  const imageUrls=new Map<string,string>();
+  await Promise.all([...new Set([...media.paths.values()].flatMap(v=>Object.values(v)))].map(async path=>{
+    try {imageUrls.set(path,(await getAdImageUrl(client,path)).url);}catch{/* UI offers an explicit retry. */}
+  }));
+  const mediaOf=(id:string)=>Object.fromEntries(Object.entries(media.paths.get(id)??{}).map(([channel,path])=>[channel,{path,url:imageUrls.get(path)??null}]));
 
   const historyOf = (applicationId: string): ApplicationRevision[] =>
     revisions
@@ -147,6 +139,7 @@ export async function fetchApplications(): Promise<Application[]> {
       creative_version: (version?.version as number) ?? 0,
       image_path: imagePath,
       image_url: imageUrls.get(imagePath) ?? null,
+      media_images: mediaOf(row.creative_version_id as string),
       headline: (version?.headline as string) ?? "",
       product_id: (creative?.product_id as string) ?? "",
       product_name: (product?.name as string) ?? "（商品名なし）",

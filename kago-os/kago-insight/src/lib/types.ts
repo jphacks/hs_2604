@@ -52,6 +52,7 @@ export type Application = {
   image_path: string;
   /** image_path から作った表示用URL。サーバ側で発行する。失敗時は null */
   image_url: string | null;
+  media_images?: Partial<Record<Channel,{path:string;url:string|null}>>;
   headline: string;
   product_id: string;
   product_name: string;

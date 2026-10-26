@@ -150,7 +150,7 @@ C＝作成、R＝参照、U＝更新、－＝扱わない。Coreはすべての�
 | かご明細`cart_items`／かごの版 | visit_id、product_id、quantity／visit.cart_version | DB-03 |
 | 注文`orders`・明細`order_items` | id、visit_id、user_id、store_id、ordered_at、total、idempotency_key、data_origin／order_id、product_id、product_name、unit_price、quantity | DB-03 |
 | 広告募集`ad_calls` | id、store_id、title、categories、channels、starts_at、ends_at、status、disclosure_scope | DB-04 |
-| 広告素材`creatives`・素材の版`creative_versions` | id、maker_id、product_id／creative_id、version、image_path、headline、created_at | DB-04、COM-03 |
+| 広告素材`creatives`・素材の版`creative_versions` | id、maker_id、product_id／creative_id、version、image_path、image_paths（app/signage別、旧版はNULL）、headline、created_at | DB-04、COM-03 |
 | 掲載申請`ad_applications` | id、ad_call_id、maker_id、creative_version_id、channels、requested_period、status、review_comment | DB-04 |
 | 配信対象`ad_placements` | id、application_id、store_id、creative_version_id、channels、starts_at、ends_at、status、approved_by、approved_at | DB-04、DB-08 |
 | 店舗販促`store_promotions`・版 | id、store_id、product_id、version、channels、time_windows、priority、reason_text、starts_at、ends_at、status | DB-04、INS-02 |
