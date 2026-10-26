@@ -236,8 +236,8 @@ export default function Home() {
         <footer className="shopping-basket-footer">
           {cart.discountTotal>0&&<p className="shopping-basket-saving"><span>クーポン・セール割引</span><span>−{yen.format(cart.discountTotal)}</span></p>}
           <div className="shopping-basket-total"><span>合計</span><strong>{yen.format(cart.total)}</strong></div>
-          <button type="button" onClick={()=>{router.push("/App/checkout");}} className="shopping-checkout-button" disabled={cart.lines.length===0||cart.busy} aria-describedby="shopping-checkout-note">レジに進む</button>
-          <span id="shopping-checkout-note" className="sr-only">商品と合計を確認してから確定します。</span>
+          <button type="button" onClick={()=>{router.push("/App/checkout");}} className="shopping-checkout-button" disabled={cart.lines.length===0||cart.busy||cart.pending} aria-describedby="shopping-checkout-note">レジに進む</button>
+          <span id="shopping-checkout-note" className="sr-only">{cart.pending?"かごの保存結果を確認してからレジに進んでください。":"商品と合計を確認してから確定します。"}</span>
         </footer>
       </section>
     </div>}
