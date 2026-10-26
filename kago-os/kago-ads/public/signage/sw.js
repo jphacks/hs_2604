@@ -1,23 +1,25 @@
-// KAGO/Signage の Service Worker（SIG-03）。範囲は /signage/ の下だけ（Ads の画面には効かない）
-// - 広告素材（/ad-assets/）：保存したものを先に使う（通信が切れても表示を続ける）
-// - 画面とその部品（/_next/static/）：通信を先に試し、だめなら保存したものを使う（切断中の再読み込みに備える）
-// 広告を出してよいかの判断（期限・停止）は画面側が行う。ここでは素材を保存するだけ
-const CACHE = "kago-signage-v1";
+// SIG-03: only Signage shell, build assets and approved static media are cached.
+const CACHE = "kago-signage-shell-v2";
+const isStatic = (p) => p.startsWith("/_next/static/") || p.startsWith("/ads-static/_next/static/");
+const isShell = (p) => ["/signage", "/signage/", "/signage/play"].includes(p);
 
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches
-      .keys()
-      .then((keys) => Promise.all(keys.filter((k) => k.startsWith("kago-signage-") && k !== CACHE).map((k) => caches.delete(k))))
-      .then(() => self.clients.claim()),
-  );
+  event.waitUntil(caches.keys().then((keys) => Promise.all(
+    keys.filter((k) => (k === "kago-signage-v1" || k.startsWith("kago-signage-shell-")) && k !== CACHE).map((k) => caches.delete(k)),
+  )).then(() => self.clients.claim()));
 });
 
 self.addEventListener("message", (event) => {
-  if (event.data?.type !== "precache") return;
-  const urls = (event.data.urls || []).filter((u) => new URL(u).origin === self.location.origin);
-  event.waitUntil(caches.open(CACHE).then((c) => Promise.all(urls.map((u) => c.add(u).catch(() => {})))));
+  if (event.data?.type !== "precache" || !Array.isArray(event.data.urls)) return;
+  const urls = event.data.urls.filter((value) => {
+    if (typeof value !== "string") return false;
+    try {
+      const url = new URL(value);
+      return url.origin === self.location.origin && (isStatic(url.pathname) || isShell(url.pathname));
+    } catch { return false; }
+  });
+  event.waitUntil(caches.open(CACHE).then((cache) => Promise.all(urls.map((url) => cache.add(url).catch(() => {})))));
 });
 
 const cacheFirst = async (request) => {
@@ -25,7 +27,7 @@ const cacheFirst = async (request) => {
   const hit = await cache.match(request);
   if (hit) return hit;
   const res = await fetch(request);
-  if (res.ok) cache.put(request, res.clone());
+  if (res.ok) await cache.put(request, res.clone()).catch(() => {});
   return res;
 };
 
@@ -33,12 +35,12 @@ const networkFirst = async (request) => {
   const cache = await caches.open(CACHE);
   try {
     const res = await fetch(request);
-    if (res.ok) cache.put(request, res.clone());
+    if (res.ok) await cache.put(request, res.clone()).catch(() => {});
     return res;
-  } catch (e) {
+  } catch (error) {
     const hit = await cache.match(request);
     if (hit) return hit;
-    throw e;
+    throw error;
   }
 };
 
@@ -48,5 +50,5 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith("/ad-assets/")) event.respondWith(cacheFirst(req));
-  else if (req.mode === "navigate" || url.pathname.startsWith("/_next/static/")) event.respondWith(networkFirst(req));
+  else if (isStatic(url.pathname) || (req.mode === "navigate" && isShell(url.pathname))) event.respondWith(networkFirst(req));
 });

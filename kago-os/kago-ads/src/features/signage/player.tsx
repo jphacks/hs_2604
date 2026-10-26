@@ -51,7 +51,7 @@ function registerServiceWorker() {
       const urls = performance
         .getEntriesByType("resource")
         .map((e) => e.name)
-        .filter((u) => u.startsWith(location.origin) && new URL(u).pathname.startsWith("/_next/static/"));
+        .filter((u) => u.startsWith(location.origin) && ["/_next/static/", "/ads-static/_next/static/"].some((prefix) => new URL(u).pathname.startsWith(prefix)));
       reg.active?.postMessage({ type: "precache", urls: [location.href, ...urls] });
     })
     .catch(() => {
