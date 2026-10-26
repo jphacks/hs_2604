@@ -123,6 +123,82 @@ describe("Signage 端末の再生の仕組み（DB 版で増えた動き）", ()
     expect(sent.flat().filter((x) => x === "bad-1")).toHaveLength(1);
     engine.stop();
   });
+  it("起動時に認証失効が分かったら永続キャッシュも消し、その後の通信断で再表示しない", async () => {
+    const kv=memoryKv();kv.set("kago-signage-session-v1:T",JSON.stringify(session));kv.set("kago-signage-feed-v1:T",JSON.stringify(feed));
+    const first=engineWith({signIn:async()=>{throw new NeedLoginError();}},kv).engine;
+    await first.start();expect(json(kv,"feed")).toBeNull();expect(json(kv,"session")).toBeNull();first.stop();
+    const second=engineWith({signIn:async()=>{throw new TypeError("offline");}},kv).engine;
+    await second.start();expect(second.getState().screen).toBeNull();expect(second.getState().phase).toBe("error");second.stop();
+  });
+
+  it("別端末の認証成功後に通信断になっても、前端末の配信を使わず未送信記録は保持する",async()=>{
+    const kv=memoryKv();kv.set("kago-signage-session-v1:T",JSON.stringify(session));kv.set("kago-signage-feed-v1:T",JSON.stringify(feed));
+    const pending=endPlay(startPlay("D1",feed.items[0],"no_content",new Date(T17).toISOString(),"pending-D1"),new Date(T17+4000).toISOString(),"completed");
+    kv.set("kago-signage-outbox-v1:T",JSON.stringify([pending]));
+    const sent=vi.fn(async()=>({rejected:[]}));
+    const {engine}=engineWith({signIn:async()=>({role:"signage",deviceId:"D2",storeId:"S2"}),getFeed:async()=>{throw new TypeError("offline");},recordPlays:sent},kv);
+    await engine.start();await vi.advanceTimersByTimeAsync(300);
+    expect(engine.getState().screen?.item).toBeNull();expect(json(kv,"feed")).toBeNull();
+    expect(sent).not.toHaveBeenCalled();expect(json<SignagePlay[]>(kv,"outbox").some(p=>p.id===pending.id)).toBe(true);engine.stop();
+  });
+
+  it("同じ端末の有効なキャッシュは通常の通信断では使える",async()=>{
+    const kv=memoryKv();kv.set("kago-signage-session-v1:T",JSON.stringify(session));kv.set("kago-signage-feed-v1:T",JSON.stringify(feed));
+    const {engine}=engineWith({signIn:async()=>{throw new TypeError("offline");}},kv);
+    await engine.start();await vi.advanceTimersByTimeAsync(300);
+    expect(engine.getState().phase).toBe("running");expect(engine.getState().screen?.item).not.toBeNull();engine.stop();
+  });
+
+  it("保存されたセッションと配信の端末が違うときは通信断でも使わない",async()=>{
+    const kv=memoryKv();kv.set("kago-signage-session-v1:T",JSON.stringify({role:"signage",deviceId:"D2",storeId:"S2"}));kv.set("kago-signage-feed-v1:T",JSON.stringify(feed));
+    const {engine}=engineWith({signIn:async()=>{throw new TypeError("offline");}},kv);
+    await engine.start();await vi.advanceTimersByTimeAsync(300);expect(engine.getState().screen?.item).toBeNull();expect(json(kv,"feed")).toBeNull();engine.stop();
+  });
+
+  it("ログアウト後に遅れて認証が成功してもセッションと配信を復活させない",async()=>{
+    let release!:(s:Session)=>void;
+    const {engine,kv}=engineWith({signIn:()=>new Promise<Session>(r=>{release=r;})});
+    const starting=engine.start();engine.signedOut();release(session);await starting;
+    expect(engine.getState()).toMatchObject({phase:"login",screen:null});expect(json(kv,"session")).toBeNull();expect(json(kv,"feed")).toBeNull();engine.stop();
+  });
+
+  it("ログアウト後に遅れて配信が返っても保存・再生を再開しない",async()=>{
+    let release!:(f:SignageFeed)=>void;
+    const {engine,kv}=engineWith({getFeed:()=>new Promise<SignageFeed>(r=>{release=r;})});
+    const starting=engine.start();await vi.waitFor(()=>expect(release).toBeTypeOf("function"));
+    engine.signedOut();release(feed);await starting;
+    expect(engine.getState()).toMatchObject({phase:"login",screen:null});expect(json(kv,"feed")).toBeNull();engine.stop();
+  });
+
+  it("取得した配信の端末・店舗も認証済みセッションと照合する",async()=>{
+    const {engine,kv}=engineWith({getFeed:async()=>({...feed,device:{...feed.device,id:"D9"}})});
+    await engine.start();await vi.advanceTimersByTimeAsync(300);expect(engine.getState().screen?.item).toBeNull();expect(json(kv,"feed")).toBeNull();engine.stop();
+  });
+
+  it("壊れたJSON構造の配信・記録があっても起動が落ちず、正常な配信を取り直せる",async()=>{
+    const kv=memoryKv();kv.set("kago-signage-session-v1:T",JSON.stringify(session));
+    kv.set("kago-signage-feed-v1:T",JSON.stringify({...feed,items:[null]}));kv.set("kago-signage-outbox-v1:T",JSON.stringify({invalid:true}));
+    const {engine}=engineWith({},kv);await engine.start();await vi.advanceTimersByTimeAsync(300);
+    expect(engine.getState().phase).toBe("running");expect(engine.getState().screen?.item).not.toBeNull();engine.stop();
+  });
+
+  it("不正な記録だけを除外し、正常な未送信記録を失わない",async()=>{
+    const kv=memoryKv();const valid=endPlay(startPlay("D1",feed.items[0],"no_content",new Date(T17).toISOString(),"valid"),new Date(T17+4000).toISOString(),"completed");
+    kv.set("kago-signage-outbox-v1:T",JSON.stringify([null,{},valid]));const sent:SignagePlay[][]=[];
+    const {engine}=engineWith({recordPlays:async(_s,plays)=>{sent.push(plays);return {rejected:[]};}},kv);
+    await engine.start();expect(sent[0].map(p=>p.id)).toEqual(["valid"]);engine.stop();
+  });
+
+  it("古い認証要求が残っていても、ログインし直した新しい端末を妨げない",async()=>{
+    let release!:(s:Session)=>void;let calls=0;
+    const nextSession:Session={role:"signage",deviceId:"D2",storeId:"S2"};
+    const nextFeed={...feed,device:{...feed.device,id:"D2",store_id:"S2"},store_name:"別の店舗"};
+    const {engine}=engineWith({signIn:async()=>++calls===1?await new Promise<Session>(r=>{release=r;}):nextSession,getFeed:async()=>nextFeed});
+    const starting=engine.start();engine.signedOut();await engine.afterLogin();await vi.advanceTimersByTimeAsync(300);
+    release(session);await starting;
+    expect(engine.getState()).toMatchObject({phase:"running",storeName:"別の店舗"});expect(engine.getState().screen?.item).not.toBeNull();engine.stop();
+  });
+
 });
 
 function fakeCaches() {

@@ -60,7 +60,8 @@ export class SignageEngine {
   private outbox = new Map<string, SignagePlay>();
   private media = new Map<string, { status: "loading" } | { status: "ready"; url: string } | { status: "error" }>();
   private timers: ReturnType<typeof setInterval>[] = [];
-  private polling = false;
+  private polling: number | null = null;
+  private lifecycle = 0;
   private needLogin = false;
   private verified = false;
   private readonly now: () => number;
@@ -82,22 +83,30 @@ export class SignageEngine {
   async refresh() { await this.poll(); this.tick(); }
 
   async start() {
+    const lifecycle = this.lifecycle;
     this.state = { ...this.state, simulatedOffline: this.deps.kv.get(this.key("sim-offline")) === "1" };
-    this.outbox = new Map(this.readJson<SignagePlay[]>("outbox", []).map((p) => [p.id, p]));
+    const saved = this.readJson<SignagePlay[]>("outbox", []);
+    this.outbox = new Map((Array.isArray(saved) ? saved : []).filter((p) =>
+      p && typeof p.id === "string" && typeof p.device_id === "string" && typeof p.started_at === "string"
+      && (p.ended_at === null || typeof p.ended_at === "string")
+    ).map((p) => [p.id, p]));
     this.feed = this.readJson<SignageFeed | null>("feed", null);
     this.session = this.readJson<Session | null>("session", null);
+    if (this.session?.role !== "signage" || typeof this.session.deviceId !== "string" || typeof this.session.storeId !== "string") this.session = null;
+    if (this.feed && (!this.feedMatches(this.session) || !this.cachedFeedUsable(this.feed))) this.discardFeed();
     void this.loadOne(FALLBACK_ASSET.path);
     if (this.feed) this.preload(this.feed);
 
     await this.poll();
-    this.begin();
+    if (lifecycle === this.lifecycle) this.begin();
   }
 
   /** ログイン画面でログインした後に呼ぶ */
   async afterLogin() {
+    const lifecycle = this.lifecycle;
     this.needLogin = false;
     await this.poll();
-    this.begin();
+    if (lifecycle === this.lifecycle) this.begin();
   }
 
   /** 端末からログアウトしたとき。保存した配信内容は消し、未送信の記録は次のログインで送るので残す */
@@ -106,6 +115,8 @@ export class SignageEngine {
     this.stop();
     this.session = null;
     this.verified = false;
+    this.selections = [];
+    this.set({ selection: undefined });
     this.feed = null;
     this.writeJson("session", null);
     this.writeJson("feed", null);
@@ -126,6 +137,8 @@ export class SignageEngine {
   }
 
   stop() {
+    this.lifecycle += 1;
+    this.polling = null;
     this.timers.forEach(clearInterval);
     this.timers = [];
   }
@@ -163,13 +176,18 @@ export class SignageEngine {
 
   // ---- 取得と送信
   private async poll() {
-    if (this.polling) return;
-    this.polling = true;
+    if (this.polling !== null) return;
+    const lifecycle = this.lifecycle;
+    this.polling = lifecycle;
     try {
       if (this.state.simulatedOffline) throw new OfflineError();
       if (!this.session || !this.verified) {
         // 起動後の最初の取得では、保存したログイン情報を信じずに確かめる。通信できないときだけ保存した情報で続ける
-        this.session = await this.deps.source.signIn();
+        const session = await this.deps.source.signIn();
+        if (lifecycle !== this.lifecycle) return;
+        if (session.role !== "signage") throw new NeedLoginError();
+        if (this.feed && !this.feedMatches(session)) this.discardFeed();
+        this.session = session;
         this.verified = true;
         this.writeJson("session", this.session);
       }
@@ -177,22 +195,55 @@ export class SignageEngine {
       await this.flush().catch((error: unknown) => {
         if (error instanceof NeedLoginError) throw error;
       });
+      if (lifecycle !== this.lifecycle) return;
       const feed = await this.deps.source.getFeed(this.session);
+      if (lifecycle !== this.lifecycle) return;
+      if (this.session.role !== "signage" || feed.device.id !== this.session.deviceId || feed.device.store_id !== this.session.storeId) {
+        this.discardFeed();
+        throw new Error("端末と配信内容が一致しません");
+      }
       this.feed = feed;
       this.writeJson("feed", feed);
       this.preload(feed);
       this.set({ online: true, lastFetchAt: feed.fetched_at, cacheExpiresAt: feed.expires_at, storeName: feed.store_name, location: feed.device.location });
     } catch (error) {
+      if (lifecycle !== this.lifecycle) return;
       this.set({ online: false });
       if (error instanceof NeedLoginError) {
         // ログインが切れた：表示をやめてログイン画面にする（別の端末のアカウントの内容を出し続けない）
         this.needLogin = true;
-        if (this.state.phase === "running") this.signedOut();
-        else this.session = null;
+        this.signedOut();
       }
     } finally {
-      this.polling = false;
+      if (this.polling === lifecycle) this.polling = null;
     }
+  }
+
+  private cachedFeedUsable(feed: SignageFeed) {
+    return typeof feed.store_name === "string" && typeof feed.device?.location === "string"
+      && Number.isFinite(Date.parse(feed.expires_at)) && Number.isFinite(feed.clock_offset_ms)
+      && Math.abs(feed.clock_offset_ms) <= 100 * 366 * 86400000
+      && Array.isArray(feed.suspended_keys) && feed.suspended_keys.every((key) => typeof key === "string")
+      && Array.isArray(feed.items) && feed.items.every((item) =>
+        item && typeof item.key === "string" && typeof item.group_key === "string"
+        && typeof item.product_name === "string" && Number.isFinite(item.price)
+        && typeof item.reason_code === "string" && Number.isFinite(Date.parse(item.valid_until))
+        && (item.maker_name === undefined || typeof item.maker_name === "string")
+        && (item.reason_text === undefined || typeof item.reason_text === "string")
+        && item.asset && ["image", "video"].includes(item.asset.kind) && typeof item.asset.path === "string"
+      );
+  }
+
+  private feedMatches(session: Session | null) {
+    return session?.role === "signage" && this.feed?.device?.id === session.deviceId && this.feed?.device?.store_id === session.storeId;
+  }
+
+  private discardFeed() {
+    this.close();
+    this.selections = [];
+    this.feed = null;
+    this.writeJson("feed", null);
+    this.set({ screen: null, selection: undefined, storeName: undefined, location: undefined, lastFetchAt: undefined, cacheExpiresAt: undefined });
   }
 
   private async flush() {
