@@ -39,7 +39,7 @@ RPCが未適用なら共通画像の登録を維持する。読取側はAPIキ�
 
 ## 共有環境への反映
 
-共有Supabaseには未適用。接続情報にある通常利用者の権限ではDDLを適用できないため、適用成功とは扱わない。
+2026-10-26、接続情報の公開キーで空のkago_ad_media_pathsを照会し、HTTP 404 / PGRST202（API未反映）を確認した。DB適用履歴・スキーマキャッシュは管理接続がないため未確認。この作業から共有SupabaseへDDLを適用していない。
 
 1. 適用対象プロジェクトとmigration履歴を照合する。
 2. 既存migration適用済みのDBに20261026100000_creative_media_paths.sqlを適用する。
@@ -50,3 +50,17 @@ RPCが未適用なら共通画像の登録を維持する。読取側はAPIキ�
 登録候補ZIPは実DBへ自動投入しない。同じデザイン版のApp/Signageの組を選べるが、CSVの架空IDやdesign_versionを実DBのUUID・版番号として使わない。
 
 登録候補には#33で既に確認した食パン138円の販促価格の記録も引き継ぐ。参考の商品表228円は維持し、共有DBの価格は変更しない。
+
+## 最終結果（2026-10-26）
+
+- Ads/Signage通常試験190件、共通SDK32件、App推薦29件、登録素材のPython試験8件：成功。
+- 追加ブラウザ3シナリオ（画像準備、登録/新版/再読込/390px幅、App/Insight/Signage受渡し）：成功。
+- 影響する3アプリのlint・型検査・本番ビルドと、共通SDK型検査：成功。
+- 通常試験のブラウザ6本は環境フラグで除外される。上記3本は別途明示的に実行した。
+- mainで見つかった固定成果画面の生成物のずれは別PR #229で修正し、このブランチにも取り込んだ。オフラインの2ホスト24項目は#229側で確認した。
+- 共有Supabaseでの実登録・審査・配信は未確認。API未反映と管理接続不足を上記の適用手順で解消する必要がある。
+
+![登録画面](screenshots/ads226-media-registration.png)
+![スマホ幅](screenshots/ads226-media-mobile.png)
+![Insight審査](screenshots/ads226-insight-review.png)
+![App実コンポーネント](screenshots/ads226-app-image.png)
