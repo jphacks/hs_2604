@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   approveApplication,
@@ -10,8 +10,11 @@ import {
 import { actionErrorMessage, type ActionErrorCode } from "@/lib/action-result";
 import { channelLabel, placementStatusLabel } from "@/lib/labels";
 import { formatDate, formatDateTime, toDateInputValue } from "@/lib/format";
+import { USING_MOCK } from "@/lib/mode";
 import { EmptyState } from "@/components/state";
 import type { Application, Channel, Placement } from "@/lib/types";
+
+const SAVE_NOTICE = USING_MOCK ? "（モックのため保存されません）" : "";
 
 const REASON_MAX = 200; // DB-08: 1〜200文字
 
@@ -231,8 +234,8 @@ function ApplicationDetail({
     if (result.ok) {
       onDone(
         result.data.replayed
-          ? `申請 ${application.id} はすでに同じ内容で承認済みでした（モックのため保存されません）`
-          : `申請 ${application.id} を承認しました（モックのため保存されません）`,
+          ? `申請 ${application.id} はすでに同じ内容で承認済みでした${SAVE_NOTICE}`
+          : `申請 ${application.id} を承認しました${SAVE_NOTICE}`,
       );
     } else {
       setError({ code: result.code, text: result.message });
@@ -250,8 +253,8 @@ function ApplicationDetail({
     if (result.ok) {
       onDone(
         result.data.replayed
-          ? `申請 ${application.id} はすでに同じ理由で却下済みでした（モックのため保存されません）`
-          : `申請 ${application.id} を却下しました（モックのため保存されません）`,
+          ? `申請 ${application.id} はすでに同じ理由で却下済みでした${SAVE_NOTICE}`
+          : `申請 ${application.id} を却下しました${SAVE_NOTICE}`,
       );
     } else {
       setError({ code: result.code, text: result.message });
@@ -519,8 +522,8 @@ function PlacementRow({
     if (result.ok) {
       onDone(
         result.data.replayed
-          ? `配信 ${placement.id} はすでに停止済みでした（モックのため保存されません）`
-          : `配信 ${placement.id} を停止しました（モックのため保存されません）`,
+          ? `配信 ${placement.id} はすでに停止済みでした${SAVE_NOTICE}`
+          : `配信 ${placement.id} を停止しました${SAVE_NOTICE}`,
       );
     } else {
       setError(result.message);
