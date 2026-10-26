@@ -44,14 +44,14 @@ try {
   await page.route("**/promotions", async route => { if (route.request().method() === "POST") { attempts++; await route.abort("failed"); } else await route.continue(); });
   await page.getByRole("button", { name: "新しい版として保存", exact: true }).click();
   await page.getByRole("button", { name: "新しい版として保存", exact: true }).waitFor({ timeout: 6000 });
-  await page.getByRole("alert").waitFor(); assert.equal(await reason.inputValue(), "通信が途切れても保持する入力");
+  await page.getByRole("alert").filter({ hasText: "結果を確認できません" }).waitFor(); assert.equal(await reason.inputValue(), "通信が途切れても保持する入力");
   assert.equal(attempts, 1); pass("編集の通信失敗を案内し、入力を保持して処理中を解除");
   await page.unroute("**/promotions"); await page.getByRole("button", { name: "新しい版として保存", exact: true }).click();
   await page.getByRole("status").filter({ hasText: "版として保存しました" }).waitFor(); pass("既存版の編集を明示的に再試行できる");
 
   await page.route("**/promotions", async route => { if (route.request().method() === "POST") await route.abort("failed"); else await route.continue(); });
   await page.getByRole("button", { name: "停止する", exact: true }).first().click();
-  await page.getByRole("alert").waitFor(); await page.getByRole("button", { name: "停止する", exact: true }).first().waitFor();
+  await page.getByRole("alert").filter({ hasText: "結果を確認できません" }).waitFor(); await page.getByRole("button", { name: "停止する", exact: true }).first().waitFor();
   assert.equal(await page.getByRole("button", { name: "停止する", exact: true }).first().isEnabled(), true);
   await page.unroute("**/promotions"); await page.getByRole("button", { name: "停止する", exact: true }).first().click();
   await page.getByRole("status").filter({ hasText: "おすすめを停止しました" }).waitFor(); pass("停止の通信失敗でも操作を戻し、再操作できる");
@@ -59,7 +59,7 @@ try {
   await page.getByRole("button", { name: "おすすめを追加する", exact: true }).click(); await reason.fill("新規の応答喪失でも残る入力");
   let creates = 0;
   await page.route("**/promotions", async route => { if (route.request().method() === "POST") { creates++; await route.fetch(); await route.abort("failed"); } else await route.continue(); });
-  await page.getByRole("button", { name: "この内容で追加", exact: true }).click(); await page.getByRole("alert").waitFor();
+  await page.getByRole("button", { name: "この内容で追加", exact: true }).click(); await page.getByRole("alert").filter({ hasText: "結果を確認できません" }).waitFor();
   const add = page.getByRole("button", { name: "この内容で追加", exact: true }); assert.equal(await add.isDisabled(), true);
   assert.equal(await reason.inputValue(), "新規の応答喪失でも残る入力"); assert.equal(creates, 1);
   pass("新規の結果不明時は入力を残し、無条件の追加再送を防ぐ");
@@ -67,7 +67,7 @@ try {
   assert.equal(await reason.inputValue(), "新規の応答喪失でも残る入力"); assert.equal(creates, 1);
   assert.equal(await add.isDisabled(), true); pass("一覧だけを再取得でき、入力や未確認状態を保持して自動再送しない");
   await page.setViewportSize({ width: 375, height: 900 });
-  const alert = page.getByRole("alert"); await alert.scrollIntoViewIfNeeded();
+  const alert = page.getByRole("alert").filter({ hasText: "結果を確認できません" }); await alert.scrollIntoViewIfNeeded();
   const box = await alert.boundingBox(); assert(box && box.x >= 0 && box.x + box.width <= 376);
   await mkdir("../../internal/promotion-recovery-evidence", { recursive: true });
   await page.screenshot({ path: "../../internal/promotion-recovery-evidence/promotion-recovery.png", fullPage: true, animations: "disabled" });
