@@ -60,7 +60,8 @@
     "test:ui:e2e": "node --experimental-strip-types tests/app-ui.e2e.mts",
     "test:ads-entry": "node --experimental-strip-types --test tests/ads-entry.test.mts",
     "test:ads-case:e2e": "node --experimental-strip-types tests/ads-case-entry.e2e.mts",
-    "test:cart-refresh:e2e": "node --experimental-strip-types tests/cart-refresh.e2e.mts"
+    "test:cart-refresh:e2e": "node --experimental-strip-types tests/cart-refresh.e2e.mts",
+    "test:reminder-privacy:e2e": "node --experimental-strip-types tests/reminder-privacy.e2e.mts"
   },
   "dependencies": {
     "@kago/backend": "workspace:*",

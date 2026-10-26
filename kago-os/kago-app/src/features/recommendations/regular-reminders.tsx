@@ -12,7 +12,7 @@ const yen = new Intl.NumberFormat("ja-JP", { style: "currency", currency: "JPY" 
 const day = new Intl.DateTimeFormat("ja-JP", { timeZone: "Asia/Tokyo", month: "numeric", day: "numeric" });
 
 // #152: regular purchases due now, shown from the first moment of the visit (even with an empty cart).
-// The list is read once per visit; products put into the cart disappear from it right away.
+// Refresh on settings/foreground changes; products put into the cart disappear right away.
 // Nothing is shown when history use is off, the request fails, or nothing is due: it is a helper, not a gate.
 export function RegularReminders({renderItems}:{renderItems?:(items:RegularReminderResponse["items"])=>ReactNode}) {
   const cart = useCart();
@@ -20,11 +20,22 @@ export function RegularReminders({renderItems}:{renderItems?:(items:RegularRemin
   const visitId = session.visit!.id;
   const [data, setData] = useState<RegularReminderResponse | null>(null);
   useEffect(() => {
-    const controller = new AbortController();
-    cartRequest("/api/regular-purchases", undefined, controller.signal)
-      .then((result: RegularReminderResponse) => { if (!controller.signal.aborted) setData(result); })
-      .catch(() => { if (!controller.signal.aborted) setData(null); });
-    return () => controller.abort();
+    let request: AbortController | null = null;
+    const reload = () => {
+      request?.abort();
+      const controller = new AbortController(); request = controller;
+      // A settings change invalidates history-derived content before the next response.
+      setData(null);
+      cartRequest("/api/regular-purchases", undefined, controller.signal)
+        .then((result: RegularReminderResponse) => { if (!controller.signal.aborted) setData(result); })
+        .catch(() => { if (!controller.signal.aborted) setData(null); });
+    };
+    const boot = window.setTimeout(reload, 0);
+    const channel = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel("kago-account-settings") : null;
+    if (channel) channel.onmessage = reload;
+    const visible = () => { if (document.visibilityState === "visible") reload(); };
+    document.addEventListener("visibilitychange", visible); window.addEventListener("online", visible);
+    return () => { request?.abort(); window.clearTimeout(boot); channel?.close(); document.removeEventListener("visibilitychange", visible); window.removeEventListener("online", visible); };
   }, [visitId]);
 
   const inCart = new Set(cart.lines.map(line => line.productId));
