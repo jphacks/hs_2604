@@ -41,7 +41,7 @@ async function orLogin<T>(run: () => Promise<T>): Promise<T> {
   try {
     return await run();
   } catch (error) {
-    if (error instanceof Error && ["unauthenticated", "session_expired"].includes(toBackendError(error).code)) throw new NeedLoginError();
+    if (error instanceof Error && ["unauthenticated", "session_expired", "forbidden"].includes(toBackendError(error).code)) throw new NeedLoginError();
     throw error;
   }
 }

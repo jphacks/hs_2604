@@ -75,6 +75,11 @@ describe("Signage 端末と正式の migration・RLS（SIG-01〜03）", () => {
     }
   });
 
+  it("停止端末の権限拒否は通信失敗と区別し、再ログインを要求する",async()=>{
+    const c=client();await signInBackend(c,"device-off@example.test",fixturePassword,"signage");
+    await expect(supabaseSignageSource(c).getFeed({role:"signage",deviceId:id(42),storeId:id(1)})).rejects.toBeInstanceOf(NeedLoginError);
+  });
+
   it("画面の値で別の端末・店舗を名乗っても、その店舗の内容は読めない", async () => {
     const { c } = await device();
     await expect(loadSignageFeed(c, { role: "signage", deviceId: id(43), storeId: id(2) }, at("17:00"))).rejects.toMatchObject({ code: "forbidden" });
