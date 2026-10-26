@@ -1,4 +1,4 @@
-// Signage 端末の DB 接続を確かめるための使い捨ての DB（SIG-01〜03）。正式の migration・RLS をそのまま適用し、
+// Signage 端末とAdsの画像確認・認証を確かめるための使い捨てのDB。正式の migration・RLS をそのまま適用し、
 // Supabase の Auth・PostgREST・Storage の署名付き URL のうち、端末が使う最小限だけを真似する
 // 実在の接続先・認証情報は使わない。データはすべて架空
 import { PGlite } from "@electric-sql/pglite";
@@ -32,7 +32,7 @@ const token = (u: FixtureUser) => `${encode({ alg: "HS256", typ: "JWT" })}.${enc
 
 const TABLES = new Set([
   "signage_devices", "stores", "ad_placements", "store_promotions", "promotion_versions", "store_products",
-  "creative_versions", "creatives", "makers", "products", "signage_decisions", "store_members", "maker_members",
+  "creative_versions", "creatives", "makers", "products", "signage_decisions", "store_members", "maker_members", "ad_applications", "application_revisions",
 ]);
 const name = (v: string) => {
   if (!/^[a-z_]+$/.test(v)) throw new Error("Unexpected identifier");
