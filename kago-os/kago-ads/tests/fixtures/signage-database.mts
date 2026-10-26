@@ -31,7 +31,7 @@ const token = (u: FixtureUser) => `${encode({ alg: "HS256", typ: "JWT" })}.${enc
 
 const TABLES = new Set([
   "signage_devices", "stores", "ad_placements", "store_promotions", "promotion_versions", "store_products",
-  "creative_versions", "creatives", "makers", "products",
+  "creative_versions", "creatives", "makers", "products", "maker_members",
 ]);
 const name = (v: string) => {
   if (!/^[a-z_]+$/.test(v)) throw new Error("Unexpected identifier");

@@ -12,3 +12,12 @@ export function createAdsBackend() {
     publishableKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
   }), { name: "kago-ads-auth", path: "/" });
 }
+
+
+/** Terminal auth is independent from manufacturer/store Ads auth. */
+export function createSignageBackend() {
+  return createBrowserBackend(readBackendConfig({
+    url: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    publishableKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+  }), { name: "kago-signage-auth", path: "/signage" });
+}

@@ -8,7 +8,7 @@ import { useEffect, useState, useSyncExternalStore, type FormEvent } from "react
 import { getAdImageUrl, signOutBackend, toBackendError } from "@kago/backend";
 import { AdMedia, PromoMedia } from "@/components/ad-media";
 import { Button, ErrorList, Field, inputClass } from "@/components/parts";
-import { adsDataSource, createAdsBackend } from "@/lib/backend/config";
+import { adsDataSource, createSignageBackend } from "@/lib/backend/config";
 import { signInDevice, type SignageClient } from "@/lib/backend/signage";
 import { getRepository } from "@/lib/data";
 import { FALLBACK_ASSET } from "@/lib/signage/feed";
@@ -33,7 +33,7 @@ function createSetup(deviceId: string): Setup {
       if (!deviceId) return { kind: "no-device" };
       return { kind: "ready", client: null, engine: new SignageEngine({ source: mockSignageSource(getRepository(), deviceId), kv, loadMedia: createMediaLoader() }) };
     }
-    const client = createAdsBackend();
+    const client = createSignageBackend();
     const loadMedia = createMediaLoader({ signedUrl: async (path) => (await getAdImageUrl(client, path)).url });
     return { kind: "ready", client, engine: new SignageEngine({ source: supabaseSignageSource(client), kv, loadMedia }) };
   } catch (error) {
