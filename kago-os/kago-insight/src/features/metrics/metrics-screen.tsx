@@ -1,16 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { dataOriginLabel, placementTypeLabel } from "@/lib/labels";
-import { formatRate, formatYen, rate } from "@/lib/format";
-import { EmptyState } from "@/components/state";
+import { dataOriginLabel, placementTypeLabel } from "../../lib/labels";
+import { formatRate, formatYen, rate } from "../../lib/format";
+import { EmptyState } from "../../components/state";
 import type {
   AppMetricRow,
   OrderTotals,
   PlacementType,
   SelectionCount,
   SignageMetricRow,
-} from "@/lib/types";
+} from "../../lib/types";
 
 /** 指標の定義。画面から参照できるようにしておく（INS-03の完了条件） */
 const DEFINITIONS: { label: string; formula: string; source: string }[] = [
@@ -52,14 +52,16 @@ export function MetricsScreen({
   selectionCounts,
   orderTotals,
   subjectNames,
+  readOnly = false,
 }: {
   appRows: AppMetricRow[];
   signageRows: SignageMetricRow[];
   selectionCounts: SelectionCount[];
   orderTotals: OrderTotals[];
   subjectNames: Record<string, string>;
+  readOnly?: boolean;
 }) {
-  const [showDefinitions, setShowDefinitions] = useState(false);
+  const [showDefinitions, setShowDefinitions] = useState(readOnly);
 
   if (appRows.length === 0 && signageRows.length === 0) {
     return <EmptyState message="まだ記録がありません。" />;
@@ -110,13 +112,13 @@ export function MetricsScreen({
       <SignageSection rows={signageRows} subjectNames={subjectNames} />
 
       <section>
-        <button
+        {!readOnly && <button
           type="button"
           onClick={() => setShowDefinitions((v) => !v)}
           className="text-sm font-bold text-[var(--accent)] underline"
         >
           {showDefinitions ? "指標の定義を閉じる" : "指標の定義を見る"}
-        </button>
+        </button>}
         {showDefinitions ? (
           <div className="mt-3 overflow-x-auto rounded-lg border border-[var(--line)] bg-[var(--panel)]">
             <table className="w-full text-sm">

@@ -57,7 +57,9 @@
     "test:checkout:e2e": "node --experimental-strip-types tests/checkout.e2e.mts && node --experimental-strip-types tests/checkout-demo.e2e.mts",
     "preview:shopping": "node --experimental-strip-types scripts/preview-shopping-ui.mts",
     "test:home:e2e": "node --experimental-strip-types tests/shopping-home.e2e.mts",
-    "test:ui:e2e": "node --experimental-strip-types tests/app-ui.e2e.mts"
+    "test:ui:e2e": "node --experimental-strip-types tests/app-ui.e2e.mts",
+    "test:ads-entry": "node --experimental-strip-types --test tests/ads-entry.test.mts",
+    "test:ads-case:e2e": "node --experimental-strip-types tests/ads-case-entry.e2e.mts"
   },
   "dependencies": {
     "@kago/backend": "workspace:*",

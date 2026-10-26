@@ -1,3 +1,4 @@
+import { insightPath } from "@/lib/paths";
 import { redirect } from "next/navigation";
 import { LoginForm } from "./login-form";
 import { getStoreSession } from "@/lib/store";
@@ -26,6 +27,7 @@ export default async function LoginPage({
         </p>
       ) : null}
       <LoginForm />
+      <p className="mt-4 text-sm"><a className="underline" href={insightPath("/fixed-results/index.html")}>説明用の固定成果を開く（ログイン不要）</a></p>
     </div>
   );
 }

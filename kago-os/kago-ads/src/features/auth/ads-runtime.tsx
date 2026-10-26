@@ -189,6 +189,7 @@ function Login() {
         <Field label="パスワード"><input className={inputClass} type="password" autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} /></Field>
         <Button type="submit" disabled={!client || busy}>{busy ? "ログイン中…" : "ログイン"}</Button>
       </form>
+      <p className="mt-4 text-sm"><a className="underline" href="/ads/fixed-results/index.html">説明用の固定成果を開く（ログイン不要）</a></p>
       <p className="mt-4 text-xs text-muted">アカウントの役割と所属に応じて利用できます。アカウントと所属は担当者が設定します。</p>
     </Card>
   </div>;

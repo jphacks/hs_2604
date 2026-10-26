@@ -15,6 +15,7 @@ export const users = [
   { n: 105, email: "customer@example.test", kago: { roles: ["customer"] } },
   { n: 106, email: "device-one@example.test", kago: { roles: ["signage"], device_id: id(41), store_id: id(1) } },
   { n: 107, email: "device-off@example.test", kago: { roles: ["signage"], device_id: id(42), store_id: id(1) } },
+  { n: 109, email: "store-two@example.test", kago: { roles: ["store_staff"] } },
   { n: 108, email: "device-two@example.test", kago: { roles: ["signage"], device_id: id(43), store_id: id(2) } },
 ] satisfies { n: number; email: string; kago: Kago }[];
 export type FixtureUser = (typeof users)[number];
@@ -31,7 +32,7 @@ const token = (u: FixtureUser) => `${encode({ alg: "HS256", typ: "JWT" })}.${enc
 
 const TABLES = new Set([
   "signage_devices", "stores", "ad_placements", "store_promotions", "promotion_versions", "store_products",
-  "creative_versions", "creatives", "makers", "products", "maker_members",
+  "creative_versions", "creatives", "makers", "products", "signage_decisions", "store_members", "maker_members",
 ]);
 const name = (v: string) => {
   if (!/^[a-z_]+$/.test(v)) throw new Error("Unexpected identifier");
@@ -43,6 +44,7 @@ const SEED = `
   insert into stores(id,slug,name,branch_name) values
     ('${id(1)}','fixture-one','架空1号店',null),('${id(2)}','fixture-two','架空1号店','駅前');
   insert into store_members(store_id,user_id) values ('${id(1)}','${id(104)}'),('${id(2)}','${id(104)}');
+  insert into store_members(store_id,user_id) values ('${id(2)}','${id(109)}');
   insert into makers(id,slug,display_name,is_fictional) values ('${id(11)}','fixture-maker','架空トマト食品',true);
   insert into maker_members(maker_id,user_id) values ('${id(11)}','${id(101)}');
   insert into products(id,code,name,category) values
@@ -160,6 +162,20 @@ export async function createSignageDatabase() {
         (await db.query<{ ok: boolean }>("select public.kago_can_read_ad_image($1) as ok", [path])).rows[0]?.ok);
       if (!allowed) return json({ statusCode: "404", error: "not_found", message: "Object not found" }, 400);
       return json({ signedURL: `/object/sign/ad-images/${path}?token=fixture` });
+    }
+
+    if(url.pathname.startsWith("/rest/v1/rpc/")&&method==="POST"){
+      try {
+        if(url.pathname.endsWith("/kago_signage_crowd")){
+          const result=await asUser(caller,async()=>(await db.query<{value:unknown}>("select kago_signage_crowd() value")).rows[0].value);
+          return json(result);
+        }
+        if(url.pathname.endsWith("/kago_record_signage_decision")){
+          const body=JSON.parse(String(init?.body));
+          await asUser(caller,async()=>db.query("select kago_record_signage_decision($1,$2::jsonb)",[body.p_play_id,JSON.stringify(body.p_decision)]));
+          return new Response(null,{status:204});
+        }
+      } catch(error){return fail(error);}
     }
 
     const table = url.pathname.match(/\/rest\/v1\/([a-z_]+)$/)?.[1];

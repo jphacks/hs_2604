@@ -11,6 +11,7 @@ import { Button, ErrorList, Field, inputClass } from "@/components/parts";
 import { adsDataSource, createSignageBackend } from "@/lib/backend/config";
 import { signInDevice, type SignageClient } from "@/lib/backend/signage";
 import { getRepository } from "@/lib/data";
+import { selectCrowdAd } from "@/lib/signage/crowd-selection";
 import { FALLBACK_ASSET } from "@/lib/signage/feed";
 import { SignageEngine, type EngineState, type Screen } from "./engine";
 import { clearMediaCache, createMediaLoader } from "./media";
@@ -35,7 +36,9 @@ function createSetup(deviceId: string): Setup {
     }
     const client = createSignageBackend();
     const loadMedia = createMediaLoader({ signedUrl: async (path) => (await getAdImageUrl(client, path)).url });
-    return { kind: "ready", client, engine: new SignageEngine({ source: supabaseSignageSource(client), kv, loadMedia }) };
+    const crowd=process.env.NEXT_PUBLIC_SIGNAGE_CROWD_SELECTION==="1";
+    return { kind: "ready", client, engine: new SignageEngine({ source: supabaseSignageSource(client,{crowd}), kv, loadMedia, persistSelection:crowd,
+      select:crowd?(feed,now,ready)=>selectCrowdAd(feed,feed.crowd?.categoryByKey??{},feed.crowd?.snapshot??null,now,ready):undefined }) };
   } catch (error) {
     return { kind: "error", message: toBackendError(error).message };
   }
@@ -51,7 +54,7 @@ function registerServiceWorker() {
       const urls = performance
         .getEntriesByType("resource")
         .map((e) => e.name)
-        .filter((u) => u.startsWith(location.origin) && new URL(u).pathname.startsWith("/_next/static/"));
+        .filter((u) => u.startsWith(location.origin) && ["/_next/static/", "/ads-static/_next/static/"].some((prefix) => new URL(u).pathname.startsWith(prefix)));
       reg.active?.postMessage({ type: "precache", urls: [location.href, ...urls] });
     })
     .catch(() => {

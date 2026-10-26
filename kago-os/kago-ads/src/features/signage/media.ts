@@ -1,5 +1,5 @@
 // Signage の素材の読み込み（SIG-01・SIG-03）。読み込んだ素材はブラウザの中の URL（blob:）にして表示する
-// - 公開フォルダの素材（/ad-assets/…）：そのまま読む。保存は /signage/ の Service Worker が行う
+// - 公開フォルダの素材（/ad-assets/…）：そのまま読む。Workerの有効化前も含め、読み込み側で保存する
 // - DB の素材（非公開 Storage の相対パス）：その都度、署名付き URL で読む（URL は保存しない）。
 //   通信が切れても表示を続けられるよう、読めた画像をブラウザの Cache に保存し、読めないときだけ使う。
 //   パスは版ごとに新しく作られ上書きされない（COM-03）ので、保存した画像が別の内容に変わることはない
@@ -24,14 +24,11 @@ export function createMediaLoader(deps: MediaDeps = {}) {
   const toUrl = deps.toUrl ?? ((blob: Blob) => URL.createObjectURL(blob));
 
   return async function loadMedia(path: string): Promise<string> {
-    if (!isStoragePath(path)) {
-      const res = await fetcher(path);
-      if (!res.ok) throw new Error(`${res.status}`);
-      return toUrl(await res.blob());
-    }
-    if (!deps.signedUrl) throw new Error("この素材は DB 版でだけ読めます");
+    const storage = isStoragePath(path);
+    if (storage && !deps.signedUrl) throw new Error("この素材は DB 版でだけ読めます");
     try {
-      const res = await fetcher(await deps.signedUrl(path));
+      const url = storage ? await deps.signedUrl!(path) : path;
+      const res = await fetcher(url);
       if (!res.ok) throw new Error(`${res.status}`);
       const blob = await res.blob();
       try {
