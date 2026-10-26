@@ -230,3 +230,8 @@ DB-06で上表を実装した（[共通DBガイド](../development/database.md)�
 ## DB-09の集計契約
 
 [集計ビュー・期間指定関数の利用手順](../development/database.md#db09)に、初回表示への帰属・由来の分離・Signageの時間枠・メーカーへの公開指標を定義する。内部の帰属ビューは一般ロールに公開せず、公開ビューは個人IDを含まない集計だけを返す。由来が未保存の選定枠数はunclassifiedで取得し、実操作へ推測分類しない。
+
+
+## SIG-06：店内集計と選定履歴（#44）
+
+追加migration：20261026010000_signage_crowd_decisions.sql。集計RPCは端末本人の自店だけを対象に、直近15分の活動利用者とカテゴリを5人以上で返す。個人ID・明細は返さない。signage_decisionsはplay_id（再生への外部キー・主キー）、device_id、store_id、selected_at、decision（選定版・理由・重み・保護済み集計）、recorded_atを保持する。端末は専用RPCで自分の再生にだけ履歴を追加し、自店スタッフだけが読む。更新・削除は一般利用者に許可しない。詳細・適用状況・再送の制約は[実装と検証](../development/signage-live-crowd.md)を参照。

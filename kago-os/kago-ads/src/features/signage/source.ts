@@ -47,11 +47,11 @@ async function orLogin<T>(run: () => Promise<T>): Promise<T> {
 }
 
 /** DB 版。端末のアカウントのログインは Supabase のクライアントが端末に保存する */
-export function supabaseSignageSource(client: SignageClient): SignageSource {
+export function supabaseSignageSource(client: SignageClient, options: {crowd?:boolean} = {}): SignageSource {
   return {
     cacheKey: "db",
     signIn: () => orLogin(() => requireDevice(client)),
-    getFeed: (session) => orLogin(() => loadSignageFeed(client, session)),
+    getFeed: (session) => orLogin(() => loadSignageFeed(client, session,new Date(),options.crowd)),
     recordPlays: (session, plays) => orLogin(() => insertSignagePlays(client, session, plays)),
   };
 }

@@ -238,3 +238,8 @@ Next.js の約束：描画中に現在時刻を読まず、`today()` は読み�
 - Signage の素材は版ごとに画像1枚（`image_path`）だけ。Signage 用の 1920×1080 の画像と動画は、COM-03 と Ads で決めてから別の migration で入れる。それまで App 用の正方形の画像には左右に余白が出る
 - カメラ（SIG-04・SIG-05）、店内傾向での切り替え（SIG-06）はまだない
 - 仮データのIDは読みやすい略号（`S1`・`C1` など）。DB接続済みの募集ポータルはUUIDを使用
+
+
+### SIG-06（#44）の実集計選定
+
+共有DBのSIG-06 migration適用後、NEXT_PUBLIC_SIGNAGE_CROWD_SELECTION=1でビルドすると、端末本人の自店の集計で広告を選び、再生IDに結び付けた理由をInsightで確認できます。既定は従来の設定順です。少人数・集計切れでは汎用案内へ切り替えます。[導入・権限・検証](../../docs/development/signage-live-crowd.md)を参照。

@@ -7,15 +7,16 @@ describe("固定集計と通常再生エンジンの接続",()=>{
  const engines:SignageEngine[]=[];
  beforeEach(()=>{vi.useFakeTimers();vi.setSystemTime(new Date(CROWD_DEMO_NOW));});
  afterEach(()=>{for(const e of engines)e.stop();engines.length=0;vi.useRealTimers();});
- function setup(video=false){
+ function setup(video=false,persistSelection=false){
   let scenario:CrowdScenario="pasta";const saved:SignagePlay[]=[];
   const current=()=>{const value=crowdDemo(scenario);if(video)value.feed.items[0].asset={...value.feed.items[0].asset,kind:"video",duration_sec:5};return value;};
-  const engine=new SignageEngine({source:{cacheKey:"fixed",signIn:async()=>({role:"signage",deviceId:"SIG06-D1",storeId:"SIG06-S1"}),
-   getFeed:async()=>current().feed,recordPlays:async(_s,plays)=>{saved.push(...plays);return {rejected:[]};}},
+  let fail=false;const retries:SignagePlay[][]=[];
+  const engine=new SignageEngine({persistSelection,source:{cacheKey:"fixed",signIn:async()=>({role:"signage",deviceId:"SIG06-D1",storeId:"SIG06-S1"}),
+   getFeed:async()=>current().feed,recordPlays:async(_s,plays)=>{retries.push(plays);if(fail)throw new Error("network unavailable");saved.push(...plays);return {rejected:[]};}},
    kv:{get:()=>null,set:()=>undefined},loadMedia:async p=>p,
    select:(feed,at,ready)=>selectCrowdAd(feed,CROWD_DEMO_CATEGORIES,current().snapshot,at,ready)});
   engines.push(engine);
-  return {engine,saved,choose:async(s:CrowdScenario)=>{scenario=s;await engine.refresh();}};
+  return {engine,saved,retries,offline:(value:boolean)=>{fail=value;},choose:async(s:CrowdScenario)=>{scenario=s;await engine.refresh();}};
  }
  it("画像は3秒を守ってパスタからパンへ切り替え、再生IDと選定を結び付ける",async()=>{
   const {engine,choose}=setup();await engine.start();expect(engine.getState().screen?.item?.key).toBe("PASTA");
@@ -47,4 +48,14 @@ describe("固定集計と通常再生エンジンの接続",()=>{
   expect(saved.some(p=>p.ended_at&&p.mode==="adaptive"&&p.data_origin==="synthetic"&&p.reason_code==="crowd_category")).toBe(true);
   expect(engine.getSelectionHistory()).toHaveLength(20);
  });
+ it("選定履歴付きの再生は通信失敗でも残り、同じ再生IDで再送する",async()=>{
+  const {engine,saved,retries,offline,choose}=setup(false,true);await engine.start();
+  offline(true);await vi.advanceTimersByTimeAsync(4000);await choose("bread");await engine.refresh();
+  expect(engine.getState().outbox).toBeGreaterThan(0);
+  expect(retries.flat().some(p=>p.selection?.policy_version==="sig06-crowd-v1")).toBe(true);
+  const pending=retries.flat().find(p=>p.selection)!;
+  offline(false);await engine.refresh();
+  expect(saved.some(p=>p.id===pending.id&&p.selection?.selected_key===pending.selection?.selected_key)).toBe(true);
+ });
+
 });

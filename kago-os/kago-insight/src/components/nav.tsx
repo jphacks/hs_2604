@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const tabs = [
+  { href: "/signage-decisions", label: "サイネージ選定", issue: "SIG-06" },
   { href: "/promotions", label: "販促設定", issue: "INS-02" },
   { href: "/coupons", label: "販促効果", issue: "DEMO-09" },
 ];
@@ -13,7 +14,7 @@ export function Nav() {
 
   return (
     <nav aria-label="メインメニュー" className="border-b border-[var(--line)] bg-[var(--panel)] px-4 sm:px-6">
-      <div className="mx-auto flex max-w-7xl gap-3">
+      <div className="mx-auto flex max-w-7xl gap-3 overflow-x-auto">
       {tabs.map((tab) => {
         const active = pathname.startsWith(tab.href);
         return (
