@@ -35,6 +35,7 @@ export function AdDetail() {
   const [draft, setDraft] = useState<CreativeVersionInput | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [assetBlocked, setAssetBlocked] = useState(false);
   const [requestId, setRequestId] = useState(() => crypto.randomUUID());
 
   if (session.role !== "maker_staff") return <NeedRole role="メーカー" />;
@@ -47,7 +48,7 @@ export function AdDetail() {
   const latest = versions[versions.length - 1];
 
   const save = async () => {
-    if (!draft || saving) return;
+    if (!draft || saving || assetBlocked) return;
     setSaving(true);
     setErrors([]);
     try {
@@ -86,13 +87,13 @@ export function AdDetail() {
           <Field label="見出し">
             <input className={inputClass} value={draft.headline} onChange={(e) => setDraft({ ...draft, headline: e.target.value })} />
           </Field>
-          <CreativeAssetsPicker makerName={data.makerName} value={draft.assets} onChange={assets => setDraft({ ...draft, assets })} />
+          <CreativeAssetsPicker makerName={data.makerName} value={draft.assets} onBlockedChange={setAssetBlocked} onChange={assets => setDraft(current => current ? ({ ...current, assets }) : null)} />
           <Field label="版のメモ" hint="何を変えたか（審査する店舗にも見えます）">
             <input className={inputClass} value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} />
           </Field>
           <ErrorList errors={errors} />
           <div className="flex gap-2">
-            <Button disabled={saving} onClick={save}>この版を保存</Button>
+            <Button disabled={saving || assetBlocked} onClick={save}>この版を保存</Button>
             <Button variant="secondary" onClick={() => setDraft(null)}>
               やめる
             </Button>
