@@ -68,7 +68,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       accept(await cartRequest("/api/cart", undefined, lifecycle.current?.signal));
       if (mounted.current) {
-        setError(false);
+        // Reading the cart does not resolve a saved, unconfirmed write.
+        setError(operation.current !== null);
         setMessage(operation.current ? "保存結果が未確認の操作があります。同じ操作を再試行してください。" : "かごを最新の状態にしました。");
       }
     } catch (failure) { if (mounted.current) explain(failure); }
