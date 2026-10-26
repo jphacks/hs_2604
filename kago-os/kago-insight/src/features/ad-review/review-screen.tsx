@@ -9,7 +9,7 @@ import {
 } from "@/lib/actions";
 import { actionErrorMessage, type ActionErrorCode } from "@/lib/action-result";
 import { channelLabel, placementStatusLabel } from "@/lib/labels";
-import { formatDate, formatDateTime, toDateInputValue } from "@/lib/format";
+import { approvalPeriod, formatDate, formatDateTime, formatExclusiveEndDate, inclusiveEndInstant, toDateInputValue } from "@/lib/format";
 import { USING_MOCK } from "@/lib/mode";
 import { EmptyState } from "@/components/state";
 import type { Application, Channel, Placement } from "@/lib/types";
@@ -188,6 +188,45 @@ function StatusBadge({ status }: { status: Application["status"] }) {
 
 /* ------------------------------------------------------------------ */
 
+
+/** 期限切れ・通信失敗を白い枠にせず、署名URLを再取得できるようにする。 */
+function ReviewImage({ url, headline }: { url: string | null; headline: string }) {
+  const router = useRouter();
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
+  const [refreshing, refresh] = useTransition();
+  const automaticallyRetried = useRef(false);
+  const reload = () => refresh(() => router.refresh());
+
+  if (!url || failedUrl === url) {
+    return (
+      <div role="status" className="flex aspect-[16/10] w-full flex-col items-center justify-center gap-3 rounded border border-[var(--line)] bg-[var(--panel-2,#f5f5f0)] px-4 text-center text-sm text-[var(--muted)]">
+        <p>素材画像を読み込めませんでした。</p>
+        <button type="button" disabled={refreshing}
+          onClick={() => { setFailedUrl(null); reload(); }}
+          className="min-h-11 rounded border border-[var(--line)] px-4 py-2 font-bold text-[var(--ink)] disabled:opacity-50">
+          {refreshing ? "読み込み中…" : "画像を再読み込み"}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    // 署名URLはnext/imageの永続キャッシュへ保存しない。素材全体を審査できるように収める。
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={url} alt={`${headline} の広告素材`}
+      className="aspect-[16/10] w-full rounded border border-[var(--line)] bg-[var(--panel-2,#f5f5f0)] object-contain"
+      onLoad={() => { automaticallyRetried.current = false; }}
+      onError={() => {
+        setFailedUrl(url);
+        // 壊れた素材などで無限に再取得しない。以降は利用者の再試行を待つ。
+        if (!automaticallyRetried.current) {
+          automaticallyRetried.current = true;
+          reload();
+        }
+      }} />
+  );
+}
+
 function ApplicationDetail({
   application,
   onDone,
@@ -198,7 +237,7 @@ function ApplicationDetail({
   const [mode, setMode] = useState<"idle" | "approve" | "reject">("idle");
   const requested = application.requested_period;
   const [startsAt, setStartsAt] = useState(() => toDateInputValue(requested.starts_at));
-  const [endsAt, setEndsAt] = useState(() => toDateInputValue(requested.ends_at));
+  const [endsAt, setEndsAt] = useState(() => toDateInputValue(inclusiveEndInstant(requested.ends_at)));
   const [channels, setChannels] = useState<Channel[]>(application.channels);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
@@ -222,12 +261,12 @@ function ApplicationDetail({
   const fail = (code: ActionErrorCode) => setError({ code, text: actionErrorMessage(code) });
 
   const runApprove = async () => {
-    if (channels.length === 0) return fail("invalid_argument");
+    const period = approvalPeriod(requested, startsAt, endsAt);
+    if (channels.length === 0 || !period) return fail("invalid_argument");
     setBusy(true);
     setError(null);
     const result = await approveApplication(application.id, application.revision, {
-      starts_at: `${startsAt}T00:00:00+09:00`,
-      ends_at: `${endsAt}T00:00:00+09:00`,
+      ...period,
       channels,
     });
     setBusy(false);
@@ -263,19 +302,7 @@ function ApplicationDetail({
 
   return (
     <article className="rounded-lg border border-[var(--line)] bg-[var(--panel)] p-4">
-      {application.image_url ? (
-        // 署名付きURLは数分で失効する。next/image のキャッシュに載せず素の img で出す。
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={application.image_url}
-          alt={`${application.headline} の広告素材`}
-          className="aspect-[16/10] w-full rounded border border-[var(--line)] object-cover"
-        />
-      ) : (
-        <div className="flex aspect-[16/10] w-full items-center justify-center rounded border border-[var(--line)] bg-[var(--panel-2,#f5f5f0)] text-sm text-[var(--muted)]">
-          素材画像を読み込めませんでした
-        </div>
-      )}
+      <ReviewImage url={application.image_url ?? null} headline={application.headline} />
 
       <h2 className="mt-4 text-lg font-bold">{application.headline}</h2>
 
@@ -297,7 +324,7 @@ function ApplicationDetail({
 
         <dt className="text-[var(--muted)]">希望期間</dt>
         <dd>
-          {formatDate(requested.starts_at)} 〜 {formatDate(requested.ends_at)}
+          {formatDate(requested.starts_at)} 〜 {formatExclusiveEndDate(requested.ends_at)}
         </dd>
 
         <dt className="text-[var(--muted)]">希望する掲載先</dt>
@@ -418,7 +445,7 @@ function ApplicationDetail({
                 type="date"
                 value={endsAt}
                 min={startsAt}
-                max={toDateInputValue(requested.ends_at)}
+                max={toDateInputValue(inclusiveEndInstant(requested.ends_at))}
                 onChange={(e) => setEndsAt(e.target.value)}
                 className="rounded border border-[var(--line)] px-2 py-1"
               />
@@ -538,7 +565,7 @@ function PlacementRow({
           <p className="text-sm text-[var(--muted)]">
             {placement.maker_display_name} ・{" "}
             {placement.channels.map((c) => channelLabel[c]).join(" / ")} ・{" "}
-            {formatDate(placement.starts_at)} 〜 {formatDate(placement.ends_at)}
+            {formatDate(placement.starts_at)} 〜 {formatExclusiveEndDate(placement.ends_at)}
           </p>
           {placement.suspend_reason ? (
             <p className="mt-1 text-xs text-[var(--muted)]">
