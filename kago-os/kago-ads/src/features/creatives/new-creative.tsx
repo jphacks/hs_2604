@@ -20,6 +20,7 @@ export function NewAd() {
   const [form, setForm] = useState<CreativeInput>({ product_id: "", headline: "", assets: {}, note: "初版" });
   const [errors, setErrors] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [assetBlocked, setAssetBlocked] = useState(false);
   const [requestId] = useState(() => crypto.randomUUID());
 
   if (session.role !== "maker_staff") return <NeedRole role="メーカー" />;
@@ -28,7 +29,7 @@ export function NewAd() {
   const makerName = state.data.makers.find((m) => m.id === session.makerId)?.display_name;
 
   const save = async () => {
-    if (saving) return;
+    if (saving || assetBlocked) return;
     setSaving(true);
     setErrors([]);
     try {
@@ -59,13 +60,13 @@ export function NewAd() {
             <input className={inputClass} value={form.headline} onChange={(e) => setForm({ ...form, headline: e.target.value })} />
           </Field>
         </div>
-        <CreativeAssetsPicker makerName={makerName} value={form.assets} onChange={assets => setForm({ ...form, assets })} />
+        <CreativeAssetsPicker makerName={makerName} value={form.assets} onBlockedChange={setAssetBlocked} onChange={assets => setForm(current => ({ ...current, assets }))} />
         <Field label="版のメモ" hint="何を変えた版か">
           <input className={inputClass} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
         </Field>
         <ErrorList errors={errors} />
         <div className="flex gap-2">
-          <Button disabled={saving} onClick={save}>登録する</Button>
+          <Button disabled={saving || assetBlocked} onClick={save}>登録する</Button>
           <Button variant="secondary" onClick={() => router.back()}>戻る</Button>
         </div>
       </fieldset></Card>
