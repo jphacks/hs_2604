@@ -76,6 +76,18 @@ try {
   await recovery.waitFor(); await retry().waitFor(); assert.equal(writes().length, committed);
   assert.equal(await page.locator(".shopping-cart-summary").count(), 0);
   pass("最後の商品が削除済みでかごバナーがなくても、応答喪失後に復旧できる");
+  for (const [width, height] of [[390, 844], [320, 568]]) {
+    await page.setViewportSize({ width, height });
+    const boxes = await recovery.evaluate(element => {
+      const text = element.querySelector(".shopping-feedback>p")!.getBoundingClientRect();
+      const close = element.querySelector(".shopping-error-close")!.getBoundingClientRect(), card = element.getBoundingClientRect();
+      return { textTop: text.top, closeBottom: close.bottom, x: card.x, y: card.y, right: card.right, bottom: card.bottom };
+    });
+    assert(boxes.textTop >= boxes.closeBottom + 8, "close button/focus ring must not cover the message");
+    assert(boxes.x >= 0 && boxes.y >= 0 && boxes.right <= width + 1 && boxes.bottom <= height + 1);
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
+  pass("390px・320pxで閉じるボタンと案内文が重ならず、通知が画面内に収まる");
   await mkdir("../../internal/cart-recovery-evidence", { recursive: true });
   await page.screenshot({ path: "../../internal/cart-recovery-evidence/cart-recovery.png", animations: "disabled" });
   await retry().click(); await recovery.waitFor({ state: "hidden" });
