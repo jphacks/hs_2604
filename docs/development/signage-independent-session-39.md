@@ -16,3 +16,7 @@ AdsとSignageが同じCookie名で同じ認証クライアントを使ってい�
 - App・Ads・Insightのビルド・型・lint、共通SDKの型チェック成功。
 
 kago-os/kago-adsで KAGO_SESSION_E2E=1 pnpm test src/lib/backend/signage-session.browser.test.ts を実行してブラウザ検証を再現できる。通常のpnpm testではブラウザ試験をスキップし、単体・DB試験を実行する。公開Vercelの実ログインは未確認。
+
+## 最新main・未マージ修正との統合確認
+
+PR #214〜#219を一時検証ブランチで組み合わせ、共通SDK32件・Ads通常181件、セッション分離ブラウザ7項目、App・Ads・Insightの本番ビルド・lintを確認した。main側に入った選定履歴と店舗所属のfixture設定を、メーカー所属のfixture設定と両方残して競合を解消した。
