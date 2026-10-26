@@ -18,7 +18,7 @@ NOTES = """# ADS-05 登録候補の素材一式
 メーカー広告8点・店舗おすすめ6点・買い物案内2点。画像は提供原本のバイトのままです。
 対応表はUTF-8 BOM付きCSV。価格と寸法は登録前に照合してください。
 
-- 食パン4点：画像内138円、参考の商品表228円。販促価格かどうかを店舗と確認するまで確定しないでください。
+- 食パン4点：画像内138円を販促価格としてユーザー確認済み（2026-10-26）。参考商品表は228円のままです。共有DBの店舗価格は変更していません。
 - 現行DBは1版1画像です。App用とSignage用は別候補であり、同じ版へ2枚同時登録する指示ではありません。
 - maker_code（M1/M2）、asset_id、design_versionは素材案の識別子です。共有DBのUUIDや版番号として投入しません。
 - メーカー広告はログイン中のメーカー・対象商品を確認し、新しい素材版として登録して申請します。店舗の承認前に配信しません。
@@ -31,12 +31,23 @@ NOTES = """# ADS-05 登録候補の素材一式
 def sha(data):
     return hashlib.sha256(data).hexdigest()
 
+def price_check(embedded, reference, code, decisions):
+    if embedded == "" or reference == "":
+        return "対象商品未指定"
+    if str(embedded) == str(reference):
+        return "一致"
+    decision = decisions.get(code, {})
+    if decision.get("decision") == "promotional" and str(decision.get("embedded_price_yen")) == str(embedded) and str(decision.get("reference_price_yen")) == str(reference):
+        return "販促価格として確認済み"
+    return "要照合"
+
 def rows(root=ROOT):
     root = Path(root)
     catalog = json.loads((root / "src/data/demo/ad-design-v2.json").read_text(encoding="utf-8"))
     supplied = json.loads((root / "public/ad-assets/design-v2/supplied.json").read_text(encoding="utf-8"))
     with (root / "src/data/demo/products.csv").open(encoding="utf-8-sig", newline="") as f:
         products = {p["code"]: p for p in csv.DictReader(f)}
+    decisions = json.loads((root / "src/data/demo/ad-design-price-decisions.json").read_text(encoding="utf-8"))
     base = (root / "public/ad-assets/design-v2").resolve()
     result, seen = [], set()
     for asset in catalog:
@@ -66,7 +77,7 @@ def rows(root=ROOT):
         if asset.get("embedded_price") != record.get("embedded_price"):
             raise ValueError("embedded price metadata mismatch")
         embedded, reference = asset.get("embedded_price", ""), product["price"] if product else ""
-        check = "要照合" if embedded != "" and reference != "" and str(embedded) != str(reference) else ("一致" if reference else "対象商品未指定")
+        check = price_check(embedded, reference, asset.get("product_code"), decisions)
         row = dict(asset_id=asset["asset_id"], kind=asset["kind"], maker_code=asset.get("maker_id", ""),
                    maker_name=asset.get("maker_name", ""), product_code=asset.get("product_code", ""),
                    product_name=asset.get("product_name", asset.get("display_name", "")),
@@ -89,6 +100,7 @@ def build(output, root=ROOT):
         raise ValueError("output must be a .zip")
     items = rows(root)
     files = {"ad-design-v2.csv": csv_bytes(items), "README.md": NOTES.encode("utf-8")}
+    files["price-decisions.json"] = (Path(root) / "src/data/demo/ad-design-price-decisions.json").read_bytes()
     provenance = {}
     for row, data, record in items:
         files[row["file"]] = data
