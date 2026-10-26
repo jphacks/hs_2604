@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "version": "fd74502dc6442d24",
+  "as_of": "2026-10-25T18:00:00+09:00",
+  "inputs": {
+    "kago-os/shared/demo/results-fixed.json": "94a62c25ebf7950845721dfce7a01ddfb4dcdea77e6f89f1b74244ea92418193",
+    "kago-os/shared/demo/results-offline-sw.js": "4d86d58fe9716d3a1aaf020c424daf414f6247ede0a8375d2b56bc284961f625",
+    "kago-os/kago-ads/src/lib/results/offline-artifacts.test.ts": "7300078e2864150eac7f2bf9a7ab365a8d8cc05162a4a2991f530772268f947c",
+    "kago-os/kago-ads/src/features/results/maker-results.tsx": "078cb4741a27e04c974da209173313a3f6a53676949a3c75c9ec4da173f58212",
+    "kago-os/kago-ads/src/components/parts.tsx": "5ecbad3a0ed193db8e34b41c77fa153a2ffdfcd2498de82f295f2ff1a312e1fe",
+    "kago-os/kago-ads/src/components/badges.tsx": "f8d75be90548073aa1158f15407fe84f4e26fc2f9794cc0778e32185b9cf59c8",
+    "kago-os/kago-ads/src/lib/results/results.ts": "32af14f1eb52a83824f3bd0163364bdc42d86805c125f1527a4d55fc6e7d07ac",
+    "kago-os/kago-ads/src/lib/domain/rules.ts": "5003be0be2751b178b23b17e49d206a12fc7178945290de6ebfacb176371a0ab",
+    "kago-os/kago-ads/src/app/globals.css": "ec52af9b031fe8c3cae4961631cb3ea40db18e168fe70d3f97e4b49c4dad6063",
+    "kago-os/kago-insight/src/features/metrics/metrics-screen.tsx": "67d3ed6f0fba0f86a3d6140e92f7f47dd3b9ab80e621bee5e70428f8f77cb111",
+    "kago-os/kago-insight/src/lib/labels.ts": "21dc162361d3926fc663918e3425e9370270eba232966ade564cab4285919867",
+    "kago-os/kago-insight/src/lib/format.ts": "2082ddc09a09d2d49d1d0dfad85ed3dc48fc233b82eed938921911e4a8278ac2",
+    "kago-os/kago-insight/src/components/state.tsx": "f57a7388dd674f429da39dea59ec796fa9ef9113fc50d24185b83252b18532da",
+    "kago-os/kago-insight/src/app/globals.css": "8fcbc8b71831ff313908ac9e9a9a125ca2a9d8a9b345dc5c7a1e73d59f50b48d"
+  },
+  "html_sha256": "67207df159489f6d2f232fcbaf2906d6b44c89c067e13b59d1d80ce053e1b148",
+  "sw_sha256": "bbad9fb4d67335c59fedf5d3f87026cb9511a24a22f81d4685a310a2aa79833e"
+}
