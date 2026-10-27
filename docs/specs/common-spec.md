@@ -255,6 +255,9 @@ C＝作成、R＝参照、U＝更新、－＝扱わない。Coreはすべての�
 | `recommendation_dismissed` | 提案カードを閉じたとき | － | App（ブラウザ） | APP-12（余力拡張） |
 | `product_compared` | 比較画面で2つ以上の商品を並べたとき | `{"product_ids":["…","…"]}` | App（ブラウザ） | APP-11（余力拡張） |
 | `removal_reason_submitted` | 削除理由を任意入力したとき。対象の削除イベントを参照する | `{"removal_event_id":"…","reason":"price"}` | App（ブラウザ） | APP-12（余力拡張） |
+| removal_reason_prompted | 削除理由の任意入力欄が画面内に提示されたとき | {"removal_event_id":"…"} | App（ブラウザ） | APP-12 |
+| removal_reason_skipped | 「理由を入力せず続ける」を明示的に選んだとき | {"removal_event_id":"…"} | App（ブラウザ） | APP-12 |
+
 
 `source`は`scan`／`manual`／`recommendation`のいずれかです。`recommendation`のときは`selection_item_id`を必ず付けます。
 
@@ -579,3 +582,11 @@ COM-01の完了条件は、各担当が架空例（11章）を自分の担当範
 | v0.1 | 2026-10-23 | 初版（案）。issues.mdの方針と既存の事前実装（商品コード・架空利用者・推薦の理由文）を基に作成 |
 | v0.2 | 2026-10-24 | hackday・COM-01。既存データとの対応・参照条件、再送と帰属、購入経路の選択・切り替え判断、カメラ検証の期限と記録項目、例外の机上確認、未決定事項の窓口と担当確認手順を追加 |
 | v0.3 | 2026-10-24 | hackday・COM-02。担当者の確認に基づきSupabase Auth＋PostgreSQLの採用をD-12・Q-01へ記録し、共通接続ガイドを追加 |
+
+### APP-12の収集状態（2026-10-27 通常保守）
+
+推薦の詳細を閉じるだけではrecommendation_dismissedを記録しない。「このおすすめを非表示にする」を明示的に押した場合だけ記録し、同じ来店内の同じ選定商品を隠す。将来の新しい選定や恒久的な商品拒否とは区別する。
+
+removal_reason_promptedは任意理由欄の25%以上が可視で、タブも可視の場合に記録する。欄を閉じただけではskippedとしない。submittedは本人が理由を選んで送信した場合のみ。元のcart_item_removedのevent_id・商品・来店に関連付け、別の商品/来店や削除以外への参照を拒否する。
+
+集計では本人入力あり、明示スキップ、提示後未入力、提示記録なし（未収集/未到達）を区別する。理由がないことから在庫切れ・不要・心理状態を推測しない。未収集を0件の拒否として扱わない。

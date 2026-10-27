@@ -15,7 +15,7 @@ export type CartOperation = {
   selectionItemId?: string;
 };
 export type OfferClaim = { requestId: string; visitId: string; expectedVersion: number; offerId: string };
-export type PendingCart = { kind: "set"; operation: CartOperation } | { kind: "claim"; claim: OfferClaim } | {
+export type PendingCart = { kind: "set"; operation: CartOperation; removedName?: string } | { kind: "claim"; claim: OfferClaim } | {
   kind: "lookup";
   requestId: string;
   mutationId: string;

@@ -3,7 +3,7 @@ import test from "node:test";
 import { loginDestination } from "../src/lib/login-destination.ts";
 
 test("通常画面だけを戻り先として受け付ける", () => {
-  for (const screen of ["/review", "/promotions", "/metrics", "/coupons", "/signage-decisions"])
+  for (const screen of ["/review", "/promotions", "/metrics", "/coupons", "/signage-decisions", "/sales"])
     assert.equal(loginDestination(screen), screen);
 });
 test("公開用basePathを二重に付けず、単独起動と同じ戻り先にする", () => {

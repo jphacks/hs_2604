@@ -18,6 +18,8 @@ import { offerKindLabel } from "@/features/offers/contracts";
 import { useShoppingSession } from "@/features/shopping/session-provider";
 import { productIcon, MENU_PRODUCT_IMAGES } from "@/lib/product-visuals";
 import { ShoppingIcon } from "@/components/shopping-icons";
+import { RemovalFeedback } from "@/features/cart/removal-feedback";
+import { useRecommendationDismissals } from "@/features/recommendations/dismissals";
 import { ProductComparison } from "@/features/comparison/product-comparison";
 import { HomeCardStack } from "@/features/shopping/home-card-stack";
 import "./shopping-home.css";
@@ -48,6 +50,7 @@ export default function Home() {
   const cart = useCart();
   const router=useRouter();
   const track=useAppEvents();
+  const hidden=useRecommendationDismissals();
   const [homeDetail,setHomeDetail]=useState<{item:SavedSelectionItem;version:number}|null>(null);
   const [scanSelectionId,setScanSelectionId]=useState<string|null>(null);
   const session = useShoppingSession();
@@ -234,7 +237,7 @@ export default function Home() {
             <p>{cart.discountTotal>0?yen.format(cart.discountTotal)+" OFF":"商品を追加すると、おすすめが届きます"}</p>
           </div></div>
           {cart.error&&<div className="mb-3">{status}</div>}
-          {cart.lines.length === 0 ? <p className="shopping-basket-empty">かごは空です</p> : <ul className="shopping-basket-lines">
+          {cart.lines.length === 0 ? <p className={cart.lastRemoval?"py-3 text-sm":"shopping-basket-empty"}>かごは空です</p> : <ul className="shopping-basket-lines">
             {cart.lines.map(line => {
               const photo=MENU_PRODUCT_IMAGES[line.code] ?? (/パン/.test(line.category)?"/images/shopping/category-bread.png":/青果|果物/.test(line.category)?"/images/shopping/category-fruit.png":/惣菜/.test(line.category)?"/images/products/karaage.png":undefined);
               return <li key={line.productId} className="shopping-basket-line">
@@ -248,6 +251,7 @@ export default function Home() {
               </li>;
             })}
           </ul>}
+          {cart.lastRemoval&&<RemovalFeedback key={cart.lastRemoval.eventId} removal={cart.lastRemoval} onDone={cart.clearRemoval}/>}
         </div>
         <footer className="shopping-basket-footer">
           {cart.discountTotal>0&&<p className="shopping-basket-saving"><span>クーポン・セール割引</span><span>−{yen.format(cart.discountTotal)}</span></p>}
@@ -257,7 +261,7 @@ export default function Home() {
         </footer>
       </section>
     </div>}
-    {homeDetail&&homeDetail.version===cart.version&&<SuggestionDetail scanRequired item={homeDetail.item} label={homeDetail.item.placementType==="sponsored"?"広告":homeDetail.item.placementType==="store_promo"?"店舗からのおすすめ":"あなたへのおすすめ"} added={cart.lines.some(line=>line.productId===homeDetail.item.product.productId)} disabled={!cart.canEdit} onClose={()=>setHomeDetail(null)} onAdd={()=>{setScanSelectionId(homeDetail.item.selectionItemId);setScanProduct({...homeDetail.item.product,available:true});}}/>}
+    {homeDetail&&homeDetail.version===cart.version&&<SuggestionDetail scanRequired item={homeDetail.item} label={homeDetail.item.placementType==="sponsored"?"広告":homeDetail.item.placementType==="store_promo"?"店舗からのおすすめ":"あなたへのおすすめ"} added={cart.lines.some(line=>line.productId===homeDetail.item.product.productId)} disabled={!cart.canEdit} onClose={()=>setHomeDetail(null)} onDismiss={hidden?()=>{hidden.dismiss(homeDetail.item);setHomeDetail(null);}:undefined} onAdd={()=>{setScanSelectionId(homeDetail.item.selectionItemId);setScanProduct({...homeDetail.item.product,available:true});}}/>}
     {scanProduct&&<ProductScanDialog product={scanProduct} disabled={!cart.canEdit} onClose={()=>setScanProduct(null)} onVerified={()=>{if(scanSelectionId){track({event_type:"recommendation_click",selection_item_id:scanSelectionId,product_id:scanProduct.productId,payload:{target:"add_button"}});cart.addRecommendation(scanProduct.productId,scanSelectionId);}else cart.setQuantity(scanProduct.productId,(cart.lines.find(line=>line.productId===scanProduct.productId)?.quantity??0)+1);setHomeDetail(null);}}/>}
   </main>;
 }
