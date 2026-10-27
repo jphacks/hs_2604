@@ -2,7 +2,7 @@
 
 **いつもの買い物にちょうどいい提案を**
 
-[![KAGO/OSのコンセプト：スマホで商品をスキャンする買い物客と、販促を管理・分析する店舗担当者（クリックしてYouTubeのデモ動画へ）](docs/images/kago-concept.png)](https://youtu.be/XD6icBN-xMQ)
+[![KAGO/OSのコンセプト：買い物客と店舗担当者をつなぐKAGO/Appのホーム画面とKAGO/Insightの販促効果画面（クリックしてYouTubeのデモ動画へ）](docs/images/kago-concept.png)](https://youtu.be/XD6icBN-xMQ)
 
 **▶ [デモ動画を見る（YouTube）](https://youtu.be/XD6icBN-xMQ)**
 
