@@ -57,6 +57,7 @@ export async function createCartBackend({ accountHistory = false, offers = false
       const rows=await database.as(n,async()=>{
         if(name==="stores")return (await database.db.query("select id,slug,name,branch_name from stores where ($1::uuid is null or id=$1) order by name",[url.searchParams.get("id")?.slice(3)??null])).rows;
         if(name==="visits")return (await database.db.query("select id,store_id,status,cart_version,started_at from visits where user_id=auth.uid() and ($1::uuid is null or id=$1) and ($2::text is null or status=$2) order by started_at desc",[url.searchParams.get("id")?.slice(3)??null,url.searchParams.get("status")?.slice(3)??null])).rows;
+        if(name==="events" && req.method==="GET") return (await database.db.query("select event_type,visit_id,product_id from events where event_id=$1",[url.searchParams.get("event_id")?.slice(3)])).rows;
         if(name==="events" && req.method==="POST") {
           await database.db.query(`insert into events(event_id,event_type,schema_version,occurred_at,store_id,user_id,visit_id,channel,data_origin,selection_item_id,product_id,payload)
             values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12::jsonb)`, [body.event_id,body.event_type,body.schema_version,body.occurred_at,body.store_id,body.user_id,body.visit_id,body.channel,body.data_origin,body.selection_item_id,body.product_id,JSON.stringify(body.payload)]);

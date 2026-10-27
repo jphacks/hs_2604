@@ -13,6 +13,7 @@ type CartContextValue = {
   scanFailed: (reason: string) => void;
   setQuantity: (productId: string, quantity: number) => void;
   claimOffer: (offerId: string) => void;
+  lastRemoval: {eventId:string;productId:string;name:string}|null; clearRemoval:()=>void;
   retry: () => void; reload: () => void;
 };
 const CartContext = createContext<CartContextValue | null>(null);
@@ -39,6 +40,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("店舗のかごを確認しています…");
   const [error, setError] = useState(false);
+  const [lastRemoval,setLastRemoval]=useState<{eventId:string;productId:string;name:string}|null>(null);
   const operation = useRef<PendingCart | null>(null);
   const locked = useRef(false);
   const mounted = useRef(false);
@@ -96,7 +98,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
         ? await cartRequest("/api/cart", { action: "claim", ...intent.claim }, lifecycle.current?.signal)
         : await cartRequest("/api/cart", { action: "set", ...intent.operation }, lifecycle.current?.signal);
       if (!mounted.current) return;
-      accept(data); remember(null); setMessage("かごを保存しました。");
+      accept(data);
+      if(intent.kind==="set" && intent.operation.quantity===0) setLastRemoval({eventId:intent.operation.requestId,productId:intent.operation.productId,name:intent.removedName??"削除した商品"});
+      remember(null); setMessage("かごを保存しました。");
       updates.current?.postMessage("updated");
     } catch (failure) {
       if (!mounted.current) return;
@@ -154,6 +158,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   return <CartContext.Provider value={{ lines, itemCount: lines.reduce((n, l) => n + l.quantity, 0),
     subtotal, discountTotal, total: subtotal - discountTotal, claimedOfferIds: snapshot?.claimedOfferIds ?? [], loaded: !!snapshot,
     version: snapshot?.visit.cart_version ?? 0,
+    lastRemoval,clearRemoval:()=>setLastRemoval(null),
     canEdit: !!snapshot && !busy && !pending, busy, pending, message, error,
     addProduct: product => lookup({ productId: product.productId }), scan: code => lookup({ code }),
     addRecommendation: (productId, selectionItemId) => {
@@ -165,7 +170,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     scanFailed: reason => lookup({ failureReason: reason }),
     setQuantity: (productId, quantity) => {
       if (!snapshot) return;
-      begin({ kind: "set", operation: { visitId, productId, quantity, requestId: crypto.randomUUID(),
+      begin({ kind: "set", removedName: quantity===0?snapshot.cart.find(p=>p.productId===productId)?.name:undefined, operation: { visitId, productId, quantity, requestId: crypto.randomUUID(),
         expectedVersion: snapshot.visit.cart_version, source: "manual" } });
     }, claimOffer: offerId => {
       if (!snapshot) return;
