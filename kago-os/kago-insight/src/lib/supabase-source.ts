@@ -219,7 +219,7 @@ export async function fetchPlacements(): Promise<Placement[]> {
 /* 店舗販促と商品                                                       */
 /* ------------------------------------------------------------------ */
 
-export async function fetchPromotions(): Promise<Promotion[]> {
+export async function fetchPromotions(options: { includeInactive?: boolean } = {}): Promise<Promotion[]> {
   const { client, store } = await requireStoreSession();
 
   const { data: promotionRows, error } = await client
@@ -230,11 +230,12 @@ export async function fetchPromotions(): Promise<Promotion[]> {
   const promotions = promotionRows ?? [];
   if (promotions.length === 0) return [];
 
-  const { data: versionRows, error: versionError } = await client
+  let versionQuery = client
     .from("promotion_versions")
     .select("id, promotion_id, version, channels, time_windows, priority, reason_text, starts_at, ends_at, status")
-    .in("promotion_id", promotions.map((row) => row.id))
-    .eq("status", "active");
+    .in("promotion_id", promotions.map((row) => row.id));
+  if (!options.includeInactive) versionQuery = versionQuery.eq("status", "active");
+  const { data: versionRows, error: versionError } = await versionQuery;
   if (versionError) fail("販促の版", versionError);
   const versions = versionRows ?? [];
 
@@ -247,7 +248,7 @@ export async function fetchPromotions(): Promise<Promotion[]> {
   );
   const productById = indexBy(products, "id");
 
-  // 有効な版が無い販促は画面に出さない。停止済みのものを設定中に見せないため。
+  // 設定画面は有効版のみ。販売推移は停止済みの版も振り返れる。
   return versions.map((version) => {
     const promotion = promotions.find((row) => row.id === version.promotion_id);
     const product = productById.get(promotion?.product_id as string);

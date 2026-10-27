@@ -230,6 +230,10 @@ try {
   assert.ok(
     !(await p.locator("body").innerText()).includes("固定例の合成データです"),
   );
+  await p.getByRole("link",{name:"販売推移",exact:true}).click();
+  await p.getByRole("heading",{name:"販促商品の販売推移",exact:true}).waitFor();
+  await p.getByRole("link",{name:"詳細分析",exact:true}).click();
+  await p.getByRole("heading",{name:"商品とおすすめの詳細分析",exact:true}).waitFor();
   const anonymous = await browser.newContext({ permissions: [] }),
     anon = await anonymous.newPage();
   await anon.goto(base + "/analysis");

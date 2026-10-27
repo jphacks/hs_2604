@@ -37,3 +37,5 @@ kago_detailed_insightは本人のstore_staff役割とstore_membersを確認し�
     KAGO_ANALYSIS_LIVE=1 KAGO_CONNECTION_FILE=/安全な場所/接続情報.txt node --experimental-strip-types tests/analysis.live.e2e.mjs
 
 通常の成果画面と販促単体の前後比較はこの画面へ統合しない。既存のDBから無欠落の記録範囲を推定しない。
+
+統合順：#254 → #255 → #253 → #256。#253の販売推移と共存させ、ナビ・ログイン戻り先・両テストコマンドを保持した。本人セッションで両画面を往復する確認を追加。

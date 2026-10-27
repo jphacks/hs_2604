@@ -21,3 +21,5 @@ test("demo login keeps existing screens",()=>{
 test("demo login rejects external, authentication and API targets",()=>{
  for(const input of ["https://evil.invalid","//evil.invalid/review","/api/demo-signin","/login","/insight/login","/review\\evil","/review\r\nLocation:evil",undefined,null])assert.equal(safeNextPath(input),"/promotions");
 });
+
+test("demo login accepts sales trends",()=>assert.equal(safeNextPath("/insight/sales?bucket=hour"),"/sales?bucket=hour"));
