@@ -18,6 +18,9 @@ import { offerKindLabel } from "@/features/offers/contracts";
 import { useShoppingSession } from "@/features/shopping/session-provider";
 import { productIcon, MENU_PRODUCT_IMAGES } from "@/lib/product-visuals";
 import { ShoppingIcon } from "@/components/shopping-icons";
+import { RemovalFeedback } from "@/features/cart/removal-feedback";
+import { useRecommendationDismissals } from "@/features/recommendations/dismissals";
+import { ProductComparison } from "@/features/comparison/product-comparison";
 import { HomeCardStack } from "@/features/shopping/home-card-stack";
 import "./shopping-home.css";
 
@@ -47,13 +50,15 @@ export default function Home() {
   const cart = useCart();
   const router=useRouter();
   const track=useAppEvents();
+  const hidden=useRecommendationDismissals();
   const [homeDetail,setHomeDetail]=useState<{item:SavedSelectionItem;version:number}|null>(null);
   const [scanSelectionId,setScanSelectionId]=useState<string|null>(null);
   const session = useShoppingSession();
   const [scanProduct,setScanProduct]=useState<StoreProduct|null>(null);
   const [cartOpen, setCartOpen] = useState(false);
   const [dismissedError,setDismissedError]=useState<string|null>(null);
-  const [panel, setPanel] = useState<"products"|"recommendations"|null>(null);
+  const [panel, setPanel] = useState<"products"|"recommendations"|"comparison"|null>(null);
+  const [comparisonProducts,setComparisonProducts]=useState<StoreProduct[]>([]);
   const errorPopupOpen=!panel&&!cartOpen&&!!cart.error&&dismissedError!==cart.message;
   const [category, setCategory] = useState<Category>("all");
   const [barcode, setBarcode] = useState("");
@@ -115,6 +120,9 @@ export default function Home() {
   const submitCode = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); if (cart.canEdit && barcode.trim()) cart.scan(barcode.trim());
   };
+  const toggleComparison = (product: StoreProduct) => setComparisonProducts(previous =>
+    previous.some(p=>p.productId===product.productId) ? previous.filter(p=>p.productId!==product.productId)
+      : previous.length < 4 ? [...previous,product] : previous);
   const visibleProducts = products.filter(product => inCategory(product, category));
   const store = session.stores.find(s=>s.id===session.visit?.store_id);
   const storeName = [store?.name,store?.branch_name].filter(Boolean).join(" ");
@@ -170,7 +178,7 @@ export default function Home() {
     {panel && <div className="shopping-sheet-overlay">
       <button type="button" tabIndex={-1} aria-label="画面を閉じる" onClick={()=>setPanel(null)} />
       <section role="dialog" aria-modal="true" aria-labelledby="shopping-panel-title" data-home-dialog className="shopping-sheet">
-        <header className="shopping-sheet-header"><h2 id="shopping-panel-title">{panel==="products"?(category==="all"?"商品を探す":categories.find(c=>c.id===category)!.label+"から探す"):"おすすめ商品"}</h2><button ref={closeButton} type="button" aria-label="閉じる" onClick={()=>setPanel(null)}>×</button></header>
+        <header className="shopping-sheet-header"><h2 id="shopping-panel-title">{panel==="products"?(category==="all"?"商品を探す":categories.find(c=>c.id===category)!.label+"から探す"):panel==="comparison"?"商品を比較":"おすすめ商品"}</h2><button ref={closeButton} type="button" aria-label="閉じる" onClick={()=>setPanel(null)}>×</button></header>
         <div className="shopping-sheet-scroll">
           {panel==="products"?<>
             <form role="search" onSubmit={event=>{event.preventDefault();setCategory("all");void loadProducts(query);}} className="shopping-search">
@@ -178,6 +186,11 @@ export default function Home() {
             </form>
             <div className="shopping-catalog-tabs" aria-label="商品のカテゴリ">
               {[{id:"all" as Category,label:"すべて"},...categories].map(item=><button key={item.id} type="button" aria-pressed={category===item.id} onClick={()=>setCategory(item.id)}>{item.label}</button>)}
+            </div>
+            <div className="my-3 flex flex-wrap items-center gap-3 rounded-xl bg-teal-50 p-3">
+              <p className="text-sm">比較する商品を2〜4点選べます（{comparisonProducts.length}/4点）。</p>
+              <button type="button" className={button} disabled={comparisonProducts.length<2} onClick={()=>setPanel("comparison")}>選んだ商品を比較</button>
+              {comparisonProducts.length>0&&<button type="button" className="min-h-11 px-3 text-sm underline" onClick={()=>setComparisonProducts([])}>比較の選択を解除</button>}
             </div>
             {/* #166：分類（果物・惣菜・野菜・パン）から開いたときは出さない。検索（すべての商品）では、カメラで読めないときの代わりとして残す */}
             {category==="all"&&<details className="shopping-code"><summary>バーコードが読み取れないとき</summary>
@@ -193,6 +206,11 @@ export default function Home() {
         <div className="shopping-product-grid">
           {visibleProducts.map(product => <article key={product.productId} className="shopping-product rounded-2xl bg-white p-4">
             <div className="shopping-product-image" aria-hidden="true">{MENU_PRODUCT_IMAGES[product.code] ? <Image src={MENU_PRODUCT_IMAGES[product.code]} alt="" fill sizes="200px" /> : productIcon(product)}</div>
+            <label className="mt-3 flex min-h-11 items-center gap-2 text-sm font-bold">
+              <input type="checkbox" checked={comparisonProducts.some(p=>p.productId===product.productId)}
+                disabled={comparisonProducts.length>=4&&!comparisonProducts.some(p=>p.productId===product.productId)}
+                onChange={()=>toggleComparison(product)} aria-label={product.name+"を比較に選ぶ"} />比較に選ぶ
+            </label>
             <p className="mt-3 text-xs text-slate-500">{product.category}</p><h3 className="mt-1 min-h-10 text-sm font-bold">{product.name}</h3>
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2"><p className="shopping-product-price">{yen.format(product.price)}</p>
               <button type="button" className="shopping-product-add" disabled={!cart.canEdit} onClick={() => {setScanSelectionId(null);setScanProduct(product);}} aria-label={`${product.name}をスキャンして追加`}><span aria-hidden="true">＋</span> スキャンして追加</button></div>
@@ -202,7 +220,8 @@ export default function Home() {
         {!catalogLoading && !catalogError && visibleProducts.length === 0 && <p className="rounded-xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-600">該当する商品がありません</p>}
         {hasMore && !catalogError && <button type="button" className={`${button} mt-4 w-full`} disabled={catalogLoading} onClick={() => { void loadProducts(search.current.query, products.length); }}>さらに表示</button>}
       </section>
-          </>:<div className="space-y-5"><SuggestionCards/></div>}
+          </>:panel==="comparison"?<ProductComparison products={comparisonProducts} onBack={()=>setPanel("products")}
+            disabled={!cart.canEdit} onScan={product=>{setScanSelectionId(null);setScanProduct(product);}}/>:<div className="space-y-5"><SuggestionCards/></div>}
         </div>
         {panel==="products"&&cart.itemCount>0&&<div className="shopping-sheet-cart"><button type="button" onClick={()=>{setPanel(null);setCartOpen(true);}} aria-label={`買い物かごを開く、現在${cart.itemCount}点`}>買い物かご · {cart.itemCount}点　{yen.format(cart.total)}</button></div>}
       </section>
@@ -218,7 +237,7 @@ export default function Home() {
             <p>{cart.discountTotal>0?yen.format(cart.discountTotal)+" OFF":"商品を追加すると、おすすめが届きます"}</p>
           </div></div>
           {cart.error&&<div className="mb-3">{status}</div>}
-          {cart.lines.length === 0 ? <p className="shopping-basket-empty">かごは空です</p> : <ul className="shopping-basket-lines">
+          {cart.lines.length === 0 ? <p className={cart.lastRemoval?"py-3 text-sm":"shopping-basket-empty"}>かごは空です</p> : <ul className="shopping-basket-lines">
             {cart.lines.map(line => {
               const photo=MENU_PRODUCT_IMAGES[line.code] ?? (/パン/.test(line.category)?"/images/shopping/category-bread.png":/青果|果物/.test(line.category)?"/images/shopping/category-fruit.png":/惣菜/.test(line.category)?"/images/products/karaage.png":undefined);
               return <li key={line.productId} className="shopping-basket-line">
@@ -232,6 +251,7 @@ export default function Home() {
               </li>;
             })}
           </ul>}
+          {cart.lastRemoval&&<RemovalFeedback key={cart.lastRemoval.eventId} removal={cart.lastRemoval} onDone={cart.clearRemoval}/>}
         </div>
         <footer className="shopping-basket-footer">
           {cart.discountTotal>0&&<p className="shopping-basket-saving"><span>クーポン・セール割引</span><span>−{yen.format(cart.discountTotal)}</span></p>}
@@ -241,7 +261,7 @@ export default function Home() {
         </footer>
       </section>
     </div>}
-    {homeDetail&&homeDetail.version===cart.version&&<SuggestionDetail scanRequired item={homeDetail.item} label={homeDetail.item.placementType==="sponsored"?"広告":homeDetail.item.placementType==="store_promo"?"店舗からのおすすめ":"あなたへのおすすめ"} added={cart.lines.some(line=>line.productId===homeDetail.item.product.productId)} disabled={!cart.canEdit} onClose={()=>setHomeDetail(null)} onAdd={()=>{setScanSelectionId(homeDetail.item.selectionItemId);setScanProduct({...homeDetail.item.product,available:true});}}/>}
+    {homeDetail&&homeDetail.version===cart.version&&<SuggestionDetail scanRequired item={homeDetail.item} label={homeDetail.item.placementType==="sponsored"?"広告":homeDetail.item.placementType==="store_promo"?"店舗からのおすすめ":"あなたへのおすすめ"} added={cart.lines.some(line=>line.productId===homeDetail.item.product.productId)} disabled={!cart.canEdit} onClose={()=>setHomeDetail(null)} onDismiss={hidden?()=>{hidden.dismiss(homeDetail.item);setHomeDetail(null);}:undefined} onAdd={()=>{setScanSelectionId(homeDetail.item.selectionItemId);setScanProduct({...homeDetail.item.product,available:true});}}/>}
     {scanProduct&&<ProductScanDialog product={scanProduct} disabled={!cart.canEdit} onClose={()=>setScanProduct(null)} onVerified={()=>{if(scanSelectionId){track({event_type:"recommendation_click",selection_item_id:scanSelectionId,product_id:scanProduct.productId,payload:{target:"add_button"}});cart.addRecommendation(scanProduct.productId,scanSelectionId);}else cart.setQuantity(scanProduct.productId,(cart.lines.find(line=>line.productId===scanProduct.productId)?.quantity??0)+1);setHomeDetail(null);}}/>}
   </main>;
 }

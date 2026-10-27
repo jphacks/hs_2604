@@ -2,6 +2,9 @@
 export type EventAction =
   | { event_type: "recommendation_impression"; selection_item_id: string; product_id: string; payload: { visible_ms: number } }
   | { event_type: "recommendation_click"; selection_item_id: string; product_id: string; payload: { target: "detail" | "add_button" } }
+  | { event_type: "recommendation_dismissed"; selection_item_id: string; product_id: string; payload: Record<string, never> }
+  | { event_type: "removal_reason_prompted" | "removal_reason_skipped"; selection_item_id: null; product_id: string; payload: { removal_event_id: string } }
+  | { event_type: "removal_reason_submitted"; selection_item_id: null; product_id: string; payload: { removal_event_id: string; reason: string } }
   | { event_type: "product_compared"; selection_item_id: null; product_id: null; payload: { product_ids: string[] } };
 export type AppEvent = EventAction & {
   event_id: string; schema_version: 1; occurred_at: string; channel: "app";

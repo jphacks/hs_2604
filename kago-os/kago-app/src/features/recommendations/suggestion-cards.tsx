@@ -3,6 +3,7 @@
 import Image from "next/image";
 import {SponsoredArtwork} from "./sponsored-artwork";
 import { ProductScanDialog } from "@/features/scanner/product-scan-dialog";
+import { useRecommendationDismissals } from "./dismissals";
 import { SuggestionDetail } from "./suggestion-detail";
 import { useEffect, useRef, useState } from "react";
 import { useCart } from "@/features/cart/cart-provider";
@@ -101,7 +102,8 @@ function SuggestionCarousel({ selection, newItemIds, paused, onPauseChange }: { 
   }, [detail]);
 
   // Auto-rotation: one suggestion at a time, sliding up every few seconds (ad → store pick → personal).
-  const slides = orderSlides(selection.items);
+  const hidden=useRecommendationDismissals();
+  const slides = orderSlides(selection.items.filter(item=>!hidden?.ids.includes(item.selectionItemId)));
   const current = slides.length ? index % slides.length : 0;
   useImpression(container, slides[current], !detail);
   const running = slides.length > 1 && !paused && !hovered && !focused && !detail;
@@ -112,6 +114,7 @@ function SuggestionCarousel({ selection, newItemIds, paused, onPauseChange }: { 
     return () => window.clearInterval(timer);
   }, [running, slides.length]);
 
+  if(slides.length===0)return <p className="rounded-xl border border-slate-200 p-4 text-sm">表示するおすすめはありません。非表示にした商品も通常の商品検索から選べます。</p>;
   const inCart = new Set(cart.lines.map(line => line.productId));
   const add = (item: Item) => {
     track({ event_type: "recommendation_click", selection_item_id: item.selectionItemId, product_id: item.product.productId, payload: { target: "add_button" } });
@@ -169,7 +172,7 @@ function SuggestionCarousel({ selection, newItemIds, paused, onPauseChange }: { 
         </div>
       </div>}
     </div>
-    {detail && <SuggestionDetail scanRequired item={detail} label={suggestionLabel(detail)} added={inCart.has(detail.product.productId)} disabled={!cart.canEdit} closeButtonRef={closeButton} onClose={()=>setDetail(null)} onAdd={()=>setScanItem(detail)}/>}
+    {detail && <SuggestionDetail scanRequired item={detail} label={suggestionLabel(detail)} added={inCart.has(detail.product.productId)} disabled={!cart.canEdit} closeButtonRef={closeButton} onClose={()=>setDetail(null)} onDismiss={hidden?()=>{hidden.dismiss(detail);setDetail(null);}:undefined} onAdd={()=>setScanItem(detail)}/>}
 
     {scanItem&&<ProductScanDialog product={scanItem.product} disabled={!cart.canEdit} onClose={()=>setScanItem(null)} onVerified={()=>add(scanItem)}/>}
   </>;

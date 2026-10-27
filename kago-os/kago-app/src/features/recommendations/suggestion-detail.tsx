@@ -8,9 +8,9 @@ import { MENU_PRODUCT_IMAGES, productIcon } from "@/lib/product-visuals";
 import type { SavedSelectionItem } from "./selection-contracts";
 import "./suggestion-detail.css";
 
-type Props={item:SavedSelectionItem;label:string;added:boolean;disabled:boolean;onClose:()=>void;onAdd:()=>void;closeButtonRef?:Ref<HTMLButtonElement>;previewControls?:ReactNode;scanRequired?:boolean};
+type Props={item:SavedSelectionItem;label:string;added:boolean;disabled:boolean;onClose:()=>void;onDismiss?:()=>void;onAdd:()=>void;closeButtonRef?:Ref<HTMLButtonElement>;previewControls?:ReactNode;scanRequired?:boolean};
 const yen=new Intl.NumberFormat("ja-JP",{style:"currency",currency:"JPY"});
-export function SuggestionDetail({item,label,added,disabled,onClose,onAdd,closeButtonRef,previewControls,scanRequired=false}:Props){
+export function SuggestionDetail({item,label,added,disabled,onClose,onAdd,onDismiss,closeButtonRef,previewControls,scanRequired=false}:Props){
  const sheet=useRef<HTMLElement>(null);const closeDialog=useEffectEvent(onClose);
  useEffect(()=>{
   if(closeButtonRef)return;
@@ -45,6 +45,7 @@ export function SuggestionDetail({item,label,added,disabled,onClose,onAdd,closeB
        <div className="suggestion-detail-reason"><h3><ShoppingIcon name="heart"/>おすすめの理由</h3><p>{item.reasonText}</p></div>
        </div>
      </div>
+     {onDismiss&&<button type="button" className="mx-5 mb-3 min-h-11 rounded-xl border border-slate-300 px-4 py-2 text-sm" onClick={onDismiss}>このおすすめを非表示にする</button>}
      <footer className="suggestion-detail-footer"><button type="button" disabled={disabled||added} onClick={onAdd}><ShoppingIcon name={scanRequired?"camera":"cart"}/>{scanRequired?"商品のバーコードを読み取る":added?"かごに追加済み":"かごに追加"}</button></footer>
    </section>
    </div>
