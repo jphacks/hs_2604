@@ -31,7 +31,7 @@ export default async function Page({
               unit: "点",
             },
             {
-              label: "販売金額",
+              label: "販売金額（値引き前）",
               current: current.amount,
               previous: previous.amount,
               unit: "円",
@@ -43,7 +43,7 @@ export default async function Page({
       <div>
         <h1 className="text-2xl font-bold">販促商品の販売推移</h1>
         <p className="mt-2 text-sm text-[var(--muted)]">
-          対象商品の販売を、販促期間内と直前の同じ長さの期間で確認します。広告や推薦を経由しない購入も含みます。
+          対象商品の販売を、販促期間内と直前の同じ長さの期間で確認します。金額は値引き前の注文明細金額です。広告や推薦を経由しない購入も含みます。
         </p>
       </div>
       {data.mock && (
@@ -228,7 +228,7 @@ export default async function Page({
             <SalesChart
               points={current.points}
               metric="amount"
-              title="販売金額の推移（円）"
+              title="販売金額の推移（値引き前・円）"
             />
           </div>
           <details className="rounded-xl border border-[var(--line)] p-4">
