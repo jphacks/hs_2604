@@ -285,8 +285,9 @@ try {
   await makerPage.goto(base+"/ads/maker/creatives/new");
   await makerPage.getByLabel("対象商品").selectOption(id(21));
   await makerPage.getByLabel("見出し").fill("ブラウザから登録した広告");
-  await makerPage.locator('input[type="file"]').setInputFiles(new URL("../public/ad-assets/CR1_v1_app.png",import.meta.url).pathname);
-  await makerPage.locator('img[src^="blob:"]').first().waitFor();
+  await makerPage.getByLabel("App用画像（正方形）",{exact:false}).setInputFiles(new URL("../public/ad-assets/design-v2/CR2_v1_app.png",import.meta.url).pathname);
+  await makerPage.getByLabel("Signage用画像（横長）",{exact:false}).setInputFiles(new URL("../public/ad-assets/design-v2/CR2_v1_signage.png",import.meta.url).pathname);
+  await makerPage.locator('img[src^="blob:"]').nth(1).waitFor();
   assert.equal(await makerPage.locator('img[src^="blob:"]').count(),2);
   await makerPage.screenshot({path:new URL("ads03-register.png",images).pathname,fullPage:true});
   await makerPage.getByRole("button",{name:"登録する",exact:true}).click();
@@ -294,7 +295,7 @@ try {
   const creativeId=new URL(makerPage.url()).searchParams.get("id")!;
   await makerPage.getByText("ブラウザから登録した広告",{exact:false}).first().waitFor();
   assert.equal((await fixture.db.query("select id from creative_versions where creative_id=$1",[creativeId])).rows.length,1);
-  checks.push("1枚の画像をApp・Signageでプレビューし、共通Storageと素材の第1版へ保存");
+  checks.push("App用とSignage用の別画像をプレビューし、共通Storageと同じ素材の第1版へ保存");
   const foreignCtx=await context(), foreignPage=await foreignCtx.newPage();
   await foreignPage.goto(base+"/ads/maker/creative?id="+creativeId);
   await login(foreignPage,"maker-two@example.test");
@@ -320,8 +321,9 @@ try {
   await makerPage.getByRole("button",{name:"新しい版を作る",exact:true}).click();
   await makerPage.getByLabel("見出し").fill("修正した広告");
   await makerPage.getByLabel("版のメモ").fill("商品名を大きく");
-  await makerPage.locator('input[type="file"]').setInputFiles(new URL("../public/ad-assets/CR1_v2_app.png",import.meta.url).pathname);
-  await makerPage.locator('img[src^="blob:"]').first().waitFor();
+  await makerPage.getByLabel("App用画像（正方形）",{exact:false}).setInputFiles(new URL("../public/ad-assets/design-v2/CR2_v2_app.png",import.meta.url).pathname);
+  await makerPage.getByLabel("Signage用画像（横長）",{exact:false}).setInputFiles(new URL("../public/ad-assets/design-v2/CR2_v2_signage.png",import.meta.url).pathname);
+  await makerPage.locator('img[src^="blob:"]').nth(1).waitFor();
   await makerPage.getByRole("button",{name:"この版を保存",exact:true}).click();
   await makerPage.getByRole("button",{name:"この版を保存",exact:true}).waitFor({state:"hidden"});
   await makerPage.getByText("修正した広告",{exact:false}).first().waitFor();
@@ -354,7 +356,7 @@ try {
   checks.push("別メーカーの申請詳細URLを直接指定しても閲覧しない");
   await makerPage.setViewportSize({width:390,height:844});
   await makerPage.goto(base+"/ads/maker/creatives/new");
-  await makerPage.getByLabel("広告画像").waitFor();
+  await makerPage.getByLabel("App用画像（正方形）",{exact:false}).waitFor();
   assert.equal(await makerPage.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);
   checks.push("スマホ幅でも実画像の登録フォームが横にはみ出さない");
   await makerPage.getByRole("button",{name:"ログアウト",exact:true}).click();
