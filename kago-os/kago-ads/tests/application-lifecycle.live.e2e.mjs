@@ -408,6 +408,22 @@ try {
 } finally {
   try {
     if (applicationId) {
+      const pending = await store
+        .from("ad_applications")
+        .select("status,revision")
+        .eq("id", applicationId)
+        .single();
+      assert.ifError(pending.error);
+      if (pending.data.status === "submitted") {
+        const result = await store.rpc("kago_reject_application", {
+          p_application_id: applicationId,
+          p_expected_revision: pending.data.revision,
+          p_reason:
+            "ADS31 自動検証の終了処理。実際の広告内容の評価ではありません。",
+        });
+        assert.ifError(result.error);
+      }
+
       const active = await store
         .from("ad_placements")
         .select("id")
