@@ -1,14 +1,17 @@
+import { fetchSignagePlays } from "@/lib/signage-plays";
+import { PlayHistory } from "@/features/signage/play-history";
 import { fetchSignageDecisions } from "@/lib/signage-decisions";
 import { USING_MOCK } from "@/lib/mode";
 const time=(s:string)=>new Date(s).toLocaleString("ja-JP",{timeZone:"Asia/Tokyo"});
 export default async function Page(){
- const {rows,unavailable}=await fetchSignageDecisions();
+ const [{rows,unavailable},plays]=await Promise.all([fetchSignageDecisions(),fetchSignagePlays()]);
  return <section className="space-y-5">
-  <div><p className="text-sm text-[var(--muted)]">SIG-06</p><h1 className="text-2xl font-bold">サイネージの選定理由</h1>
+  <div><p className="text-sm text-[var(--muted)]">SIG-02 / SIG-06</p><h1 className="text-2xl font-bold">サイネージの選定理由</h1>
    <p className="mt-2 text-sm text-[var(--muted)]">自店の直近100件。選定理由は端末の報告です。かご傾向は直近15分以内に活動のあった来店を利用者ごとに数え、5人未満の内訳は表示しません。</p></div>
   <form method="get"><button className="rounded-lg border border-[var(--line)] px-4 py-2 text-sm font-bold">最新の履歴に更新</button></form>
   {unavailable?<p role="status">選定履歴のDB設定が未適用です。SIG-06のmigration適用後に利用できます。</p>:
    rows.length===0?<p role="status">{USING_MOCK?"モック表示では実際の端末の選定履歴はありません。":"選定履歴はまだありません。端末で集計選定を有効にし、再生が終了すると記録されます。"}</p>:null}
+  <h2 className="text-xl font-bold">集計から選定した理由</h2>
   {rows.map(row=><article key={row.play_id} data-testid="signage-decision" className="rounded-xl border border-[var(--line)] bg-[var(--panel)] p-5">
    <p className="text-sm text-[var(--muted)]">{time(row.decision.selected_at)}（日本時間）</p>
    <h2 className="mt-2 font-bold">{row.decision.reason_text}</h2>
@@ -23,5 +26,6 @@ export default async function Page(){
     <ul>{row.decision.weights.map((w,i)=><li className="break-all" key={i}>{w.key}：{w.weight}</li>)}</ul>
    </details>
   </article>)}
+  <PlayHistory rows={plays}/>
  </section>;
 }
