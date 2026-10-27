@@ -1,5 +1,5 @@
 /** 戻り先はInsightの画面だけ。フォームのhidden値も信用せず再検証する。 */
-const screens = new Set(["/promotions", "/review", "/coupons", "/metrics", "/signage-decisions", "/sales"]);
+const screens = new Set(["/sales", "/analysis", "/promotions", "/review", "/coupons", "/metrics", "/signage-decisions"]);
 const fallback = "/promotions";
 
 export function loginDestination(value: unknown): string {

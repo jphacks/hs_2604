@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 const tabs = [
   { href: "/sales", label: "販売推移", issue: "INS-08" },
+  { href: "/analysis", label: "詳細分析", issue: "INS-05" },
   { href: "/review", label: "広告審査", issue: "INS-01" },
   { href: "/signage-decisions", label: "サイネージ選定", issue: "SIG-06" },
   { href: "/promotions", label: "販促設定", issue: "INS-02" },

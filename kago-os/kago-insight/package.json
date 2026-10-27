@@ -14,6 +14,7 @@
     "test:login-return": "node --experimental-strip-types --test tests/login-destination.test.mjs tests/demo-destination.test.mjs",
     "test:promotion-recovery:e2e": "node --experimental-strip-types tests/promotion-recovery.e2e.mts",
     "test:signage-plays": "node --experimental-strip-types --test tests/signage-play-labels.test.mjs",
+    "test:analysis": "node --experimental-strip-types --test tests/detailed-analysis.test.mjs",
     "test:sales": "node --experimental-strip-types --test tests/sales-trends.test.mjs"
   },
   "dependencies": {
