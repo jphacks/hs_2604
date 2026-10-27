@@ -25,3 +25,8 @@ test("制御文字・非文字列・複数パラメータ・過大入力は通�
   for (const value of [undefined, null, ["/review", "//evil.invalid"], {}, "/review\r\nLocation:evil", " /review", "/review?x=" + "a".repeat(2048)])
     assert.equal(loginDestination(value), "/promotions");
 });
+
+test("詳細分析も公開パスと条件を保って戻れる",()=>{
+ assert.equal(loginDestination("/analysis?origin=operated"),"/analysis?origin=operated");
+ assert.equal(loginDestination("/insight/analysis?origin=seeded"),"/analysis?origin=seeded");
+});

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const tabs = [
+  { href: "/analysis", label: "詳細分析", issue: "INS-05" },
   { href: "/review", label: "広告審査", issue: "INS-01" },
   { href: "/signage-decisions", label: "サイネージ選定", issue: "SIG-06" },
   { href: "/promotions", label: "販促設定", issue: "INS-02" },
@@ -24,7 +25,7 @@ export function Nav() {
             href={tab.href}
             aria-current={active ? "page" : undefined}
             className={[
-              "min-h-14 border-b-[3px] px-5 py-4 text-sm font-bold transition-colors",
+              "min-h-14 shrink-0 whitespace-nowrap border-b-[3px] px-5 py-4 text-sm font-bold transition-colors",
               active
                 ? "border-[var(--accent)] text-[var(--accent)]"
                 : "border-transparent text-[var(--muted)] hover:text-[var(--ink)]",
