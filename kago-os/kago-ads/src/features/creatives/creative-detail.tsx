@@ -114,10 +114,10 @@ export function AdDetail() {
             {v.image_error && <ErrorList errors={[v.image_error]} />}
             <div className="mt-3 flex flex-wrap items-start gap-4">
               {CHANNELS.map((ch) => (
-                <div key={ch}>
+                <div key={ch} className="min-w-0 max-w-full">
                   <p className="mb-1 text-xs text-muted">{CHANNEL_LABEL[ch]}</p>
                   {v.assets[ch] ? (
-                    <AdMedia asset={v.assets[ch]!} channel={ch} makerName={data.makerName} className={ch === "app" ? "w-40" : "w-80"} />
+                    <AdMedia asset={v.assets[ch]!} channel={ch} makerName={data.makerName} className={ch === "app" ? "w-40 max-w-full" : "w-80 max-w-full"} />
                   ) : (
                     <p className="text-xs text-muted">素材なし（{CHANNEL_LABEL[ch]}には申請できません）</p>
                   )}

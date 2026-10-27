@@ -20,7 +20,8 @@
     "check:results": "node --experimental-strip-types --env-file=.env.local scripts/check-results.mts",
     "test:results:live": "node --experimental-strip-types --env-file=.env.local tests/results-live.e2e.mts",
     "check:maker": "node --experimental-strip-types --env-file=.env.local scripts/check-maker.mts",
-    "test:signage:shell:e2e": "node --experimental-strip-types tests/signage-shell.e2e.mts"
+    "test:signage:shell:e2e": "node --experimental-strip-types tests/signage-shell.e2e.mts",
+    "test:responsive:e2e": "node --experimental-strip-types tests/responsive.e2e.mts"
   },
   "dependencies": {
     "@kago/backend": "workspace:*",
