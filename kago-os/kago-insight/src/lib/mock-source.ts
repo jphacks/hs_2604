@@ -49,8 +49,8 @@ export async function fetchPlacements(): Promise<Placement[]> {
   return delay(placementsMock as Placement[]);
 }
 
-export async function fetchPromotions(): Promise<Promotion[]> {
-  return delay(promotionsMock as Promotion[]);
+export async function fetchPromotions(options: { includeInactive?: boolean } = {}): Promise<Promotion[]> {
+  return delay((promotionsMock as Promotion[]).filter(p => options.includeInactive || p.status === "active"));
 }
 
 export async function fetchProducts(): Promise<Product[]> {
